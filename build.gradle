@@ -1,0 +1,114 @@
+plugins {
+    id 'java'
+    id 'com.gradleup.shadow' version '9.6.1'
+}
+
+group = 'org.thesandbox'
+version = '1.0.0'
+description = 'TheSandboxCore'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+repositories {
+    mavenCentral()
+
+    maven {
+        name = 'papermc'
+        url = uri('https://repo.papermc.io/repository/maven-public/')
+    }
+
+    maven {
+        name = 'lucko'
+        url = uri('https://repo.lucko.me/')
+    }
+
+    maven {
+        name = 'codemc'
+        url = uri('https://repo.codemc.org/repository/maven-public/')
+    }
+
+    maven {
+        name = 'essentialsx'
+        url = uri('https://repo.essentialsx.net/releases/')
+    }
+
+    maven {
+        name = 'playpro'
+        url = uri('https://maven.playpro.com/')
+    }
+
+    maven {
+        name = 'lumine'
+        url = uri('https://mvn.lumine.io/repository/maven-public/')
+    }
+
+    maven {
+        name = 'libsdisguises'
+        url = uri('https://mvn.lib.co.nz/public/')
+    }
+
+    maven {
+        name = 'jitpack'
+        url = uri('https://jitpack.io')
+    }
+}
+
+dependencies {
+    compileOnly 'io.papermc.paper:paper-api:26.1.2.build.63-stable'
+    compileOnly 'net.luckperms:api:5.4'
+    compileOnly('net.essentialsx:EssentialsX:2.20.1') {
+        exclude group: 'org.spigotmc', module: 'spigot-api'
+    }
+    compileOnly 'net.skinsrestorer:skinsrestorer-api:15.7.10'
+    compileOnly 'me.libraryaddict.disguises:libsdisguises:11.0.13'
+    compileOnly 'com.github.LeonMangler:PremiumVanishAPI:2.9.18-2'
+    compileOnly 'litebans:api:0.6.1'
+
+    implementation 'com.zaxxer:HikariCP:5.1.0'
+    implementation 'com.mysql:mysql-connector-j:9.0.0'
+
+    implementation('net.dv8tion:JDA:5.0.0') {
+        exclude group: 'org.slf4j', module: 'slf4j-simple'
+        exclude group: 'club.minnced', module: 'opus-java'
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release.set(25)
+}
+
+tasks.named('jar') {
+    enabled = false
+}
+
+tasks.named('shadowJar') {
+    archiveBaseName.set('thesandboxcore')
+    archiveVersion.set(project.version.toString())
+    archiveClassifier.set('')
+
+    exclude 'META-INF/*.SF'
+    exclude 'META-INF/*.DSA'
+    exclude 'META-INF/*.RSA'
+
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    mergeServiceFiles()
+    filesNotMatching('META-INF/services/**') {
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+
+    relocate 'com.zaxxer.hikari', 'org.thesandbox.libs.hikari'
+    relocate 'com.mysql', 'org.thesandbox.libs.mysql'
+    relocate 'net.dv8tion.jda', 'org.thesandbox.libs.jda'
+    relocate 'okhttp3', 'org.thesandbox.libs.okhttp3'
+    relocate 'okio', 'org.thesandbox.libs.okio'
+    relocate 'com.fasterxml', 'org.thesandbox.libs.fasterxml'
+}
+
+tasks.named('build') {
+    dependsOn tasks.named('shadowJar')
+}

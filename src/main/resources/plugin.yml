@@ -1,0 +1,384 @@
+name: TheSandboxCore
+main: org.thesandbox.core.TheSandboxCore
+version: "1.0.0"
+api-version: "1.21"
+authors: ["pixelpaladinn"]
+description: Core features for TheSandbox
+depend:
+  - LuckPerms
+  - Essentials
+softdepend:
+  - Vault
+  - CoreProtect
+  - LiteBans
+  - PremiumVanish
+  - SuperVanish
+  - LibsDisguises
+  - SkinsRestorer
+loadbefore: [Essentials, EssentialsX, WorldGuard]
+
+commands:
+  discord:
+    description: Sends Discord Invite
+    usage: /discord
+    permission: sandbox.default
+  shop:
+    description: Opens The Shop
+    usage: /shop
+    permission: sandbox.default
+  skull:
+    description: Give yourself a player skull
+    usage: /skull <player>
+    permission: sandbox.default
+    
+  shush:
+    description: Toggle shush mode to hide staff notifications
+    usage: /shush [on|off]
+    permission: sandbox.staff
+    aliases: [hush]
+
+  commandspy:
+    description: Toggle command spy
+    usage: /commandspy
+    permission: sandbox.staff
+    aliases: [cmdspy]
+    
+  potionspy:
+    description: Toggle potion spy
+    usage: /potionspy [on|off|history]
+    permission: sandbox.staff
+    aliases: [potspy]
+    
+  attributelist:
+    description: List all attributes
+    usage: /attributelist
+    permission: sandbox.default
+    aliases: [attrs, attributes]
+    
+  potion:
+    description: Manipulate potion effects.
+    usage: /potion <list | clearall | clear [target] | add <type> <durationTicks> <amplifier> [target]>
+    aliases: [effect]
+    permission: sandbox.default
+    
+  report:
+    description: Report a player.
+    usage: /report <player> <reason>
+    permission: sandbox.default
+    
+  expel:
+    description: Push players away from you
+    usage: /expel
+    permission: sandbox.staff
+    aliases: [push]
+    
+  mobpurge:
+     description: Despawn mobs in all worlds
+     usage: /mobpurge [name]
+     permission: sandbox.staff
+     aliases: [mp]
+     
+  plugincontrol:
+     description: (DEBUG) Enable, disable, reload, or list plugins.
+     usage: "/plugincontrol <enable|disable|reload> <plugin> | list"
+     aliases: [plc]
+     permission: sandbox.superuser
+    
+  freeze:
+    description: Toggle global or per-player freeze
+    usage: /freeze [target | purge]
+    permission: sandbox.staff
+    aliases: [fr]
+    
+  nickclean:
+    description: Remove blocked chat codes (&0, &k, &m, &n) from Essentials nicknames
+    usage: /<command> [player]
+    aliases: [nc]
+    permission: sandbox.staff
+    
+  nickgradient:
+    description: Add a gradient to your nickname.
+    usage: /nickgradient <hex|random> <hex|random> <nick>
+    aliases: [nickgr]
+    permission: sandbox.default
+    
+  nicknyan:
+    description: Randomize your nick colors
+    usage: /nicknyan <nick>
+    permission: sandbox.default
+    
+  nickrainbow:
+    description: Add rainbow to your nickname
+    usage: /nickrainbow <nick>
+    permission: sandbox.default
+    
+  tagnyan:
+    description: Randomize your tag colors
+    usage: /tagnyan <nick>
+    permission: sandbox.default
+    
+  tagrainbow:
+    description: Add rainbow to your tag
+    usage: /tagrainbow <tag>
+    permission: sandbox.default
+    
+  sudo:
+    description: Send a command as someone else
+    usage: /sudo <player>
+    permission: sandbox.staff
+    aliases: [gcmd]
+    
+  invisible:
+    description: See a list of invisible players or clear them.
+    usage: /invisible [clear]
+    permission: sandbox.staff
+    aliases: [invis]
+    
+  kicknoob:
+    description: Kick all non-staff that are online
+    usage: /kicknoob
+    permission: sandbox.admin
+    aliases: [kickall]
+
+  localspawn:
+    description: Teleport to spawn point for current world instead of Essentials spawn
+    usage: /localspawn
+    permission: sandbox.default
+    aliases: [worldspawn,gotospawn]
+    
+  glow:
+    description: Toggle the glowing outline effect for your player
+    usage: /glow
+    permission: sandbox.default
+    
+  gravity:
+    description: Toggle your gravity on or off.
+    usage: /gravity
+    permission: sandbox.default
+    
+  explode:
+    description: Explode another player! KABOOM!
+    usage: /explode <player>
+    permission: sandbox.admin
+    
+  heal:
+    description: Heal yourself or another user.
+    usage: /heal <player>
+    permission: sandbox.default
+    
+  managechat:
+    description: Mute or clear public chat.
+    usage: /managechat <mute|clear>
+    permission: sandbox.staff
+    aliases: [mchat,chc,mc,chatcontrol]
+    
+  debugstick:
+    description: Obtain a Debug Stick
+    usage: /debugstick
+    permission: sandbox.default
+
+  denick:
+    description: Remove all online nicknames
+    usage: /denick
+    permission: sandbox.staff
+    
+  deafen:
+    description: What the hell is even that?
+    usage: /deafen
+    permission: sandbox.admin
+    
+  disguisetoggle:
+    description: Enable or disable disguises for all online players
+    usage: /disguisetoggle
+    permission: sandbox.staff
+    aliases: [dtoggle]
+  
+  entitywipe:
+    description: Remove server entities (items, boats, minecarts, and more!)
+    usage: /entitywipe [entity | -a]
+    permission: sandbox.staff
+    aliases: [ew, rd]
+
+  colorme:
+    description: Change your nickname color.
+    usage: /colorme <color|list>
+    permission: sandbox.default
+    
+  clearinventory:
+    description: Clear your inventory, others' inventory, or everyone's inventory
+    usage: /clearinventory <player|all>
+    permission: sandbox.default
+    aliases: [clearinv,ci,cinv]
+  
+  adventure:
+    description: Change your gamemode to adventure or set another's.
+    usage: /<command> [player | -a]
+    aliases: [gma]
+    permission: sandbox.default
+    
+  creative:
+    description: Change your gamemode to creative or set another's.
+    usage: /<command> [player | -a]
+    aliases: [gmc]
+    permission: sandbox.default  
+    
+  survival:
+    description: Change your gamemode to survival or set another's.
+    usage: /<command> [player | -a]
+    aliases: [gms]
+    permission: sandbox.default 
+    
+  spectator:
+    description: Change your gamemode to spectator or set another's.
+    usage: /<command> [player | -a]
+    aliases: [gmsp]
+    permission: sandbox.default
+
+  staffchat:
+    description: Toggle or send staff chat
+    usage: /staffchat [message] | /staffchat hide [on|off]
+    permission: sandbox.staff
+    aliases: [o, sc, adminchat, ac]
+
+  orbit:
+    description: Send a player into space.
+    usage: /orbit <player>
+    permission: sandbox.staff
+    
+  autoclear:
+    description: Automatically clear a player.
+    usage: /autoclear <player>
+    permission: sandbox.staff
+    aliases: [acr]
+    
+  autotp:
+    description: Automatically random-teleport a player on join.
+    usage: /autotp <player>
+    permission: sandbox.staff
+    aliases: [atp]
+
+  thesandboxcore:
+    description: Show plugin info or reload
+    usage: /thesandboxcore [reload]
+    permission: sandbox.default
+
+  cage:
+    description: Toggle a player cage (glass by default, or skull/block variant)
+    usage: /cage <player> [skull <username> | block <MATERIAL>]
+    permission: sandbox.staff
+    
+  rank:
+    description: Show or change ranks
+    usage: /rank [player] | /rank set <player> <rank>
+    permission: sandbox.default
+    permission-message: "&cYou do not have permission."
+  
+  whohas:
+    description: "See who has an item and optionally clear it"
+    usage: "/whohas <item> [clear]"
+    aliases: [wh]
+    permission: sandbox.staff
+    permission-message: "&cYou do not have permission to use this command."
+    
+  blockcmd:
+    description: "Block a player's commands for 5 minutes, or block everyone (except staff) until purged"
+    usage: "/blockcmd <player|all|purge>"
+    permission: sandbox.staff
+    permission-message: "&cYou do not have permission to use this command."
+    
+  tag:
+    description: Set a custom prefix.
+    usage: "/tag [-save] <set <tag..> | list | gradient <hex> <hex> <tag..> | off | clear <player> | clearall>"
+    permission: sandbox.default
+
+  guild:
+    description: Guild commands
+    usage: /guild
+    aliases: [g]
+    permission: sandbox.default
+
+  gchat:
+    description: Guild chat
+    usage: /gchat [message]
+    aliases: [gc]
+    permission: sandbox.default
+    
+  aeclear:
+    description: Clears lingering potion area effect clouds.
+    usage: /aeclear
+    aliases: [aec]
+    permission: sandbox.staff
+    permission-message: You don't have permission to use this command.
+    
+  world:
+    description: Teleport to a specified world.
+    usage: /world <world>
+    permission: sandbox.default
+    
+  flatlands:
+    description: Teleport to the flatlands.
+    usage: /flatlands
+    permission: sandbox.default
+    
+  adminworld:
+    description: Teleport to the adminworld.
+    usage: /adminworld
+    permission: sandbox.default
+    
+  masterbuilderworld:
+    description: Teleport to the masterbuilderworld.
+    usage: /masterbuilderworld
+    aliases: [mbw]
+    permission: sandbox.default
+    
+  gamemode:
+    description: Change your or another player's gamemode
+    usage: /gamemode <gamemode> <player>
+    aliases: [gm]
+    permission: sandbox.default
+    permission-message: "&cYou do not have permission to use this command."
+    
+  overworld:
+    description: Teleport to the overworld.
+    usage: /overworld
+    permission: sandbox.default
+    
+  nether:
+    description: Teleport to the nether.
+    usage: /nether
+    permission: sandbox.default
+    
+  end:
+    description: Teleport to the end.
+    usage: /end
+    permission: sandbox.default
+    
+  wildcard:
+    description: Run any command for every online player. Use "?" as an optional placeholder for the player's name; if omitted, the name is appended.
+    usage: /wildcard <command>
+    permission: sandbox.staff
+  
+  loop:
+    description: (DEBUG) Loop a specified command for a certain amount
+    usage: /loop <amount> <command>
+    permission: sandbox.superuser
+    
+  say:
+    description: Broadcast a staff message to the entire server
+    usage: /say <message>
+    permission: sandbox.staff
+    
+  rawsay:
+    description: Broadcast any raw message to the entire server
+    usage: /rawsay <message>
+    permission: sandbox.admin
+    
+  list:
+    description: List all online players
+    usage: /list
+    permission: sandbox.default
+
+  devtoggle:
+    description: Developer toggles for server systems.
+    usage: /devtoggle discord [status]
+    permission: sandbox.superuser
