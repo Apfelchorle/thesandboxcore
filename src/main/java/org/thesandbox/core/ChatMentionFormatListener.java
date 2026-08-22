@@ -2,6 +2,7 @@ package org.thesandbox.core;
 
 import com.earth2me.essentials.Essentials;
 import com.earth2me.essentials.User;
+import io.papermc.paper.event.player.AsyncChatEvent;
 import net.luckperms.api.LuckPerms; // optional import if you reference the type elsewhere
 import net.luckperms.api.LuckPermsProvider;
 import net.kyori.adventure.text.Component;
@@ -190,7 +191,12 @@ public class ChatMentionFormatListener implements Listener
             base = p.getName();
         }
 
-        base = rankNameColor(p) + stripLegacyColorsKeepFormatting(base);
+        if (hasColorCode(base)) {
+            base = base;
+        } else {
+            base = rankNameColor(p) + stripLegacyColorsKeepFormatting(base);
+        }
+
         base = ltrimSpacesAfterLeadingColorCodes(base);
 
         String guildPrefix = getGuildPrefixColorized(p);
@@ -207,6 +213,18 @@ public class ChatMentionFormatListener implements Listener
         }
 
         return joinWithSingleSpace(prefix, base);
+    }
+
+    // helper function
+    private static boolean hasColorCode(String s) {
+        if (s == null) return false;
+        for (int i = 0; i + 1 < s.length(); i++) {
+            if (s.charAt(i) == '§') {
+                char c = Character.toLowerCase(s.charAt(i + 1));
+                if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) return true;
+            }
+        }
+        return false;
     }
 
     private static String stripLegacyColorsKeepFormatting(String input)
