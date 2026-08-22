@@ -23,7 +23,7 @@ public class DiscordCommand implements ISubCommand {
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
         // you can tell what this does
         String inviteUrl = plugin.getConfig().getString("discord.invite-url", "value not set");
-        sender.sendMessage(Component.text("Discord Link : " + inviteUrl, NamedTextColor.BLUE));
+        sender.sendMessage(Component.text("Discord Link: " + inviteUrl, NamedTextColor.BLUE));
         return true;
     }
 

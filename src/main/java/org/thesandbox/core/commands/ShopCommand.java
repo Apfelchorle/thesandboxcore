@@ -40,7 +40,7 @@ public class ShopCommand implements Listener,ISubCommand {
         }
 
     }
-    private final Component shoptitle = Component.text("Shop Command", NamedTextColor.DARK_GREEN);
+    private final Component shoptitle = Component.text("The Shop", NamedTextColor.DARK_GREEN);
 
     public ShopCommand(TheSandboxCore plugin) {
         Bukkit.getPluginManager().registerEvents(this, plugin);
@@ -57,7 +57,7 @@ public class ShopCommand implements Listener,ISubCommand {
 
         if (slot == 11) {
             player.closeInventory();
-            player.sendMessage(Component.text("Lightning Wazah!!!!", NamedTextColor.YELLOW));
+            player.sendMessage(Component.text("Lightning Wazuhhhhhh!!!!", NamedTextColor.YELLOW));
         }
 
         event.setCancelled(true);
