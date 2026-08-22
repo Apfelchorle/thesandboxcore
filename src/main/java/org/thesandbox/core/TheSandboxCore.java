@@ -9,7 +9,6 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
@@ -20,22 +19,10 @@ import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.thesandbox.core.commands.AEClearCommand;
-import org.thesandbox.core.commands.AdventureCommand;
-import org.thesandbox.core.commands.AutoClearCommand;
-import org.thesandbox.core.commands.BlockCmdCommand;
-import org.thesandbox.core.commands.CageCommand;
+import org.thesandbox.core.items.ItemKeys;
+import org.thesandbox.core.items.ItemListener;
+import org.thesandbox.core.items.LightningRodItem;
 import org.thesandbox.core.commands.CommandManager;
-import org.thesandbox.core.commands.CommandSpyCommand;
-import org.thesandbox.core.commands.CreativeCommand;
-import org.thesandbox.core.commands.OrbitCommand;
-import org.thesandbox.core.commands.RankCommand;
-import org.thesandbox.core.commands.SpectatorCommand;
-import org.thesandbox.core.commands.StaffChatCommand;
-import org.thesandbox.core.commands.SurvivalCommand;
-import org.thesandbox.core.commands.TagCommand;
-import org.thesandbox.core.commands.TheSandboxCoreCommand;
-import org.thesandbox.core.commands.WhoHasCommand;
 import org.thesandbox.core.guilds.GuildManager;
 import org.thesandbox.core.login.LoginService;
 import org.thesandbox.core.tags.TagService;
@@ -48,9 +35,7 @@ import java.util.Set;
 import java.util.UUID;
 
 // POTIONSPY: service import
-import org.thesandbox.core.PotionSpyService;
-import org.thesandbox.core.ShushService;
-import org.thesandbox.core.ShushListener;
+
 
 public class TheSandboxCore extends JavaPlugin implements Listener {
 
@@ -127,6 +112,11 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     public void onEnable() {
         saveDefaultConfig();
         setupDatabase();
+        ItemKeys itemKeys = new ItemKeys(this);
+        LightningRodItem lightningRod = new LightningRodItem(itemKeys);
+
+
+        getServer().getPluginManager().registerEvents(new ItemListener(List.of(lightningRod)), this);
 
         // Initialize login service (rank lookup)
         loginService = new LoginService(this);
@@ -180,7 +170,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
                 guildManager,
                 potionSpyService,
                 this.shushService,
-                this.discord
+                this.discord,
+                lightningRod
         );
 
         setupRankScoreboardTeams();
