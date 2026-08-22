@@ -71,3 +71,9 @@ chat-separator: "&8»"
 guild-chat-prefix: "&6[Guild] "
 
 # Actions run when LiteBans warns an online player.
+
+# items config
+
+items:
+  lightningrod:
+    cooldown: 3000

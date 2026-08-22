@@ -11,6 +11,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.thesandbox.core.TheSandboxCore;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,12 +19,17 @@ import java.util.UUID;
 
 public class LightningRodItem implements Item {
 
-    private static final long COOLDOWN_MS = 3000; // 3 seconds
+    private final TheSandboxCore plugin;
+
     private final ItemKeys keys;
+
+    private final long cooldownMs;
     private final Map<UUID, Long> cooldowns = new HashMap<>();
 
-    public LightningRodItem(ItemKeys keys) {
+    public LightningRodItem(TheSandboxCore plugin, ItemKeys keys) {
+        this.plugin = plugin;
         this.keys = keys;
+        this.cooldownMs = plugin.getConfig().getInt("items.lightningrod.cooldown", 3000);
     }
 
     @Override
@@ -59,7 +65,7 @@ public class LightningRodItem implements Item {
         Player player = event.getPlayer();
         long now = System.currentTimeMillis();
         Long last = cooldowns.get(player.getUniqueId());
-        if (last != null && now - last < COOLDOWN_MS) return;
+        if (last != null && now - last < cooldownMs) return;
         cooldowns.put(player.getUniqueId(), now);
 
         Block target = player.getTargetBlockExact(50);

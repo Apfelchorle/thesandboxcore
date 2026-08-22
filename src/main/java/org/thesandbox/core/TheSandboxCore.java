@@ -113,7 +113,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         saveDefaultConfig();
         setupDatabase();
         ItemKeys itemKeys = new ItemKeys(this);
-        LightningRodItem lightningRod = new LightningRodItem(itemKeys);
+        LightningRodItem lightningRod = new LightningRodItem(this, itemKeys);
 
 
         getServer().getPluginManager().registerEvents(new ItemListener(List.of(lightningRod)), this);
