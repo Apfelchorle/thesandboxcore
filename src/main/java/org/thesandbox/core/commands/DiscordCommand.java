@@ -1,6 +1,7 @@
 package org.thesandbox.core.commands;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.ChatColor; // deprecated ?????
 import org.bukkit.command.Command;
@@ -23,7 +24,7 @@ public class DiscordCommand implements ISubCommand {
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
         // you can tell what this does
         String inviteUrl = plugin.getConfig().getString("discord.invite-url", "value not set");
-        sender.sendMessage(Component.text("Discord Link: " + inviteUrl, NamedTextColor.BLUE));
+        sender.sendMessage(Component.text("Discord Link: " + inviteUrl, NamedTextColor.BLUE).clickEvent(ClickEvent.openUrl(inviteUrl)));
         return true;
     }
 
