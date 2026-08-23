@@ -30,6 +30,7 @@ import org.thesandbox.core.tags.TagService;
 import org.thesandbox.core.util.CommandAutoRegistrar;
 import org.thesandbox.core.util.ItemAutoRegistrar;
 
+import java.io.File;
 import java.sql.*;
 import java.util.*;
 
@@ -112,6 +113,11 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         saveDefaultConfig();
         setupDatabase();
 
+        File subFolder = new File(getDataFolder(), "player_data");
+
+        if (!subFolder.exists()) {
+            subFolder.mkdirs();
+        }
 
         ItemKeys itemKeys = new ItemKeys(this);
         List<Item> items = ItemAutoRegistrar.registerAll(this, itemKeys);
