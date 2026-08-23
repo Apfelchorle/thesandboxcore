@@ -7,4 +7,5 @@ public interface Item {
     ItemStack create();
     boolean matches(ItemStack item);
     void onInteract(PlayerInteractEvent e);
+    String getName();
 }

@@ -25,6 +25,7 @@ public class LightningRodItem implements Item {
 
     private final long cooldownMs;
     private final Map<UUID, Long> cooldowns = new HashMap<>();
+    private static final String NAME = "Lightning Rod";
 
     public LightningRodItem(TheSandboxCore plugin, ItemKeys keys) {
         this.plugin = plugin;
@@ -37,14 +38,17 @@ public class LightningRodItem implements Item {
         ItemStack item = new ItemStack(Material.BLAZE_ROD);
         ItemMeta meta = item.getItemMeta();
 
-        meta.displayName(Component.text("Lightning Rod", NamedTextColor.YELLOW));
-        meta.lore(java.util.List.of(
-                Component.text("Strike Bad Actors Down!", NamedTextColor.DARK_GRAY, TextDecoration.BOLD)
-        ));
+        meta.displayName(Component.text(NAME, NamedTextColor.YELLOW));
+        meta.lore(java.util.List.of(Component.text("Strike Bad Actors Down!", NamedTextColor.DARK_GRAY, TextDecoration.BOLD)));
         meta.getPersistentDataContainer().set(keys.lightningRod, PersistentDataType.BYTE, (byte) 1);
 
         item.setItemMeta(meta);
         return item;
+    }
+
+    @Override
+    public String getName() {
+        return NAME;
     }
 
     @Override

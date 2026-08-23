@@ -77,3 +77,4 @@ guild-chat-prefix: "&6[Guild] "
 items:
   lightningrod:
     cooldown: 3000
+    price: 250 # not implemented yet

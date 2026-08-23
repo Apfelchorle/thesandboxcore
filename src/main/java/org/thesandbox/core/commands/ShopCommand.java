@@ -17,10 +17,13 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.items.Item;
 import org.thesandbox.core.items.LightningRodItem;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ShopCommand implements Listener,ISubCommand {
 
@@ -40,10 +43,22 @@ public class ShopCommand implements Listener,ISubCommand {
 
     }
     private final Component shoptitle = Component.text("The Shop", NamedTextColor.DARK_GREEN);
+    private final Map<Integer, Item> shopSlots = new HashMap<>();
 
     public ShopCommand(TheSandboxCore plugin, LightningRodItem lightningRodItem) {
         this.lightningRodItem = lightningRodItem;
+
         Bukkit.getPluginManager().registerEvents(this, plugin);
+    }
+
+    // Buy Logic [Called By Click Logic]
+    private void buy(Player player, Item item, String itemName) {
+        var leftover = player.getInventory().addItem(item.create());
+        if (!leftover.isEmpty()) {
+            player.sendMessage(Component.text("Your Inventory is full!", NamedTextColor.RED));
+        } else {
+            player.sendMessage(Component.text("You received a " + itemName + "!", NamedTextColor.YELLOW));
+        }
     }
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
@@ -58,15 +73,14 @@ public class ShopCommand implements Listener,ISubCommand {
         Player player = (Player) event.getWhoClicked();
         int slot = event.getSlot();
 
-        if (slot == 11) {
-            var leftover = player.getInventory().addItem(lightningRodItem.create());
-            if (!leftover.isEmpty()) {
-                player.sendMessage(Component.text("Your inventory is full!", NamedTextColor.RED));
-            } else {
-                player.sendMessage(Component.text("You received a Lightning Rod!", NamedTextColor.YELLOW));
-            }
-            player.closeInventory();
+
+
+        // Click Logic
+        Item item = shopSlots.get(slot);
+        if (item != null) {
+            buy(player, item, item.getName());
         }
+
 
         event.setCancelled(true);
     }
@@ -84,7 +98,10 @@ public class ShopCommand implements Listener,ISubCommand {
         holder.setInventory(inventory);
 
         // as shown above the Inventory Menu is 9 * 3 which is 27 slots
+        shopSlots.put(11, lightningRodItem);
         inventory.setItem(11, lightningRodItem.create());
+
+        shopSlots.put(12, lightningRodItem);
         inventory.setItem(12, getItem(new ItemStack(Material.OAK_BOAT),"Test", "Testing", "&4Testing" , "&aTesting"));
 
         player.openInventory(inventory);

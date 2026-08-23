@@ -19,6 +19,7 @@ import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.items.Item;
 import org.thesandbox.core.items.ItemKeys;
 import org.thesandbox.core.items.ItemListener;
 import org.thesandbox.core.items.LightningRodItem;
@@ -27,12 +28,10 @@ import org.thesandbox.core.guilds.GuildManager;
 import org.thesandbox.core.login.LoginService;
 import org.thesandbox.core.tags.TagService;
 import org.thesandbox.core.util.CommandAutoRegistrar;
+import org.thesandbox.core.util.ItemAutoRegistrar;
 
 import java.sql.*;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 // POTIONSPY: service import
 
@@ -112,11 +111,10 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     public void onEnable() {
         saveDefaultConfig();
         setupDatabase();
+
+
         ItemKeys itemKeys = new ItemKeys(this);
-        LightningRodItem lightningRod = new LightningRodItem(this, itemKeys);
-
-
-        getServer().getPluginManager().registerEvents(new ItemListener(List.of(lightningRod)), this);
+        List<Item> items = ItemAutoRegistrar.registerAll(this, itemKeys);
 
         // Initialize login service (rank lookup)
         loginService = new LoginService(this);
@@ -159,9 +157,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         this.liteBansWarningListener = new LiteBansWarningListener(this);
         this.liteBansWarningListener.register();
 
-        // Auto-register commands (inject services for constructors)
-        CommandAutoRegistrar.registerAll(
-                this,
+        // Services List
+        List<Object> commandServices = new ArrayList<>(List.of(
                 tagService,
                 loginService,
                 autoClearService,
@@ -170,9 +167,12 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
                 guildManager,
                 potionSpyService,
                 this.shushService,
-                this.discord,
-                lightningRod
-        );
+                this.discord
+        ));
+
+        // Command Auto Registrar + ItemAutoRegistrar
+        commandServices.addAll(items);
+        CommandAutoRegistrar.registerAll(this, commandServices.toArray());
 
         setupRankScoreboardTeams();
         refreshAllRankScoreboardTeams();
