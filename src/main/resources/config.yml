@@ -6,7 +6,7 @@ staffchat-from-discord-format: '&8[&3&lDISCORD&8] | [&b&lSTAFF&8]&r %role%%rolec
 # Discord bridge
 discord:
   enabled: true
-  token: "PUT_YOUR_DISCORD_BOT_TOKEN_HERE"
+  token: ${env.DISCORD_BOT_TOKEN}
   reports-channel-id: "1413974491415183380"
   archived-reports-channel-id: "1413974896920231986"
   channel-id: "1412495873342181446"
@@ -25,7 +25,7 @@ mysql:
   port: 3306
   database: "commandspy"
   user: "commandspy"
-  password: "PUT_YOUR_MYSQL_PASSWORD_HERE"
+  password: ${env.MYSQL_PASSWORD}
   
 commandspy:
   blacklist:
