@@ -11,11 +11,11 @@ import org.thesandbox.core.util.PlayerDataListener;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class CoinsGiveCommand implements ISubCommand {
+public class GiveCoinsCommand implements ISubCommand {
 
     private final PlayerDataListener playerDataListener;
 
-    public CoinsGiveCommand(PlayerDataListener playerDataListener) {
+    public GiveCoinsCommand(PlayerDataListener playerDataListener) {
         this.playerDataListener = playerDataListener;
     }
 
