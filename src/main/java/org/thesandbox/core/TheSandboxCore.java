@@ -28,7 +28,9 @@ import org.thesandbox.core.guilds.GuildManager;
 import org.thesandbox.core.login.LoginService;
 import org.thesandbox.core.tags.TagService;
 import org.thesandbox.core.util.CommandAutoRegistrar;
+import org.thesandbox.core.util.DataManager;
 import org.thesandbox.core.util.ItemAutoRegistrar;
+import org.thesandbox.core.util.PlayerDataListener;
 
 import java.io.File;
 import java.sql.*;
@@ -41,7 +43,11 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
     public enum Source { MINECRAFT, DISCORD }
 
-    private HikariDataSource dataSource;
+    private DataManager dataManager;
+    private PlayerDataListener dataListener;
+
+
+    private HikariDataSource dataSource; // HIKARI O NAKAMA DESU - "Montagem Hikari"
 
     private final Set<UUID> cmdSpyDisabled   = new HashSet<>();
     private final Set<UUID> staffChatEnabled = new HashSet<>(); // speak mode
@@ -113,11 +119,10 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         saveDefaultConfig();
         setupDatabase();
 
-        File subFolder = new File(getDataFolder(), "player_data");
+        this.dataManager = new DataManager(this);
+        this.dataListener = new PlayerDataListener(dataManager);
 
-        if (!subFolder.exists()) {
-            subFolder.mkdirs();
-        }
+        getServer().getPluginManager().registerEvents(dataListener, this);
 
         ItemKeys itemKeys = new ItemKeys(this);
         List<Item> items = ItemAutoRegistrar.registerAll(this, itemKeys);
@@ -188,6 +193,13 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
+        // SAVE DATA
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            int coins = dataListener.getCoins(player.getUniqueId());
+            dataManager.saveData(player.getUniqueId(), "coins", coins);
+        }
+
+
         if (liteBansWarningListener != null) liteBansWarningListener.unregister();
         if (discord != null) discord.stop();
         if (guildManager != null) {

@@ -29,7 +29,7 @@ commands:
     aliases: [jp]
   coins:
     description: Displays Your Balance
-    usage: /coins
+    usage: /coins [give <player> <amount>]
     permission: sandbox.default
   shop:
     description: Opens The Shop
