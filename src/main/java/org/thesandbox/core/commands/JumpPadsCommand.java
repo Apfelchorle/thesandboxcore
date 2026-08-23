@@ -28,7 +28,7 @@ public class JumpPadsCommand implements Listener, ISubCommand {
     private final Map<Player, Boolean> pushMap = Maps.newHashMap();
     //
     private final TheSandboxCore plugin;
-    private JumpPadMode mode;
+    private JumpPadMode mode = ConfigEntry.JUMPPAD_MODE;
     private double strength = 0.4;
 
     private static class ConfigEntry
@@ -40,6 +40,7 @@ public class JumpPadsCommand implements Listener, ISubCommand {
     {
         super();
         this.plugin = plugin;
+        Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
     public void onStart()
@@ -49,7 +50,7 @@ public class JumpPadsCommand implements Listener, ISubCommand {
 
     public void onStop()
     {
-
+        this.mode = ConfigEntry.JUMPPAD_MODE;
     }
 
     public void setMode(JumpPadMode mode)
