@@ -22,6 +22,10 @@ commands:
     description: Sends Discord Invite
     usage: /discord
     permission: sandbox.default
+  jumppads:
+    description: Makes You Jump Like A Frog!
+    usage: /jumppads mode
+    permission: sandbox.default
   shop:
     description: Opens The Shop
     usage: /shop
