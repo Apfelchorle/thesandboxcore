@@ -58,14 +58,24 @@ public class ShopCommand implements Listener,ISubCommand {
         int price = item.getPrice();
         UUID puuid = player.getUniqueId();
         int balance = playerDataListener.getCoins(puuid);
+        String item_status = playerDataListener.get(player.getUniqueId(),itemName, "no");
+
+        if (item_status.equalsIgnoreCase("owned")) {
+            var leftover = player.getInventory().addItem(item.create());
+
+            if (!leftover.isEmpty()) {
+                player.sendMessage(Component.text("Your Inventory is full!", NamedTextColor.RED));
+                return;
+            }
+            player.sendMessage(Component.text("You received a " + itemName + "!", NamedTextColor.YELLOW));
+            return;
+        }
 
         if (balance < price) {
             player.sendMessage(Component.text("You Do Not Have Enough Coins.", NamedTextColor.DARK_RED));
             player.sendMessage(Component.text("You Need " + (price - balance) + " More Coins!", NamedTextColor.DARK_RED));
             return;
         }
-
-        playerDataListener.set(player.getUniqueId(),itemName, "owned");
 
         var leftover = player.getInventory().addItem(item.create());
 
@@ -74,6 +84,7 @@ public class ShopCommand implements Listener,ISubCommand {
             return;
         }
 
+        playerDataListener.set(player.getUniqueId(),itemName, "owned");
         playerDataListener.setCoins(player.getUniqueId(), playerDataListener.getCoins(player.getUniqueId()) - item.getPrice());
         player.sendMessage(Component.text("You received a " + itemName + "!", NamedTextColor.YELLOW));
 

@@ -23,7 +23,8 @@ public class PlayerDataListener implements Listener {
     private Map<String, Object> loadFromDisk(UUID uuid) {
         Map<String, Object> data = new HashMap<>();
         data.put("coins", dataManager.loadData(uuid, "coins", 0));
-        data.put("jumppadsmode", dataManager.loadData(uuid, "jumppadsmode", "disabled"));
+        data.put("jumppadmode", dataManager.loadData(uuid, "jumppadmode", "disabled"));
+        data.put("Lightning Rod", dataManager.loadData(uuid, "Lightning Rod", "no"));
         return data;
     }
 

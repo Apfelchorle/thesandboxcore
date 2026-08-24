@@ -103,6 +103,22 @@ public class CoinsCommand implements ISubCommand {
             return true;
         }
 
+        if (args.length == 3 && args[0].equalsIgnoreCase("get")) {
+
+            String target = args[1];
+            Player targetPlayer = resolveTarget(sender, target);
+
+            if (targetPlayer == null || (!(sender instanceof Player))) {
+                sender.sendMessage(Component.text(target + " is offline!", NamedTextColor.DARK_GRAY));
+                return true;
+            }
+
+            int pcoins =  playerDataListener.getCoins(targetPlayer.getUniqueId());
+
+            sender.sendMessage(Component.text( targetPlayer.getName() + " has " + pcoins + " Coins!", NamedTextColor.YELLOW));
+            return true;
+        }
+
 
         if (!(sender instanceof Player)) {
             sender.sendMessage(Component.text("Only players can execute this command!", NamedTextColor.RED));
@@ -172,6 +188,7 @@ public class CoinsCommand implements ISubCommand {
         if (args.length == 1) {
             String prefix = args[0].toLowerCase();
             List<String> list = new ArrayList<>();
+            list.add("get");
             list.add("set");
             list.add("give");
             list.add("add");

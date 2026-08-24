@@ -22,6 +22,7 @@ commands:
     description: Sends Discord Invite
     usage: /discord
     permission: sandbox.default
+    aliases: [ds]
   jumppads:
     description: Makes You Jump Like A Frog!
     usage: /jumppads mode
@@ -184,6 +185,7 @@ commands:
     description: Obtain a Debug Stick
     usage: /debugstick
     permission: sandbox.default
+    aliases: [deb]
 
   denick:
     description: Remove all online nicknames

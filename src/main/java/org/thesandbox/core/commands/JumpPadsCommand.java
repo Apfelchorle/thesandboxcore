@@ -40,7 +40,7 @@ public class JumpPadsCommand implements Listener, ISubCommand {
     }
 
     private JumpPadMode getModeFor(Player player) {
-        String stored = dataListener.get(player.getUniqueId(), "jumppadsmode", DEFAULT_MODE);
+        String stored = dataListener.get(player.getUniqueId(), "jumppadmode", DEFAULT_MODE);
         try {
             return JumpPadMode.valueOf(stored);
         } catch (IllegalArgumentException e) {
