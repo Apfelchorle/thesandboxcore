@@ -61,6 +61,8 @@ public class CoinsCommand implements ISubCommand {
             }
 
             // temp Broadcast message to test.
+
+            // this adds to own balance for now
             coins += givenCoins;
             // cant use playerDataListener.addCoins here cuz too lazy figure it out later!
             // TODO: REPLACE WITH PlayerDataListener.addCoins()
