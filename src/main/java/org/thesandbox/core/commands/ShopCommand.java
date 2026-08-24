@@ -21,10 +21,7 @@ import org.thesandbox.core.items.Item;
 import org.thesandbox.core.items.LightningRodItem;
 import org.thesandbox.core.util.PlayerDataListener;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ShopCommand implements Listener,ISubCommand {
 
@@ -47,6 +44,7 @@ public class ShopCommand implements Listener,ISubCommand {
     private final Component shoptitle = Component.text("The Shop", NamedTextColor.DARK_GREEN);
     private final Map<Integer, Item> shopSlots = new HashMap<>();
 
+
     public ShopCommand(TheSandboxCore plugin, LightningRodItem lightningRodItem, PlayerDataListener playerDataListener) {
         this.lightningRodItem = lightningRodItem;
         this.playerDataListener = playerDataListener;
@@ -54,21 +52,30 @@ public class ShopCommand implements Listener,ISubCommand {
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
+
     // Buy Logic [Called By Click Logic]
     private void buy(Player player, Item item, String itemName) {
-        var leftover = player.getInventory().addItem(item.create());
+        int price = item.getPrice();
+        UUID puuid = player.getUniqueId();
+        int balance = playerDataListener.getCoins(puuid);
 
-        if (playerDataListener.getCoins(player.getUniqueId()) < item.getPrice()) {
+        if (balance < price) {
             player.sendMessage(Component.text("You Do Not Have Enough Coins.", NamedTextColor.DARK_RED));
+            player.sendMessage(Component.text("You Need " + (price - balance) + " More Coins!", NamedTextColor.DARK_RED));
             return;
         }
+
+        var leftover = player.getInventory().addItem(item.create());
+
         if (!leftover.isEmpty()) {
             player.sendMessage(Component.text("Your Inventory is full!", NamedTextColor.RED));
-        } else if (playerDataListener.getCoins(player.getUniqueId()) > item.getPrice()) {
-            playerDataListener.setCoins(player.getUniqueId(), playerDataListener.getCoins(player.getUniqueId()) - item.getPrice());
-            player.sendMessage(Component.text("You received a " + itemName + "!", NamedTextColor.YELLOW));
+            return;
         }
-    }
+
+        playerDataListener.setCoins(player.getUniqueId(), playerDataListener.getCoins(player.getUniqueId()) - item.getPrice());
+        player.sendMessage(Component.text("You received a " + itemName + "!", NamedTextColor.YELLOW));
+
+        }
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getInventory().getHolder() instanceof ShopHolder)) {
