@@ -37,18 +37,6 @@ public class CoinsCommand implements ISubCommand {
             return true;
         }
 
-
-        if (!(sender.hasPermission("sandbox.staff"))) {
-            sender.sendMessage(Component.text("You do not have permission to use this command!", NamedTextColor.RED));
-            return true;
-        }
-
-        // beanzz hehe was hehe
-
-        // 0 = give
-        // 1 = player target
-        // 2 = given coins
-
         if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
             String target = args[1];
             Player targetPlayer = Bukkit.getPlayer(target);
@@ -61,27 +49,45 @@ public class CoinsCommand implements ISubCommand {
                 return true;
             }
 
-            if (targetPlayer != null) {
+            if (targetPlayer == null) {
                 sender.sendMessage(Component.text(target + " is offline!", NamedTextColor.DARK_GRAY));
                 return true;
             }
 
+            // data
+            playerDataListener.removeCoins(((Player) sender).getUniqueId(), givenCoins);
             playerDataListener.addCoins(targetPlayer.getUniqueId(), givenCoins);
-
-
-            // TODO: MAKE /COINS GIVE NOT REQUIRE PERMS AND DEDUCT COINS FROM BALANCE
-            // TODO: MAKE /COINS SET COMMAND AND MAKE IT STAFF ONLY
 
 
             // notifs
             Bukkit.broadcast(Component.text(sender.getName() + " has given " + target + " " + givenCoins + " coins!", NamedTextColor.GOLD));
-            sender.sendMessage(Component.text(target + " has " + coins + " Coins!", NamedTextColor.GREEN));
+            sender.sendMessage(Component.text(target + " has " + playerDataListener.getCoins(targetPlayer.getUniqueId()) + " Coins!", NamedTextColor.GREEN));
             sender.sendMessage(Component.text("Current Balance: " + playerDataListener.getCoins(((Player) sender).getUniqueId()) + " Coins!", NamedTextColor.YELLOW));
             targetPlayer.sendMessage(Component.text("You've Recieved " + givenCoins + " Coins From " + sender.getName(), NamedTextColor.GREEN));
 
             return true;
         }
 
+
+
+        if (!(sender.hasPermission("sandbox.staff"))) {
+            sender.sendMessage(Component.text("You do not have permission to use this command!", NamedTextColor.RED));
+            return true;
+        }
+
+        // beanzz hehe was hehe
+        // -usfl
+
+        // 0 = give
+        // 1 = player target
+        // 2 = given coins
+
+
+        // TODO: Implement /coins set
+        if (args.length == 3 && args[0].equalsIgnoreCase("set")) {
+            sender.sendMessage(Component.text("Not Implemented! :)", NamedTextColor.RED));
+            return true;
+        }
 
         return true;
     }
@@ -91,12 +97,13 @@ public class CoinsCommand implements ISubCommand {
         if (args.length == 1) {
             String prefix = args[0].toLowerCase();
             List<String> list = new ArrayList<>();
+            list.add("set");
             list.add("give");
             list.removeIf(s -> !s.toLowerCase().startsWith(prefix));
             return list;
         }
 
-        if (args.length == 2 && args[0].equalsIgnoreCase("give")) {
+        if (args.length == 2 && (args[0].equalsIgnoreCase("give")) || (args[0].equalsIgnoreCase("set"))) {
             String prefix = args[1].toLowerCase();
             return Bukkit.getOnlinePlayers().stream()
                     .map(Player::getName)

@@ -54,5 +54,14 @@ public class PlayerDataListener implements Listener {
         int current = getCoins(uuid);
         coinCache.put(uuid, current + amount);
     }
+
+    public void removeCoins(UUID uuid, int amount) {
+        int current = getCoins(uuid);
+        coinCache.put(uuid, current - amount);
+    }
+
+    public void setCoins(UUID uuid, int amount) {
+        coinCache.put(uuid, amount);
+    }
 }
 
