@@ -82,10 +82,27 @@ public class CoinsCommand implements ISubCommand {
         // 1 = player target
         // 2 = given coins
 
-
-        // TODO: Implement /coins set
         if (args.length == 3 && args[0].equalsIgnoreCase("set")) {
-            sender.sendMessage(Component.text("Not Implemented! :)", NamedTextColor.RED));
+
+            String target = args[1];
+            Player targetPlayer = Bukkit.getPlayer(target);
+            int ammount;
+
+            try {
+                ammount = Integer.parseInt(args[2]);
+            } catch (NumberFormatException e) {
+                sender.sendMessage(Component.text("[Error]: " + args[2] + " is not a number.", NamedTextColor.RED));
+                return true;
+            }
+
+            if (targetPlayer == null) {
+                sender.sendMessage(Component.text(target + " is offline!", NamedTextColor.DARK_GRAY));
+                return true;
+            }
+
+            playerDataListener.setCoins(targetPlayer.getUniqueId(), ammount);
+
+            sender.sendMessage(Component.text( sender.getName() + " Set Coins To " + ammount + " For " + targetPlayer.getName(), NamedTextColor.RED));
             return true;
         }
 
