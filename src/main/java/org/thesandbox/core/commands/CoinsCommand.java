@@ -68,7 +68,7 @@ public class CoinsCommand implements ISubCommand {
 
             playerDataListener.setCoins(targetPlayer.getUniqueId(), amount);
 
-            sender.sendMessage(Component.text( sender.getName() + " Set Coins To " + amount + " For " + targetPlayer.getName(), NamedTextColor.RED));
+            sender.sendMessage(Component.text( sender.getName() + " Set Coins To " + amount + " For " + targetPlayer.getName(), NamedTextColor.DARK_GREEN));
             return true;
         }
 
