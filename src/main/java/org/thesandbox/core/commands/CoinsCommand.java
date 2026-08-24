@@ -51,6 +51,7 @@ public class CoinsCommand implements ISubCommand {
 
         if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
             String target = args[1];
+            Player targetPlayer = Bukkit.getPlayer(target);
             int givenCoins;
 
             try {
@@ -60,19 +61,26 @@ public class CoinsCommand implements ISubCommand {
                 return true;
             }
 
-            // temp Broadcast message to test.
+            if (targetPlayer != null) {
+                sender.sendMessage(Component.text(target + " is offline!", NamedTextColor.DARK_GRAY));
+                return true;
+            }
 
-            // this adds to own balance for now
-            coins += givenCoins;
-            // cant use playerDataListener.addCoins here cuz too lazy figure it out later!
-            // TODO: REPLACE WITH PlayerDataListener.addCoins()
+            playerDataListener.addCoins(targetPlayer.getUniqueId(), givenCoins);
 
+
+            // TODO: MAKE /COINS GIVE NOT REQUIRE PERMS AND DEDUCT COINS FROM BALANCE
+            // TODO: MAKE /COINS SET COMMAND AND MAKE IT STAFF ONLY
+
+
+            // notifs
             Bukkit.broadcast(Component.text(sender.getName() + " has given " + target + " " + givenCoins + " coins!", NamedTextColor.GOLD));
             sender.sendMessage(Component.text(target + " has " + coins + " Coins!", NamedTextColor.GREEN));
+            sender.sendMessage(Component.text("Current Balance: " + playerDataListener.getCoins(((Player) sender).getUniqueId()) + " Coins!", NamedTextColor.YELLOW));
+            targetPlayer.sendMessage(Component.text("You've Recieved " + givenCoins + " Coins From " + sender.getName(), NamedTextColor.GREEN));
+
             return true;
         }
-
-
 
 
         return true;
@@ -80,13 +88,22 @@ public class CoinsCommand implements ISubCommand {
 
     @Override
     public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 0) return List.of();
+        if (args.length == 1) {
+            String prefix = args[0].toLowerCase();
+            List<String> list = new ArrayList<>();
+            list.add("give");
+            list.removeIf(s -> !s.toLowerCase().startsWith(prefix));
+            return list;
+        }
 
-        String prefix = args[0].toLowerCase();
-        List<String> list = new ArrayList<>();
-        list.add("give");
-        list.addAll(Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList()));
-        list.removeIf(s -> !s.toLowerCase().startsWith(prefix));
-        return list;
+        if (args.length == 2 && args[0].equalsIgnoreCase("give")) {
+            String prefix = args[1].toLowerCase();
+            return Bukkit.getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .filter(name -> name.toLowerCase().startsWith(prefix))
+                    .collect(Collectors.toList());
+        }
+
+        return List.of();
     }
 }
