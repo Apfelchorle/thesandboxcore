@@ -2,6 +2,8 @@ package org.thesandbox.core.commands;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -89,6 +91,14 @@ public class CoinsCommand implements ISubCommand {
 
             if (targetPlayer == null) {
                 sender.sendMessage(Component.text(target + " is offline!", NamedTextColor.DARK_GRAY));
+                return true;
+            }
+
+            if (amount > playerDataListener.getCoins(targetPlayer.getUniqueId())) {
+                sender.sendMessage(Component.text("YOU'RE BROKE!", NamedTextColor.DARK_RED));
+                return true;
+            } else if (amount <= 0) {
+                sender.sendMessage(Component.text("Dude.", NamedTextColor.DARK_RED, TextDecoration.ITALIC, TextDecoration.BOLD));
                 return true;
             }
 

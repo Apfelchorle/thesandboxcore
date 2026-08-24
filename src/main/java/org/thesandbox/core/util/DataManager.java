@@ -1,6 +1,5 @@
 package org.thesandbox.core.util;
 
-import com.google.protobuf.Any;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.thesandbox.core.TheSandboxCore;
@@ -22,21 +21,31 @@ public class DataManager {
         }
     }
 
-    // load
-    public int loadData(UUID uuid, String data) {
-        File file = new File(playerFolder, uuid.toString() + ".yml");
-        if (!file.exists()) return 0; // New player gets 0 coins
+    private File fileFor(UUID uuid) {
+        return new File(playerFolder, uuid.toString() + ".yml");
+    }
+    public <T> T loadData(UUID uuid, String key, T defaultValue) {
+        File file = fileFor(uuid);
+        if (!file.exists()) return defaultValue;
 
         FileConfiguration config = YamlConfiguration.loadConfiguration(file);
-        return config.getInt(data, 0);
+        Object raw = config.get(key, defaultValue);
+
+        try {
+            @SuppressWarnings("unchecked")
+            T cast = (T) raw;
+            return cast;
+        } catch (ClassCastException e) {
+            plugin.getLogger().warning("Data type mismatch for " + uuid + " key '" + key + "', returning default.");
+            return defaultValue;
+        }
     }
 
-    // Save
-    public void saveData(UUID uuid, String data, int value) {
-        File file = new File(playerFolder, uuid.toString() + ".yml");
+    public void saveData(UUID uuid, String key, Object value) {
+        File file = fileFor(uuid);
         FileConfiguration config = YamlConfiguration.loadConfiguration(file);
 
-        config.set(data, value);
+        config.set(key, value);
 
         try {
             config.save(file);

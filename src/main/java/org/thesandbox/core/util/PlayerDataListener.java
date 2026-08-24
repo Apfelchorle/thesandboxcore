@@ -1,67 +1,94 @@
 package org.thesandbox.core.util;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.UUID;
 
 public class PlayerDataListener implements Listener {
 
     private final DataManager dataManager;
-    // Memory cache: Keeps track of online players' coins
-    private final Map<UUID, Integer> coinCache = new HashMap<>();
-
+    private final Map<UUID, Map<String, Object>> playerCache = new HashMap<>();
     public PlayerDataListener(DataManager dataManager) {
         this.dataManager = dataManager;
+    }
+
+    private Map<String, Object> loadFromDisk(UUID uuid) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("coins", dataManager.loadData(uuid, "coins", 0));
+        data.put("jumppadsmode", dataManager.loadData(uuid, "jumppadsmode", "disabled"));
+        return data;
     }
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
-
-        // 1. Load from file
-        int coins = dataManager.loadData(uuid, "coins");
-
-        // 2. Put into memory cache
-        coinCache.put(uuid, coins);
+        playerCache.put(uuid, loadFromDisk(uuid));
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
 
-        // 1. Get from memory cache
-        Integer coins = coinCache.get(uuid);
+        Map<String, Object> data = playerCache.remove(uuid);
+        if (data == null) return;
 
-        if (coins != null) {
-            // 2. Save to file
-            dataManager.saveData(uuid,"coins" , coins);
-            // 3. Clean memory to prevent memory leaks
-            coinCache.remove(uuid);
+        data.forEach((key, value) -> dataManager.saveData(uuid, key, value));
+    }
+
+    public void loadAll() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            UUID uuid = player.getUniqueId();
+            if (!playerCache.containsKey(uuid)) {
+                playerCache.put(uuid, loadFromDisk(uuid));
+            }
         }
     }
 
-    // Helper methods to modify coins from other files/commands
+    public void saveAll() {
+        for (UUID uuid : new HashSet<>(playerCache.keySet())) {
+            Map<String, Object> data = playerCache.get(uuid);
+            if (data != null) {
+                data.forEach((key, value) -> dataManager.saveData(uuid, key, value));
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T get(UUID uuid, String key, T defaultValue) {
+        Map<String, Object> data = playerCache.get(uuid);
+        if (data == null || !data.containsKey(key)) return defaultValue;
+        try {
+            return (T) data.get(key);
+        } catch (ClassCastException e) {
+            return defaultValue;
+        }
+    }
+
+    public void set(UUID uuid, String key, Object value) {
+        playerCache.computeIfAbsent(uuid, k -> new HashMap<>()).put(key, value);
+    }
+
     public int getCoins(UUID uuid) {
-        return coinCache.getOrDefault(uuid, 0);
+        return get(uuid, "coins", 0);
     }
 
     public void addCoins(UUID uuid, int amount) {
-        int current = getCoins(uuid);
-        coinCache.put(uuid, current + amount);
+        set(uuid, "coins", getCoins(uuid) + amount);
     }
 
     public void removeCoins(UUID uuid, int amount) {
-        int current = getCoins(uuid);
-        coinCache.put(uuid, current - amount);
+        set(uuid, "coins", getCoins(uuid) - amount);
     }
 
     public void setCoins(UUID uuid, int amount) {
-        coinCache.put(uuid, amount);
+        set(uuid, "coins", amount);
     }
 }
-

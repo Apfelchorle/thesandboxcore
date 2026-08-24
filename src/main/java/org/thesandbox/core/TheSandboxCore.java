@@ -195,10 +195,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     @Override
     public void onDisable() {
         // SAVE DATA
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            int coins = dataListener.getCoins(player.getUniqueId());
-            dataManager.saveData(player.getUniqueId(), "coins", coins);
-        }
+        if (dataListener != null) dataListener.saveAll();
 
 
         if (liteBansWarningListener != null) liteBansWarningListener.unregister();

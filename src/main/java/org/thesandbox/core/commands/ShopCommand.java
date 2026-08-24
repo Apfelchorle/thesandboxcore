@@ -65,6 +65,8 @@ public class ShopCommand implements Listener,ISubCommand {
             return;
         }
 
+        playerDataListener.set(player.getUniqueId(),itemName, "owned");
+
         var leftover = player.getInventory().addItem(item.create());
 
         if (!leftover.isEmpty()) {

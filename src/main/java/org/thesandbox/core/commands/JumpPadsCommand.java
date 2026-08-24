@@ -18,69 +18,59 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.util.PlayerDataListener;
 
 public class JumpPadsCommand implements Listener, ISubCommand {
 
     public static final double DAMPING_COEFFICIENT = 0.8;
-    //
-    private final Map<Player, Boolean> pushMap = Maps.newHashMap();
-    //
+    private static final String DEFAULT_MODE = JumpPadMode.OFF.name();
+    private final Map<Player, Boolean> pushMap = new HashMap<>();
     private final TheSandboxCore plugin;
-    private JumpPadMode mode = ConfigEntry.JUMPPAD_MODE;
+    private final PlayerDataListener dataListener;
     private double strength = 0.4;
 
-    private static class ConfigEntry
+    public JumpPadsCommand(TheSandboxCore plugin, PlayerDataListener dataListener)
     {
-        private static JumpPadMode JUMPPAD_MODE = JumpPadMode.OFF;
-    }
-
-    public JumpPadsCommand(TheSandboxCore plugin)
-    {
-        super();
         this.plugin = plugin;
+        this.dataListener = dataListener;
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
-    public void onStart()
-    {
-        this.mode = ConfigEntry.JUMPPAD_MODE;
+    private JumpPadMode getModeFor(Player player) {
+        String stored = dataListener.get(player.getUniqueId(), "jumppadsmode", DEFAULT_MODE);
+        try {
+            return JumpPadMode.valueOf(stored);
+        } catch (IllegalArgumentException e) {
+            return JumpPadMode.OFF;
+        }
     }
 
-    public void onStop()
-    {
-        this.mode = ConfigEntry.JUMPPAD_MODE;
-    }
-
-    public void setMode(JumpPadMode mode)
-    {
-        this.mode = mode;
-        ConfigEntry.JUMPPAD_MODE = mode;
-    }
-
-    public JumpPadMode getMode()
-    {
-        return mode;
+    private void setModeFor(Player player, JumpPadMode mode) {
+        dataListener.set(player.getUniqueId(), "jumppadmode", mode.name());
     }
 
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args)
     {
-        final String who = (sender instanceof Player) ? sender.getName() : "CONSOLE";
+        final String who = (sender instanceof Player) ? sender.getName() : "CONSOLE"; // i have no idea why this is here
 
         if (!(sender instanceof Player)) {
             sender.sendMessage(Component.text("Only players can execute this command!", NamedTextColor.RED));
-        }
-
-        // /jumppads -> show current mode
-        if (args.length == 0)
-        {
-            sender.sendMessage(CommandMessages.command(ChatColor.GRAY + "Jumppads are currently set to: " + ChatColor.YELLOW + mode.getLabel()));
             return true;
         }
 
-        // /jumppads <mode> -> set mode
+        Player player = (Player) sender;
+
+        if (args.length == 0)
+        {
+            JumpPadMode current = getModeFor(player);
+            player.sendMessage(Component.text("Your jumppads mode: " + current.getLabel(), NamedTextColor.YELLOW));
+            return true;
+        }
+
         JumpPadMode target;
         try
         {
@@ -91,16 +81,15 @@ public class JumpPadsCommand implements Listener, ISubCommand {
             String validModes = Arrays.stream(JumpPadMode.values())
                     .map(m -> m.name().toLowerCase())
                     .collect(Collectors.joining(", "));
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "Invalid mode: " + args[0]
-                    + ChatColor.GRAY + " (valid: " + validModes + ")"));
+            player.sendMessage(Component.text("Invalid mode: " + args[0] + " (valid: " + validModes + ")", NamedTextColor.RED));
             return true;
         }
 
-        setMode(target);
-        Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + who + " - Set jumppad mode to "
-                + target.getLabel()));
+        setModeFor(player, target);
+        player.sendMessage(Component.text("Your jumppads mode is now: " + target.getLabel(), NamedTextColor.GREEN));
         return true;
     }
+
 
     @Override
     public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args)
@@ -117,18 +106,18 @@ public class JumpPadsCommand implements Listener, ISubCommand {
         return Collections.emptyList();
     }
 
-
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event)
     {
-        if (mode == JumpPadMode.OFF || !event.hasExplicitlyChangedBlock())
+        if (!event.hasExplicitlyChangedBlock())
         {
             return;
         }
 
         final Player player = event.getPlayer();
+        final JumpPadMode mode = getModeFor(player);
 
-        if (player.getGameMode() == GameMode.SPECTATOR)
+        if (mode == JumpPadMode.OFF || player.getGameMode() == GameMode.SPECTATOR)
         {
             return;
         }
@@ -195,8 +184,8 @@ public class JumpPadsCommand implements Listener, ISubCommand {
 
     public enum JumpPadMode
     {
-        OFF("Off", "off"),
-        NORMAL("Madgeek", "normal", "adhd", "coffee", "on"),
+        OFF("Off", "off", "disabled"),
+        NORMAL("Madgeek", "normal", "adhd", "coffee", "on", "enabled"),
         NORMAL_AND_SIDEWAYS("Normal and Sideways", "both");
 
         private final String label;
