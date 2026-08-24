@@ -94,8 +94,8 @@ public class CoinsCommand implements ISubCommand {
 
             playerDataListener.addCoins(targetPlayer.getUniqueId(), amount);
 
-            Bukkit.broadcast(Component.text(sender.getName() + " has given " + target + " " + amount + " coins!", NamedTextColor.GOLD));
-            sender.sendMessage(Component.text(target + " has " + playerDataListener.getCoins(targetPlayer.getUniqueId()) + " Coins!", NamedTextColor.GREEN));
+            Bukkit.broadcast(Component.text(sender.getName() + " has given " + targetPlayer.getName() + " " + amount + " coins!", NamedTextColor.GOLD));
+            sender.sendMessage(Component.text(targetPlayer.getName() + " has " + playerDataListener.getCoins(targetPlayer.getUniqueId()) + " Coins!", NamedTextColor.GREEN));
             targetPlayer.sendMessage(Component.text("You've Recieved " + amount + " Coins From " + sender.getName(), NamedTextColor.GREEN));
 
             return true;
@@ -146,8 +146,8 @@ public class CoinsCommand implements ISubCommand {
 
 
             // notifs
-            Bukkit.broadcast(Component.text(sender.getName() + " has given " + target + " " + givenCoins + " coins!", NamedTextColor.GOLD));
-            sender.sendMessage(Component.text(target + " has " + playerDataListener.getCoins(targetPlayer.getUniqueId()) + " Coins!", NamedTextColor.GREEN));
+            Bukkit.broadcast(Component.text(sender.getName() + " has given " + targetPlayer.getName() + " " + givenCoins + " coins!", NamedTextColor.GOLD));
+            sender.sendMessage(Component.text(targetPlayer.getName() + " has " + playerDataListener.getCoins(targetPlayer.getUniqueId()) + " Coins!", NamedTextColor.GREEN));
             sender.sendMessage(Component.text("Current Balance: " + playerDataListener.getCoins(((Player) sender).getUniqueId()) + " Coins!", NamedTextColor.YELLOW));
             targetPlayer.sendMessage(Component.text("You've Recieved " + givenCoins + " Coins From " + sender.getName(), NamedTextColor.GREEN));
 
