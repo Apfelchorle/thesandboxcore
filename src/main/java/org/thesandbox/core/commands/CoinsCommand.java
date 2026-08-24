@@ -94,14 +94,6 @@ public class CoinsCommand implements ISubCommand {
                 return true;
             }
 
-            if (amount > playerDataListener.getCoins(targetPlayer.getUniqueId())) {
-                sender.sendMessage(Component.text("YOU'RE BROKE!", NamedTextColor.DARK_RED));
-                return true;
-            } else if (amount <= 0) {
-                sender.sendMessage(Component.text("Dude.", NamedTextColor.DARK_RED, TextDecoration.ITALIC, TextDecoration.BOLD));
-                return true;
-            }
-
             playerDataListener.addCoins(targetPlayer.getUniqueId(), amount);
 
             Bukkit.broadcast(Component.text(sender.getName() + " has given " + targetPlayer.getName() + " " + amount + " coins!", NamedTextColor.GOLD));
@@ -148,7 +140,10 @@ public class CoinsCommand implements ISubCommand {
             if (senderBalance < givenCoins) {
                 sender.sendMessage(Component.text("You don't have enough coins!", NamedTextColor.RED));
                 return true;
-            }
+            } else if (givenCoins <= 0) {
+            sender.sendMessage(Component.text("Dude.", NamedTextColor.DARK_RED, TextDecoration.ITALIC, TextDecoration.BOLD));
+            return true;
+        }
 
             // data
             playerDataListener.removeCoins(((Player) sender).getUniqueId(), givenCoins);
