@@ -27,14 +27,8 @@ commands:
     usage: /jumppads mode
     permission: sandbox.default
     aliases: [jp]
-  givecoins:
-    description: Add To Balance
-    usage: /givecoins [give <player> <amount>]
-    permission: sandbox.staff
-    permission-message: Internal Server Error # beanzz_hehe was hehe
   coins:
     description: Displays Your Balance
-    usage: /coins
     permission: sandbox.default
   shop:
     description: Opens The Shop
