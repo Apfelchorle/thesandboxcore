@@ -19,6 +19,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.items.Item;
 import org.thesandbox.core.items.LightningRodItem;
+import org.thesandbox.core.util.PlayerDataListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,6 +29,7 @@ import java.util.Map;
 public class ShopCommand implements Listener,ISubCommand {
 
     private final LightningRodItem lightningRodItem;
+    private final PlayerDataListener playerDataListener;
 
     private static class ShopHolder implements InventoryHolder {
 
@@ -45,8 +47,9 @@ public class ShopCommand implements Listener,ISubCommand {
     private final Component shoptitle = Component.text("The Shop", NamedTextColor.DARK_GREEN);
     private final Map<Integer, Item> shopSlots = new HashMap<>();
 
-    public ShopCommand(TheSandboxCore plugin, LightningRodItem lightningRodItem) {
+    public ShopCommand(TheSandboxCore plugin, LightningRodItem lightningRodItem, PlayerDataListener playerDataListener) {
         this.lightningRodItem = lightningRodItem;
+        this.playerDataListener = playerDataListener;
 
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
@@ -54,9 +57,15 @@ public class ShopCommand implements Listener,ISubCommand {
     // Buy Logic [Called By Click Logic]
     private void buy(Player player, Item item, String itemName) {
         var leftover = player.getInventory().addItem(item.create());
+
+        if (playerDataListener.getCoins(player.getUniqueId()) < item.getPrice()) {
+            player.sendMessage(Component.text("You Do Not Have Enough Coins.", NamedTextColor.DARK_RED));
+            return;
+        }
         if (!leftover.isEmpty()) {
             player.sendMessage(Component.text("Your Inventory is full!", NamedTextColor.RED));
-        } else {
+        } else if (playerDataListener.getCoins(player.getUniqueId()) > item.getPrice()) {
+            playerDataListener.setCoins(player.getUniqueId(), playerDataListener.getCoins(player.getUniqueId()) - item.getPrice());
             player.sendMessage(Component.text("You received a " + itemName + "!", NamedTextColor.YELLOW));
         }
     }

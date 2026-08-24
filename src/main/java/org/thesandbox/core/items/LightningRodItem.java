@@ -51,6 +51,10 @@ public class LightningRodItem implements Item {
         return NAME;
     }
 
+    public int getPrice() {
+        return plugin.getConfig().getInt("items.lightningrod.price", 0);
+    }
+
     @Override
     public boolean matches(ItemStack item) {
         if (item == null || item.getItemMeta() == null) return false;

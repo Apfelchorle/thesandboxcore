@@ -322,7 +322,7 @@ public class ClearInventoryCommand implements ISubCommand
     private void clearInv(Player player)
     {
         player.getInventory().clear();
-        player.getInventory().setArmorContents(new ItemStack[4]);
+        player.getInventory().setArmorContents(null);
         player.getInventory().setItemInOffHand(null);
         player.updateInventory();
     }

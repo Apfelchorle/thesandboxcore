@@ -8,4 +8,6 @@ public interface Item {
     boolean matches(ItemStack item);
     void onInteract(PlayerInteractEvent e);
     String getName();
+
+    int getPrice();
 }
