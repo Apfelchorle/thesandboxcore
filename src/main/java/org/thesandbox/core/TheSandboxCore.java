@@ -178,7 +178,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
                 guildManager,
                 potionSpyService,
                 this.shushService,
-                this.discord
+                this.discord,
+                dataListener
         ));
 
         // Command Auto Registrar + ItemAutoRegistrar
