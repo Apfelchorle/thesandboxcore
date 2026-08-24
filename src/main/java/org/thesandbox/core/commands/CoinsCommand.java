@@ -103,7 +103,7 @@ public class CoinsCommand implements ISubCommand {
             return true;
         }
 
-        if (args.length == 3 && args[0].equalsIgnoreCase("get")) {
+        if (args.length == 2 && args[0].equalsIgnoreCase("get")) {
 
             String target = args[1];
             Player targetPlayer = resolveTarget(sender, target);
