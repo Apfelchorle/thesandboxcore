@@ -272,7 +272,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         String fmt = getConfig().getString(
                 key,
                 src == Source.DISCORD
-                        ? "&8[&3Discord&8] | [&dStaff&8]&r &8[%role%&8] %rolecolor%%name% &8» &f%message%"
+                        ? "&8[&9Discord&8] | [&dStaff&8]&r &8[%role%&8] %rolecolor%%name% &8» &f%message%"
                         : "&8[&dStaff&8]&r &8[%role%&8] %rolecolor%%name% &8» &f%message%"
         );
 
