@@ -3,6 +3,7 @@ package org.thesandbox.core.commands;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -58,7 +59,10 @@ public class LoginMessageCommand implements ISubCommand {
 
         playerDataListener.set(player.getUniqueId(), PlayerDataKeys.LOGIN_MESSAGE, sanitized);
 
-        player.sendMessage(Component.text("Login message set to: " + LegacyComponentSerializer.legacyAmpersand().deserialize(sanitized), NamedTextColor.GREEN));
+        player.sendMessage(Component.text("Login message set to: ", NamedTextColor.GREEN));
+        player.sendMessage(LegacyComponentSerializer.legacyAmpersand().deserialize(sanitized));
+
+        Bukkit.broadcast(LegacyComponentSerializer.legacyAmpersand().deserialize(sanitized));
 
         return true;
     }

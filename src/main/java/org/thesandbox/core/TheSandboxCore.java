@@ -19,16 +19,14 @@ import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.fun.LoginMessages;
 import org.thesandbox.core.fun.items.Item;
 import org.thesandbox.core.fun.items.ItemKeys;
 import org.thesandbox.core.commands.CommandManager;
 import org.thesandbox.core.guilds.GuildManager;
 import org.thesandbox.core.login.LoginService;
 import org.thesandbox.core.tags.TagService;
-import org.thesandbox.core.util.CommandAutoRegistrar;
-import org.thesandbox.core.util.DataManager;
-import org.thesandbox.core.util.ItemAutoRegistrar;
-import org.thesandbox.core.util.PlayerDataListener;
+import org.thesandbox.core.util.*;
 
 import java.sql.*;
 import java.util.*;
@@ -628,7 +626,9 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     // Login message logic (uses shared helper)
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
+
         event.setJoinMessage(buildJoinMessageFor(event.getPlayer()));
+        Bukkit.broadcast(LegacyComponentSerializer.legacyAmpersand().deserialize(dataListener.get(event.getPlayer().getUniqueId(), PlayerDataKeys.LOGIN_MESSAGE,"")));
     }
 
     @EventHandler
