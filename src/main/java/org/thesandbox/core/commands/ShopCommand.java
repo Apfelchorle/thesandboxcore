@@ -17,6 +17,7 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.fun.items.ClownFishItem;
 import org.thesandbox.core.fun.items.Item;
 import org.thesandbox.core.fun.items.LightningRodItem;
 import org.thesandbox.core.fun.items.LoginMessagesItem;
@@ -29,6 +30,8 @@ public class ShopCommand implements Listener,ISubCommand {
     private final LightningRodItem lightningRodItem;
     private final PlayerDataListener playerDataListener;
     private final LoginMessagesItem loginMessagesItem;
+
+    private final ClownFishItem clownFishItem;
     private static class ShopHolder implements InventoryHolder {
 
         private Inventory inventory;
@@ -46,12 +49,13 @@ public class ShopCommand implements Listener,ISubCommand {
     private final Map<Integer, Item> shopSlots = new HashMap<>();
 
 
-    public ShopCommand(TheSandboxCore plugin, PlayerDataListener playerDataListener) {
+    public ShopCommand(TheSandboxCore plugin, PlayerDataListener playerDataListener, ClownFishItem clownFishItem) {
         this.playerDataListener = playerDataListener;
 
         // Pull the custom items out of the centralized field in your main class
         this.lightningRodItem = findItem(plugin, LightningRodItem.class);
         this.loginMessagesItem = findItem(plugin, LoginMessagesItem.class);
+        this.clownFishItem = findItem(plugin, clownFishItem.getClass());
 
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
@@ -69,12 +73,13 @@ public class ShopCommand implements Listener,ISubCommand {
 
     // Buy Logic [Called By Click Logic]
     private void buy(Player player, Item item, String itemName) {
+        List<String> owned_statuses = Arrays.asList("owned", "bought", "enabled", "disabled");
         int price = item.getPrice();
         UUID puuid = player.getUniqueId();
         int balance = playerDataListener.getCoins(puuid);
         String item_status = playerDataListener.get(player.getUniqueId(),itemName, "no");
 
-        if (item_status.equalsIgnoreCase("owned")) {
+        if (owned_statuses.contains(item_status.toLowerCase())) {
             var leftover = player.getInventory().addItem(item.create());
 
             if (!leftover.isEmpty()) {
@@ -149,6 +154,9 @@ public class ShopCommand implements Listener,ISubCommand {
 
         shopSlots.put(13, loginMessagesItem);
         inventory.setItem(13, loginMessagesItem.create());
+
+        shopSlots.put(14, clownFishItem);
+        inventory.setItem(14, clownFishItem.create());
         player.openInventory(inventory);
 
         return true;

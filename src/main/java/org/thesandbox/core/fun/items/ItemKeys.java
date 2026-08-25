@@ -7,8 +7,11 @@ public final class ItemKeys {
     public final NamespacedKey lightningRod;
     public final NamespacedKey loginMessages;
 
+    public final NamespacedKey clownFish;
+
     public ItemKeys(Plugin plugin) {
         this.lightningRod = new NamespacedKey(plugin, "lightning_rod");
         this.loginMessages = new NamespacedKey(plugin, "login_messages");
+        this.clownFish = new NamespacedKey(plugin, "clown_fish");
     }
 }
