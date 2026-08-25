@@ -6,6 +6,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.thesandbox.core.fun.LoginMessages;
 import org.thesandbox.core.util.PlayerDataKeys;
 import org.thesandbox.core.util.PlayerDataListener;
 
@@ -41,8 +42,7 @@ public class LoginMessageCommand implements ISubCommand {
             if (current.isEmpty()) {
                 player.sendMessage(Component.text("You haven't set a login message yet. Usage: /loginmessage <message>", NamedTextColor.YELLOW));
             } else {
-                player.sendMessage(Component.text("Your current login message:", NamedTextColor.YELLOW));
-                player.sendMessage(LegacyComponentSerializer.legacyAmpersand().deserialize(current));
+                player.sendMessage(Component.text("Your current login message: " + LegacyComponentSerializer.legacyAmpersand().deserialize(current), NamedTextColor.YELLOW));
             }
             return true;
         }
@@ -58,8 +58,7 @@ public class LoginMessageCommand implements ISubCommand {
 
         playerDataListener.set(player.getUniqueId(), PlayerDataKeys.LOGIN_MESSAGE, sanitized);
 
-        player.sendMessage(Component.text("Login message set to:", NamedTextColor.GREEN));
-        player.sendMessage(LegacyComponentSerializer.legacyAmpersand().deserialize(sanitized));
+        player.sendMessage(Component.text("Login message set to: " + LegacyComponentSerializer.legacyAmpersand().deserialize(sanitized), NamedTextColor.GREEN));
 
         return true;
     }

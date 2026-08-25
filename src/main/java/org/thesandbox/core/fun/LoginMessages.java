@@ -26,17 +26,17 @@ public class LoginMessages implements Listener {
     }
 
     public String GetLoginMessage(Player player) {
-        String loginmessages_status = datalistener.get(player.getUniqueId(), "LoginMessages","not_owned");
-        String msg = datalistener.get(player.getUniqueId(),"LoginMessage","");
+        String loginmessages_status = datalistener.get(player.getUniqueId(), PlayerDataKeys.LOGIN_MESSAGE,"not_owned");
+        String msg = datalistener.get(player.getUniqueId(), PlayerDataKeys.LOGIN_MESSAGE,"");
 
-        if (loginmessages_status.equals("owned")) {
+        if (loginmessages_status.equalsIgnoreCase("owned") || loginmessages_status.equalsIgnoreCase("enabled")) {
             return msg;
         }
         return loginmessages_status;
     }
 
     public void SetLoginMessage(Player player, String message) {
-        String loginmessages_status = datalistener.get(player.getUniqueId(), "LoginMessages","not_owned");
+        String loginmessages_status = datalistener.get(player.getUniqueId(), PlayerDataKeys.LOGIN_MESSAGES_STATE,"not_owned");
 
         if (loginmessages_status.equals("owned")) {
             datalistener.set(player.getUniqueId(),"LoginMessage",message);
@@ -54,7 +54,7 @@ public class LoginMessages implements Listener {
 
         String message = GetLoginMessage(player);
         if (message.isEmpty()) {
-            return; // enabled, but nothing set yet — nothing to broadcast
+            return;
         }
 
         Bukkit.broadcast(LegacyComponentSerializer.legacyAmpersand().deserialize(message));
