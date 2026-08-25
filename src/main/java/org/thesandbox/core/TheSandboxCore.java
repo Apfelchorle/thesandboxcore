@@ -127,7 +127,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         getServer().getPluginManager().registerEvents(loginMessages, this);
 
         ItemKeys itemKeys = new ItemKeys(this);
-        this.registeredItems = ItemAutoRegistrar.registerAll(this, itemKeys, dataListener);
+        this.registeredItems = ItemAutoRegistrar.registerAll(this, itemKeys, dataListener, loginMessages);
 
         // Initialize login service (rank lookup)
         loginService = new LoginService(this);
