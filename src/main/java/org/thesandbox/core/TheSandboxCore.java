@@ -95,6 +95,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     // Getter so commands (e.g., ReportCommand) can access the Discord bridge
     public DiscordBridge getDiscord() { return this.discord; }
 
+    private List<Item> registeredItems = new ArrayList<>();
     public boolean isDiscordChatBridgeEnabled() {
         return getConfig().getBoolean("discord.chat-bridge.enabled", true);
     }
@@ -109,6 +110,9 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         }
         return true;
     }
+    public List<Item> getRegisteredItems() {
+        return this.registeredItems;
+    }
 
 
     @Override
@@ -122,7 +126,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         getServer().getPluginManager().registerEvents(dataListener, this);
 
         ItemKeys itemKeys = new ItemKeys(this);
-        List<Item> items = ItemAutoRegistrar.registerAll(this, itemKeys);
+        this.registeredItems = ItemAutoRegistrar.registerAll(this, itemKeys);
 
         // Initialize login service (rank lookup)
         loginService = new LoginService(this);
@@ -165,6 +169,9 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         this.liteBansWarningListener = new LiteBansWarningListener(this);
         this.liteBansWarningListener.register();
 
+        // registered items
+
+
         // Services List
         List<Object> commandServices = new ArrayList<>(List.of(
                 tagService,
@@ -176,11 +183,12 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
                 potionSpyService,
                 this.shushService,
                 this.discord,
-                dataListener
+                dataListener,
+                itemKeys
         ));
 
         // Command Auto Registrar + ItemAutoRegistrar
-        commandServices.addAll(items);
+        commandServices.addAll(this.registeredItems);
         CommandAutoRegistrar.registerAll(this, commandServices.toArray());
 
         setupRankScoreboardTeams();

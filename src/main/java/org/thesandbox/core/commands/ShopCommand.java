@@ -46,12 +46,24 @@ public class ShopCommand implements Listener,ISubCommand {
     private final Map<Integer, Item> shopSlots = new HashMap<>();
 
 
-    public ShopCommand(TheSandboxCore plugin, LightningRodItem lightningRodItem, PlayerDataListener playerDataListener, LoginMessagesItem loginMessagesItem) {
-        this.lightningRodItem = lightningRodItem;
+    public ShopCommand(TheSandboxCore plugin, PlayerDataListener playerDataListener) {
         this.playerDataListener = playerDataListener;
-        this.loginMessagesItem = loginMessagesItem;
+
+        // Pull the custom items out of the centralized field in your main class
+        this.lightningRodItem = findItem(plugin, LightningRodItem.class);
+        this.loginMessagesItem = findItem(plugin, LoginMessagesItem.class);
 
         Bukkit.getPluginManager().registerEvents(this, plugin);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends Item> T findItem(TheSandboxCore plugin, Class<T> clazz) {
+        for (Item item : plugin.getRegisteredItems()) {
+            if (clazz.isInstance(item)) {
+                return (T) item;
+            }
+        }
+        throw new IllegalStateException("[TheSandboxCore] Required shop item " + clazz.getSimpleName() + " was not auto-registered!");
     }
 
 
