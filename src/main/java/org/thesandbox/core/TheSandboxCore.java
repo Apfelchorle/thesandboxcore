@@ -123,6 +123,9 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
         getServer().getPluginManager().registerEvents(dataListener, this);
 
+        LoginMessages loginMessages = new LoginMessages(dataListener, this);
+        getServer().getPluginManager().registerEvents(loginMessages, this);
+
         ItemKeys itemKeys = new ItemKeys(this);
         this.registeredItems = ItemAutoRegistrar.registerAll(this, itemKeys, dataListener);
 
@@ -182,7 +185,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
                 this.shushService,
                 this.discord,
                 dataListener,
-                itemKeys
+                itemKeys,
+                loginMessages
         ));
 
         // Command Auto Registrar + ItemAutoRegistrar
@@ -628,7 +632,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
 
         event.setJoinMessage(buildJoinMessageFor(event.getPlayer()));
-        Bukkit.broadcast(LegacyComponentSerializer.legacyAmpersand().deserialize(dataListener.get(event.getPlayer().getUniqueId(), PlayerDataKeys.LOGIN_MESSAGE,"")));
+//        Bukkit.broadcast(LegacyComponentSerializer.legacyAmpersand().deserialize(dataListener.get(event.getPlayer().getUniqueId(), PlayerDataKeys.LOGIN_MESSAGE,"")));
     }
 
     @EventHandler

@@ -10,6 +10,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.fun.LoginMessages;
 import org.thesandbox.core.util.PlayerDataKeys;
 import org.thesandbox.core.util.PlayerDataListener;
 
@@ -28,12 +29,14 @@ public class LoginMessagesItem implements Item {
     private final Map<UUID, Long> cooldowns = new HashMap<>();
     private static final String NAME = "LoginMessages";
     private final PlayerDataListener playerDataListener;
+    private final LoginMessages loginMessages;
 
-    public LoginMessagesItem(TheSandboxCore plugin, ItemKeys keys, PlayerDataListener playerDataListener) {
+    public LoginMessagesItem(TheSandboxCore plugin, ItemKeys keys, PlayerDataListener playerDataListener, LoginMessages loginMessages) {
         this.plugin = plugin;
         this.keys = keys;
         this.cooldownMs = plugin.getConfig().getLong("items.loginMessages.cooldown", 1500);
         this.playerDataListener = playerDataListener;
+        this.loginMessages = loginMessages;
     }
 
 
@@ -70,16 +73,19 @@ public class LoginMessagesItem implements Item {
         if (last != null && now - last < cooldownMs) return;
         cooldowns.put(p.getUniqueId(), now);
 
-        String current = playerDataListener.get(p.getUniqueId(), PlayerDataKeys.LOGIN_MESSAGES_STATE, "not_owned");
+        String current = loginMessages.GetLoginMessagesState(p);
+
+        if (current.equalsIgnoreCase("not_owned")) { return; }
 
         String next;
-        if (current.equals("enabled")) {
+        if (current.equalsIgnoreCase("enabled")) {
             next = "disabled";
         } else {
-            next = "enabled"; // covers "disabled" -> "enabled" and "not_owned" -> "enabled" (owning the item implies ownership)
+            next = "enabled";
         }
 
-        playerDataListener.set(p.getUniqueId(), PlayerDataKeys.LOGIN_MESSAGES_STATE, next);
+        loginMessages.SetLoginMessagesState(p, next);
+
 
         if (next.equals("enabled")) {
             p.sendMessage(Component.text("Login message enabled!", NamedTextColor.GREEN));

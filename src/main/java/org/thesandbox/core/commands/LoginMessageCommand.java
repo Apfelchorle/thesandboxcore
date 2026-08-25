@@ -18,9 +18,11 @@ public class LoginMessageCommand implements ISubCommand {
     private static final int MAX_LENGTH = 100;
 
     private final PlayerDataListener playerDataListener;
+    private final LoginMessages loginMessages;
 
-    public LoginMessageCommand(PlayerDataListener playerDataListener) {
+    public LoginMessageCommand(PlayerDataListener playerDataListener, LoginMessages loginMessages) {
         this.playerDataListener = playerDataListener;
+        this.loginMessages = loginMessages;
     }
 
     @Override
@@ -32,18 +34,19 @@ public class LoginMessageCommand implements ISubCommand {
 
         Player player = (Player) sender;
 
-        String state = playerDataListener.get(player.getUniqueId(), PlayerDataKeys.LOGIN_MESSAGES_STATE, "not_owned");
+        String state = loginMessages.GetLoginMessagesState(player);
         if (state.equalsIgnoreCase("not_owned")) {
             player.sendMessage(Component.text("You don't own the Login Messages item! Buy it from /shop.", NamedTextColor.RED));
             return true;
         }
 
         if (args.length == 0) {
-            String current = playerDataListener.get(player.getUniqueId(), PlayerDataKeys.LOGIN_MESSAGE, "");
+            String current = loginMessages.GetLoginMessage(player);
             if (current.isEmpty()) {
                 player.sendMessage(Component.text("You haven't set a login message yet. Usage: /loginmessage <message>", NamedTextColor.YELLOW));
             } else {
-                player.sendMessage(Component.text("Your current login message: " + LegacyComponentSerializer.legacyAmpersand().deserialize(current), NamedTextColor.YELLOW));
+                player.sendMessage(Component.text("Your current login message: ", NamedTextColor.YELLOW));
+                player.sendMessage(LegacyComponentSerializer.legacyAmpersand().deserialize(current));
             }
             return true;
         }
@@ -57,13 +60,10 @@ public class LoginMessageCommand implements ISubCommand {
 
         String sanitized = player.hasPermission("sandbox.staff") ? raw : raw.replaceAll("(?i)&k", "");
 
-        playerDataListener.set(player.getUniqueId(), PlayerDataKeys.LOGIN_MESSAGE, sanitized);
+        loginMessages.SetLoginMessage(player, sanitized);
 
         player.sendMessage(Component.text("Login message set to: ", NamedTextColor.GREEN));
         player.sendMessage(LegacyComponentSerializer.legacyAmpersand().deserialize(sanitized));
-
-        Bukkit.broadcast(LegacyComponentSerializer.legacyAmpersand().deserialize(sanitized));
-
         return true;
     }
 

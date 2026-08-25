@@ -21,25 +21,35 @@ public class LoginMessages implements Listener {
     }
 
     public String GetLoginMessagesState(Player player) {
-        String state = datalistener.get(player.getUniqueId(), PlayerDataKeys.LOGIN_MESSAGES_STATE, "not_owned");
-        return state;
+        return datalistener.get(player.getUniqueId(), PlayerDataKeys.LOGIN_MESSAGES_STATE, "not_owned");
+    }
+
+    public void SetLoginMessagesState(Player player, String state) {
+        datalistener.set(player.getUniqueId(), PlayerDataKeys.LOGIN_MESSAGES_STATE, state);
     }
 
     public String GetLoginMessage(Player player) {
-        String loginmessages_status = datalistener.get(player.getUniqueId(), PlayerDataKeys.LOGIN_MESSAGE,"not_owned");
+        String loginmessages_status = GetLoginMessagesState(player);
         String msg = datalistener.get(player.getUniqueId(), PlayerDataKeys.LOGIN_MESSAGE,"");
 
-        if (loginmessages_status.equalsIgnoreCase("owned") || loginmessages_status.equalsIgnoreCase("enabled")) {
+        if (!loginmessages_status.equalsIgnoreCase("not_owned")) {
             return msg;
         }
-        return loginmessages_status;
+        return "";
     }
 
     public void SetLoginMessage(Player player, String message) {
         String loginmessages_status = datalistener.get(player.getUniqueId(), PlayerDataKeys.LOGIN_MESSAGES_STATE,"not_owned");
 
-        if (loginmessages_status.equals("owned")) {
-            datalistener.set(player.getUniqueId(),"LoginMessage",message);
+        if (loginmessages_status.equals("owned") || loginmessages_status.equalsIgnoreCase("enabled")) {
+            datalistener.set(player.getUniqueId(),PlayerDataKeys.LOGIN_MESSAGE,message);
+        }
+    }
+
+    public void SendLoginMessage(Player player) {
+        String message = GetLoginMessage(player);
+        if (message != null && !message.isEmpty()) {
+            Bukkit.broadcast(LegacyComponentSerializer.legacyAmpersand().deserialize(message));
         }
     }
 
@@ -51,12 +61,6 @@ public class LoginMessages implements Listener {
         if (state.equalsIgnoreCase("not_owned") || state.equalsIgnoreCase("disabled")) {
             return;
         }
-
-        String message = GetLoginMessage(player);
-        if (message.isEmpty()) {
-            return;
-        }
-
-        Bukkit.broadcast(LegacyComponentSerializer.legacyAmpersand().deserialize(message));
+        SendLoginMessage(player);
     }
 }
