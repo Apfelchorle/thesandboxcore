@@ -1,4 +1,4 @@
-package org.thesandbox.core.items;
+package org.thesandbox.core.fun.items;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;

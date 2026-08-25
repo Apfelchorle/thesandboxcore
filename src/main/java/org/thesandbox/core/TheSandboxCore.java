@@ -19,10 +19,8 @@ import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.thesandbox.core.items.Item;
-import org.thesandbox.core.items.ItemKeys;
-import org.thesandbox.core.items.ItemListener;
-import org.thesandbox.core.items.LightningRodItem;
+import org.thesandbox.core.fun.items.Item;
+import org.thesandbox.core.fun.items.ItemKeys;
 import org.thesandbox.core.commands.CommandManager;
 import org.thesandbox.core.guilds.GuildManager;
 import org.thesandbox.core.login.LoginService;
@@ -32,7 +30,6 @@ import org.thesandbox.core.util.DataManager;
 import org.thesandbox.core.util.ItemAutoRegistrar;
 import org.thesandbox.core.util.PlayerDataListener;
 
-import java.io.File;
 import java.sql.*;
 import java.util.*;
 

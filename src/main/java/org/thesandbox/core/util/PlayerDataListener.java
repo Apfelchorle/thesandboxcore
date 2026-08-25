@@ -22,9 +22,17 @@ public class PlayerDataListener implements Listener {
 
     private Map<String, Object> loadFromDisk(UUID uuid) {
         Map<String, Object> data = new HashMap<>();
-        data.put("coins", dataManager.loadData(uuid, "coins", 0));
-        data.put("jumppadmode", dataManager.loadData(uuid, "jumppadmode", "disabled"));
-        data.put("Lightning Rod", dataManager.loadData(uuid, "Lightning Rod", "no"));
+
+        data.put(PlayerDataKeys.COINS, dataManager.loadData(uuid, PlayerDataKeys.COINS, 0));
+        data.put(PlayerDataKeys.JUMPPADS_MODE, dataManager.loadData(uuid, PlayerDataKeys.JUMPPADS_MODE, "disabled"));
+        data.put(PlayerDataKeys.LIGHTNING_ROD, dataManager.loadData(uuid, PlayerDataKeys.LIGHTNING_ROD, "no"));
+        data.put(PlayerDataKeys.LOGIN_MESSAGE, dataManager.loadData(uuid, PlayerDataKeys.LOGIN_MESSAGE, ""));
+        data.put(PlayerDataKeys.LOGIN_MESSAGES_STATE, dataManager.loadData(uuid, PlayerDataKeys.LOGIN_MESSAGES_STATE, "not_owned"));
+//        data.put("coins", dataManager.loadData(uuid, "coins", 0));
+//        data.put("jumppadmode", dataManager.loadData(uuid, "jumppadmode", "disabled"));
+//        data.put("Lightning Rod", dataManager.loadData(uuid, "Lightning Rod", "no"));
+//        data.put("LoginMessage", dataManager.loadData(uuid, "LoginMessage", "")); // login message (the text that will appear when a player joins DONT TOUCH NO TOUCHIE, GET UR GRUBBY HAND SOFF)
+//        data.put("LoginMessages", dataManager.loadData(uuid, "LoginMessages", "not_owned")); // later this can be in 3 states Disabled, Enabled, not_owned
         return data;
     }
 

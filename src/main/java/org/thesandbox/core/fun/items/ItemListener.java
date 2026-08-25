@@ -1,4 +1,4 @@
-package org.thesandbox.core.items;
+package org.thesandbox.core.fun.items;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;

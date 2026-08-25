@@ -17,8 +17,9 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.thesandbox.core.TheSandboxCore;
-import org.thesandbox.core.items.Item;
-import org.thesandbox.core.items.LightningRodItem;
+import org.thesandbox.core.fun.items.Item;
+import org.thesandbox.core.fun.items.LightningRodItem;
+import org.thesandbox.core.fun.items.LoginMessagesItem;
 import org.thesandbox.core.util.PlayerDataListener;
 
 import java.util.*;
@@ -27,7 +28,7 @@ public class ShopCommand implements Listener,ISubCommand {
 
     private final LightningRodItem lightningRodItem;
     private final PlayerDataListener playerDataListener;
-
+    private final LoginMessagesItem loginMessagesItem;
     private static class ShopHolder implements InventoryHolder {
 
         private Inventory inventory;
@@ -45,9 +46,10 @@ public class ShopCommand implements Listener,ISubCommand {
     private final Map<Integer, Item> shopSlots = new HashMap<>();
 
 
-    public ShopCommand(TheSandboxCore plugin, LightningRodItem lightningRodItem, PlayerDataListener playerDataListener) {
+    public ShopCommand(TheSandboxCore plugin, LightningRodItem lightningRodItem, PlayerDataListener playerDataListener, LoginMessagesItem loginMessagesItem) {
         this.lightningRodItem = lightningRodItem;
         this.playerDataListener = playerDataListener;
+        this.loginMessagesItem = loginMessagesItem;
 
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
@@ -133,6 +135,8 @@ public class ShopCommand implements Listener,ISubCommand {
         shopSlots.put(12, lightningRodItem);
         inventory.setItem(12, getItem(new ItemStack(Material.OAK_BOAT),"Test", "Testing", "&4Testing" , "&aTesting"));
 
+        shopSlots.put(13, loginMessagesItem);
+        inventory.setItem(13, loginMessagesItem.create());
         player.openInventory(inventory);
 
         return true;

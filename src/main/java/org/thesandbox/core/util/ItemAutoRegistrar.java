@@ -5,8 +5,8 @@ import org.bukkit.Server;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
-import org.thesandbox.core.items.Item;
-import org.thesandbox.core.items.ItemListener;
+import org.thesandbox.core.fun.items.Item;
+import org.thesandbox.core.fun.items.ItemListener;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
@@ -23,7 +23,7 @@ import java.util.logging.Logger;
 
 public final class ItemAutoRegistrar {
 
-    private static final String ITEMS_PKG = "org.thesandbox.core.items";
+    private static final String ITEMS_PKG = "org.thesandbox.core.fun.items";
 
     private ItemAutoRegistrar() {}
 

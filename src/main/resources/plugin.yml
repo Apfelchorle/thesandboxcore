@@ -187,6 +187,11 @@ commands:
     permission: sandbox.default
     aliases: [deb]
 
+  loginmessages:
+    description: Set Your Login Message!
+    permission: sandbox.default
+    alias: [lmsg]
+
   denick:
     description: Remove all online nicknames
     usage: /denick
