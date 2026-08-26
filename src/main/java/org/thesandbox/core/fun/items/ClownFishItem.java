@@ -1,12 +1,12 @@
 package org.thesandbox.core.fun.items;
 
-import java.util.List;
-import java.util.Random;
+import java.util.*;
+
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
-import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -14,18 +14,27 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Vector;
+import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.fun.Utils;
+import org.thesandbox.core.fun.items.itemUTILS.Item;
+import org.thesandbox.core.fun.items.itemUTILS.ItemKeys;
 
 public class ClownFishItem implements Item {
 
     private static final String NAME = "ClownFish";
     private final ItemKeys keys;
-    private final Random random = new Random();
 
     private static final int RADIUS_HIT = 5;
     private static final int STRENGTH = 4;
 
-    public ClownFishItem(ItemKeys keys) {
+    private final Map<UUID, Long> cooldowns = new HashMap<>();
+    private final TheSandboxCore plugin;
+
+
+
+    public ClownFishItem(ItemKeys keys, TheSandboxCore plugin) {
         this.keys = keys;
+        this.plugin = plugin;
     }
 
     @Override
@@ -34,7 +43,7 @@ public class ClownFishItem implements Item {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.getPersistentDataContainer().set(keys.clownFish, PersistentDataType.BYTE, (byte) 1);
-            meta.displayName(Component.text("Clown Fish").color(net.kyori.adventure.text.format.NamedTextColor.GOLD));
+            meta.displayName(Component.text("ClownFish").color(net.kyori.adventure.text.format.NamedTextColor.GOLD));
             item.setItemMeta(meta);
         }
         return item;
@@ -54,17 +63,19 @@ public class ClownFishItem implements Item {
 
         Player player = e.getPlayer();
 
-        if (!player.hasPermission("sandbox.staff")) {
-            Component clownMsg = Component.empty();
-            for (char c : "You are a clown.".toCharArray()) {
-                clownMsg = clownMsg.append(Component.text(String.valueOf(c)).color(getRandomChatColor()));
-            }
-            player.sendMessage(clownMsg);
-            player.getEquipment().setItemInMainHand(new ItemStack(Material.POTATO));
+        e.setCancelled(true);
+
+        long cooldownMs = player.hasPermission("sandbox.staff")
+                ? plugin.getConfig().getLong("items.clownFish.staff.cooldown", 0)
+                : plugin.getConfig().getLong("items.clownFish.cooldown", 10000);
+
+        long now = System.currentTimeMillis();
+        Long last = cooldowns.get(player.getUniqueId());
+        if (last != null && now - last < cooldownMs) {
             return;
         }
+        cooldowns.put(player.getUniqueId(), now);
 
-        e.setCancelled(true);
         boolean didHit = false;
 
         Location playerLoc = player.getLocation();
@@ -81,7 +92,7 @@ public class ClownFishItem implements Item {
 
             try {
                 if (targetPosVec.distanceSquared(playerLocVec) < (RADIUS_HIT * RADIUS_HIT)) {
-                    target.setAllowFlight(false);
+                    //target.setAllowFlight(false); per request this has been disabled
                     target.setFlying(false);
 
                     Vector blastDirection = targetPosVec.subtract(playerLocVec).normalize().multiply(STRENGTH);
@@ -97,6 +108,7 @@ public class ClownFishItem implements Item {
 
         if (didHit) {
             playClownfishSound(player, playerLoc);
+            sendClownfishMessage(player, playerLoc);
         }
     }
 
@@ -107,28 +119,21 @@ public class ClownFishItem implements Item {
 
     @Override
     public int getPrice() {
-        return 150;
+        return plugin.getConfig().getInt("items.clownFish.price", 150);
     }
 
-    private void playClownfishSound(Player listener, Location location) {
-        float randomPitch = randomDoubleRange(0.5, 2.0).floatValue();
-        listener.playSound(randomOffset(location, 2.0), Sound.ENTITY_PLAYER_ATTACK_WEAK, SoundCategory.MASTER, 1.0F, randomPitch);
+    private void playClownfishSound(Player listener, Location playerLoc) {
+        Utils.playSound(listener, playerLoc, Sound.ENTITY_PLAYER_ATTACK_WEAK);
+        Utils.playSound(listener, playerLoc, Sound.ENTITY_FISH_SWIM);
     }
 
-    private Location randomOffset(Location a, double magnitude) {
-        return a.clone().add(
-                randomDoubleRange(-1.0, 1.0) * magnitude,
-                randomDoubleRange(-1.0, 1.0) * magnitude,
-                randomDoubleRange(-1.0, 1.0) * magnitude
-        );
-    }
-
-    private Double randomDoubleRange(double min, double max) {
-        return min + (random.nextDouble() * (max - min));
-    }
-
-    private net.kyori.adventure.text.format.TextColor getRandomChatColor() {
-        java.awt.Color awtColor = new java.awt.Color(random.nextInt(256), random.nextInt(256), random.nextInt(256));
-        return net.kyori.adventure.text.format.TextColor.color(awtColor.getRGB());
+    private void sendClownfishMessage(Player player, Location playerLoc) {
+        Component clownMsg = Component.empty();
+        for (char c : "You are a clown.".toCharArray()) {
+            Utils.SendMessage(player, "You've Been Clowned By, You've Been Clowned By, A Smooth Clown!", NamedTextColor.DARK_PURPLE);
+            Utils.WeAllKnowWhatThisIs(plugin, playerLoc, Sound.BLOCK_NOTE_BLOCK_BELL);
+            clownMsg = clownMsg.append(Component.text(String.valueOf(c)).color(Utils.getRandomChatColor()));
+        }
+        player.sendMessage(clownMsg);
     }
 }

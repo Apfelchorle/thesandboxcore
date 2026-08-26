@@ -5,8 +5,8 @@ import org.bukkit.Server;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
-import org.thesandbox.core.fun.items.Item;
-import org.thesandbox.core.fun.items.ItemListener;
+import org.thesandbox.core.fun.items.itemUTILS.Item;
+import org.thesandbox.core.fun.items.itemUTILS.ItemListener;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;

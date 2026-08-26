@@ -18,7 +18,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.fun.items.ClownFishItem;
-import org.thesandbox.core.fun.items.Item;
+import org.thesandbox.core.fun.items.itemUTILS.Item;
 import org.thesandbox.core.fun.items.LightningRodItem;
 import org.thesandbox.core.fun.items.LoginMessagesItem;
 import org.thesandbox.core.util.PlayerDataListener;
@@ -49,14 +49,11 @@ public class ShopCommand implements Listener,ISubCommand {
     private final Map<Integer, Item> shopSlots = new HashMap<>();
 
 
-    public ShopCommand(TheSandboxCore plugin, PlayerDataListener playerDataListener, ClownFishItem clownFishItem) {
+    public ShopCommand(TheSandboxCore plugin, PlayerDataListener playerDataListener, LightningRodItem lightningRodItem, LoginMessagesItem loginMessagesItem, ClownFishItem clownFishItem) {
         this.playerDataListener = playerDataListener;
-
-        // Pull the custom items out of the centralized field in your main class
-        this.lightningRodItem = findItem(plugin, LightningRodItem.class);
-        this.loginMessagesItem = findItem(plugin, LoginMessagesItem.class);
-        this.clownFishItem = findItem(plugin, clownFishItem.getClass());
-
+        this.lightningRodItem = lightningRodItem;
+        this.loginMessagesItem = loginMessagesItem;
+        this.clownFishItem = clownFishItem;
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 

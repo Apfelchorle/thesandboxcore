@@ -1,4 +1,4 @@
-package org.thesandbox.core.fun.items;
+package org.thesandbox.core.fun.items.itemUTILS;
 
 import org.bukkit.NamespacedKey;
 import org.bukkit.plugin.Plugin;
