@@ -192,6 +192,11 @@ commands:
     permission: sandbox.default
     alias: [lmsg]
 
+  update:
+    description: Update TheSandBoxCore Plugin
+    permission: sandbox.superuser
+    aliases: [pyrorefrence]
+
   denick:
     description: Remove all online nicknames
     usage: /denick
