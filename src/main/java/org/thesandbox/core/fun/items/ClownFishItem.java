@@ -130,10 +130,10 @@ public class ClownFishItem implements Item {
     private void sendClownfishMessage(Player player, Location playerLoc) {
         Component clownMsg = Component.empty();
         for (char c : "You are a clown.".toCharArray()) {
-            Utils.SendMessage(player, "You've Been Clowned By, You've Been Clowned By, A Smooth Clown!", NamedTextColor.DARK_PURPLE);
-            Utils.WeAllKnowWhatThisIs(plugin, playerLoc, Sound.BLOCK_NOTE_BLOCK_BELL);
             clownMsg = clownMsg.append(Component.text(String.valueOf(c)).color(Utils.getRandomChatColor()));
         }
         player.sendMessage(clownMsg);
+        Utils.SendMessage(player, "You've Been Clowned By, You've Been Clowned By, A Smooth Clown!", NamedTextColor.DARK_PURPLE);
+        Utils.WeAllKnowWhatThisIs(plugin, playerLoc, Sound.BLOCK_NOTE_BLOCK_BELL);
     }
 }

@@ -28,6 +28,7 @@ import org.thesandbox.core.login.LoginService;
 import org.thesandbox.core.tags.TagService;
 import org.thesandbox.core.util.*;
 
+import java.io.File;
 import java.sql.*;
 import java.util.*;
 
@@ -112,7 +113,9 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         return this.registeredItems;
     }
 
-
+    public File getPluginFile() {
+        return getFile();
+    }
     @Override
     public void onEnable() {
         saveDefaultConfig();
