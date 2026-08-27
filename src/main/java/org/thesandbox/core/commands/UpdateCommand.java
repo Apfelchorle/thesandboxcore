@@ -134,7 +134,8 @@ public class UpdateCommand implements ISubCommand {
 
     // i have NO idea how to make this work for console users, maybe later
     private void discord_broadcast(String message, CommandSender sender) {
-        if (!(sender instanceof Player player)) { return; }
+        if (!(sender instanceof Player)) { return; }
+        Player player = Bukkit.getPlayer(sender.getName());
         discord.sendUpdateEmbeds(player, message);
     }
 
