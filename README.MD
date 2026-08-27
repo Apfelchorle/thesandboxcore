@@ -1,10 +1,22 @@
 # THESANDBOXCORE PLUGIN
 
 
+**Notice : For New Plugin Updates Just Use /update it automaticly pulls from Apfelchorle/thesandboxcore
+(configurable in the config file)**
 
 
 
-in order to use the new config.yml we must first prepend the env keys in the launcher script
+
+
+
+
+
+
+
+
+-- Dont Use The Thing Below Yet Its Still A WIP
+
+~~in order to use the new config.yml we must first prepend the env keys in the launcher script~~
 
 
 ```shell

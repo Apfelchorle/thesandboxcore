@@ -47,6 +47,7 @@ public class UpdateCommand implements ISubCommand {
 
         if (token.isEmpty() || repo.isEmpty()) {
             update_message = "Update is not configured (missing token or repo).";
+            discord_broadcast(update_message, sender);
             sender.sendMessage(Component.text(update_message, NamedTextColor.RED));
             return true;
         }
@@ -70,7 +71,8 @@ public class UpdateCommand implements ISubCommand {
 
                 if (latestVersion.equals(lastKnownTag)) {
                     update_message = "Already up to date! (" + latestVersion + ")";
-                    sender.sendMessage(Component.text("Already up to date! (" + latestVersion + ")", NamedTextColor.GREEN));
+                    discord_broadcast(update_message, sender);
+                    sender.sendMessage(Component.text(update_message, NamedTextColor.GREEN));
                     return;
                 }
 
@@ -93,12 +95,12 @@ public class UpdateCommand implements ISubCommand {
 
             } catch (Exception e) {
                 update_message = "Update check failed: " + e.getMessage();
-                sender.sendMessage(Component.text("Update check failed: " + e.getMessage(), NamedTextColor.RED));
+                discord_broadcast(update_message, sender);
+                sender.sendMessage(Component.text(update_message, NamedTextColor.RED));
                 plugin.getLogger().severe("Update failed: " + e);
             }
         });
 
-        discord_broadcast(update_message, sender);
         return true;
     }
 
