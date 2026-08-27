@@ -651,11 +651,10 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         Bukkit.getScheduler().runTask(this, () -> {
             // Fake leave for everyone
             Bukkit.broadcastMessage(buildLeaveMessageFor(p));
-
             // Staff-only notice
+            discord.sendVanishEmbeds(p,"incognito");
             String staffMsg = ChatColor.translateAlternateColorCodes(
                     '&', "&8[&b&lSTAFF&8] &c" + p.getName() + " vanished.");
-//            discord.sendStaffMessageFromMinecraft("VANISH", "Notice", p.getName() + " is now invisible");
             for (Player viewer : Bukkit.getOnlinePlayers()) {
                 if (viewer.hasPermission("sandbox.staff") && (shushService == null || !shushService.isEnabled(viewer.getUniqueId()))) {
                     viewer.sendMessage(staffMsg);
@@ -673,11 +672,11 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
             Bukkit.broadcastMessage(buildJoinMessageFor(p));
             LoginMessagesFakeLogin(p);
 
-
             // Staff-only notice
+            discord.sendVanishEmbeds(p,"cognito");
+
             String staffMsg = ChatColor.translateAlternateColorCodes(
                     '&', "&8[&b&lSTAFF&8] &c" + p.getName() + " unvanished.");
-//            discord.sendStaffMessageFromMinecraft("VANISH", "Notice", p.getName() + " is now visible");
             for (Player viewer : Bukkit.getOnlinePlayers()) {
                 if (viewer.hasPermission("sandbox.staff") && (shushService == null || !shushService.isEnabled(viewer.getUniqueId()))) {
                     viewer.sendMessage(staffMsg);

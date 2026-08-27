@@ -489,6 +489,7 @@ public class DiscordBridge extends ListenerAdapter
     public void sendUpdateEmbeds(Player player, String message) {
         sendUpdateEmbed(message, player);
     }
+    public void sendVanishEmbeds(Player player, String message) { sendVanishEmbed(player, message); }
     //
 
     private String rankPrefixForDiscord(Player player) {
@@ -728,6 +729,15 @@ public class DiscordBridge extends ListenerAdapter
             return;
         }
 
+        if(cmd.equals("console")) {
+            IssueInGameCommand(event);
+            return;
+        }
+
+        if (cmd.equals("ban")) {
+            return;
+        }
+
         if (cmd.equals("masterbuilder")) {
             handleMasterbuilder(event);
             return;
@@ -879,6 +889,51 @@ public class DiscordBridge extends ListenerAdapter
 
         return ParseResult.okWith(n + String.valueOf(u));
     }
+
+    /* --- Thingy For Discord --- */
+
+    private void IssueInGameCommand(@NotNull SlashCommandInteractionEvent event) {
+        Guild g = event.getGuild();
+        Member m = event.getMember();
+        if (g == null) {
+            event.reply("Please run this command in a server channel, not in DMs.")
+                    .setEphemeral(true).queue();
+            return;
+        }
+        boolean requesterPrivileged = hasRole(m, ROLE_MOD) || hasRole(m, ROLE_ADMIN) || hasRole(m, ROLE_SRADMIN);
+
+        if (!(requesterPrivileged)) {
+            event.reply("You do not have permission to use this command.");
+            return;
+        }
+
+        OptionMapping CmdOPT = event.getOption("command");
+        if (CmdOPT == null || CmdOPT.getAsString().trim().isEmpty()) {
+            event.reply("You must provide a Minecraft command. Usage: `/command <command>`.")
+                    .setEphemeral(true).queue();
+            return;
+        }
+
+        String command = CmdOPT.getAsString();
+
+        event.deferReply(true).queue(hook -> {
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                String cmd = command;
+                boolean ok = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+                if (ok) {
+                    hook.editOriginal("Ran Command: " + cmd)
+                            .queue();
+                    sendGenericEmbed("Ran Command: " + cmd, new Color(0x570000),event.getMember().getUser().getName(),event.getMember().getAvatarUrl(), getStaffLogsChannel());
+                } else {
+                    hook.editOriginal("Failed to execute: " + cmd)
+                            .queue();
+                    sendGenericEmbed("Failed To Run Command: " + cmd, new Color(0x570000),event.getMember().getUser().getName(),event.getMember().getAvatarUrl(), getStaffLogsChannel());
+                }
+            });
+        });
+    }
+
+
 
     /* -------------------- /list implementation -------------------- */
     private void handleList(@NotNull SlashCommandInteractionEvent event) {
@@ -1346,8 +1401,19 @@ public class DiscordBridge extends ListenerAdapter
         ch.sendMessageEmbeds(eb.build()).queue();
     }
 
+    public void sendGenericEmbed(String msg, Color color, String sender, String avatarurl ,TextChannel ch) {
+        if (ch == null) return;
+
+
+        EmbedBuilder eb = new EmbedBuilder()
+                .setColor(new Color(color.getRGB()))
+                .setAuthor("Requested By " + sender, null, avatarurl)
+                .setDescription(msg);
+        ch.sendMessageEmbeds(eb.build()).queue();
+    }
+
     private void sendVanishEmbed(Player p, String message) {
-        TextChannel ch = getStaffChannel();
+        TextChannel ch = getStaffLogsChannel();
         if (ch == null) return;
 
         String name    = p.getName();
