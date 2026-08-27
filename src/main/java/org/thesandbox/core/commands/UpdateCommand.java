@@ -131,8 +131,11 @@ public class UpdateCommand implements ISubCommand {
         throw new IllegalStateException("Could not find thesandboxcore-1.0.0.jar in the latest release's assets.");
     }
 
+
+    // i have NO idea how to make this work for console users, maybe later
     private void discord_broadcast(String message, CommandSender sender) {
-        discord.sendStaffMessageFromMinecraft("Update", "Update Requested By: " + sender.getName(), message);
+        if (!(sender instanceof Player player)) { return; }
+        discord.sendUpdateEmbeds(player, message);
     }
 
     @Override

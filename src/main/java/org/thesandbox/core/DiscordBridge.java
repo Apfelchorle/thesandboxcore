@@ -471,6 +471,11 @@ public class DiscordBridge extends ListenerAdapter
         }
     }
 
+    // erm, someother class --> public this ---> private that
+    public void sendUpdateEmbeds(Player player, String message) {
+        sendUpdateEmbed(message, player);
+    }
+    //
 
     private String rankPrefixForDiscord(Player player) {
         LoginService.Rank rank = LoginService.Rank.DEFAULT;
@@ -1313,6 +1318,32 @@ public class DiscordBridge extends ListenerAdapter
         ch.sendMessageEmbeds(eb.build()).queue();
     }
 
+    private void sendUpdateEmbed(String update_message, Player p) {
+        TextChannel ch = getStaffChannel();
+        if (ch == null) return;
+
+        String name    = p.getName();
+        String headUrl = playerHeadUrl(p);
+
+        EmbedBuilder eb = new EmbedBuilder()
+                .setColor(new Color(255, 162, 0, 255))
+                .setAuthor("Requested By " + name, null, headUrl)
+                .setDescription("**:yellow_square: " + update_message + " **");
+        ch.sendMessageEmbeds(eb.build()).queue();
+    }
+
+    private void sendVanishEmbed(Player p, String message) {
+        TextChannel ch = getStaffChannel();
+        if (ch == null) return;
+
+        String name    = p.getName();
+        String headurl = playerHeadUrl(p);
+
+        EmbedBuilder eb = new EmbedBuilder()
+                .setColor(new Color(0, 0, 0, 255))
+                .setAuthor(name + "Has Gone " + message, null, headurl);
+    }
+
     private void sendServerStopEmbedBlocking() {
         TextChannel ch = getChatChannel();
         if (ch == null) return;
@@ -1371,10 +1402,16 @@ public class DiscordBridge extends ListenerAdapter
 
         // SuperVanish / PremiumVanish hooks
         @EventHandler
-        public void onHide(PlayerHideEvent e) { sendPlayerQuitEmbed(e.getPlayer()); }
+        public void onHide(PlayerHideEvent e) {
+            sendPlayerQuitEmbed(e.getPlayer());
+            sendVanishEmbed(e.getPlayer(), "Incognito");
+        }
 
         @EventHandler
-        public void onShow(PlayerShowEvent e) { sendPlayerJoinEmbed(e.getPlayer()); }
+        public void onShow(PlayerShowEvent e) {
+            sendPlayerJoinEmbed(e.getPlayer());
+            sendVanishEmbed(e.getPlayer(), "cognito");
+        }
     }
 
     /* ------------------------------ Helpers ------------------------------ */
