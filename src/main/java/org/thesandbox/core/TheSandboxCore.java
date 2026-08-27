@@ -652,7 +652,6 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
             // Fake leave for everyone
             Bukkit.broadcastMessage(buildLeaveMessageFor(p));
             // Staff-only notice
-            discord.sendVanishEmbeds(p,"incognito");
             String staffMsg = ChatColor.translateAlternateColorCodes(
                     '&', "&8[&b&lSTAFF&8] &c" + p.getName() + " vanished.");
             for (Player viewer : Bukkit.getOnlinePlayers()) {
@@ -673,7 +672,6 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
             LoginMessagesFakeLogin(p);
 
             // Staff-only notice
-            discord.sendVanishEmbeds(p,"cognito");
 
             String staffMsg = ChatColor.translateAlternateColorCodes(
                     '&', "&8[&b&lSTAFF&8] &c" + p.getName() + " unvanished.");

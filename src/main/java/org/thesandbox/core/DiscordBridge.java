@@ -729,14 +729,14 @@ public class DiscordBridge extends ListenerAdapter
             return;
         }
 
-        if(cmd.equals("console")) {
-            IssueInGameCommand(event);
-            return;
-        }
+//        if(cmd.equals("console")) {
+//            IssueInGameCommand(event);
+//            return;
+//        }
 
-        if (cmd.equals("ban")) {
-            return;
-        }
+//        if (cmd.equals("ban")) {
+//            return;
+//        }
 
         if (cmd.equals("masterbuilder")) {
             handleMasterbuilder(event);
@@ -1421,7 +1421,8 @@ public class DiscordBridge extends ListenerAdapter
 
         EmbedBuilder eb = new EmbedBuilder()
                 .setColor(new Color(0, 0, 0, 255))
-                .setAuthor(name + "Has Gone " + message, null, headurl);
+                .setAuthor(name + " Has Gone " + message, null, headurl);
+        ch.sendMessageEmbeds(eb.build()).queue();
     }
 
     private void sendServerStopEmbedBlocking() {
