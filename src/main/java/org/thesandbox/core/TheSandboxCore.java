@@ -127,8 +127,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
         getServer().getPluginManager().registerEvents(dataListener, this);
 
-        LoginMessages loginMessages = new LoginMessages(dataListener, this);
-        getServer().getPluginManager().registerEvents(loginMessages, this);
+        this.loginMessages = new LoginMessages(dataListener, this);
+        getServer().getPluginManager().registerEvents(this.loginMessages, this);
 
         ItemKeys itemKeys = new ItemKeys(this);
         this.registeredItems = ItemAutoRegistrar.registerAll(this, itemKeys, dataListener, loginMessages);
@@ -651,7 +651,6 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         Bukkit.getScheduler().runTask(this, () -> {
             // Fake leave for everyone
             Bukkit.broadcastMessage(buildLeaveMessageFor(p));
-            LoginMessagesFakeLogin(p);
 
             // Staff-only notice
             String staffMsg = ChatColor.translateAlternateColorCodes(
