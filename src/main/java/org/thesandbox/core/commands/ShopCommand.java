@@ -74,7 +74,7 @@ public class ShopCommand implements Listener,ISubCommand {
         int price = item.getPrice();
         UUID puuid = player.getUniqueId();
         int balance = playerDataListener.getCoins(puuid);
-        String item_status = playerDataListener.get(player.getUniqueId(),itemName, "no");
+        String item_status = playerDataListener.get(player.getUniqueId(),itemName, "not_owned");
 
         if (owned_statuses.contains(item_status.toLowerCase())) {
             var leftover = player.getInventory().addItem(item.create());

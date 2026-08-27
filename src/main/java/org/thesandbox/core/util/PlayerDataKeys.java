@@ -9,4 +9,6 @@ public final class PlayerDataKeys {
     public static final String LOGIN_MESSAGE = "LoginMessage";
     public static final String LIGHTNING_ROD = "Lightning Rod";
     public static final String LOGIN_MESSAGES_STATE = "LoginMessages";
+
+    public static final String CLOWN_FISH = "ClownFish";
 }
