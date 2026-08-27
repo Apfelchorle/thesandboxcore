@@ -8,6 +8,8 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.thesandbox.core.DiscordBridge;
 import org.thesandbox.core.TheSandboxCore;
 
 import java.io.BufferedReader;
@@ -24,10 +26,13 @@ import java.util.stream.Collectors;
 public class UpdateCommand implements ISubCommand {
 
     private final TheSandboxCore plugin;
+    private final DiscordBridge discord;
 
+    String update_message;
 
-    public UpdateCommand(TheSandboxCore plugin) {
+    public UpdateCommand(TheSandboxCore plugin, DiscordBridge discord) {
         this.plugin = plugin;
+        this.discord = discord;
     }
 
     @Override
@@ -41,7 +46,8 @@ public class UpdateCommand implements ISubCommand {
         String repo = plugin.getConfig().getString("update.repo", "");
 
         if (token.isEmpty() || repo.isEmpty()) {
-            sender.sendMessage(Component.text("Update is not configured (missing token or repo).", NamedTextColor.RED));
+            update_message = "Update is not configured (missing token or repo).";
+            sender.sendMessage(Component.text(update_message, NamedTextColor.RED));
             return true;
         }
 
@@ -63,6 +69,7 @@ public class UpdateCommand implements ISubCommand {
                 String lastKnownTag = plugin.getConfig().getString("update.last-installed-tag", "");
 
                 if (latestVersion.equals(lastKnownTag)) {
+                    update_message = "Already up to date! (" + latestVersion + ")";
                     sender.sendMessage(Component.text("Already up to date! (" + latestVersion + ")", NamedTextColor.GREEN));
                     return;
                 }
@@ -78,17 +85,19 @@ public class UpdateCommand implements ISubCommand {
                 try (InputStream in = assetConn.getInputStream()) {
                     Files.copy(in, targetJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 }
-
+                update_message = "Downloaded update " + latestVersion + ". Restart to apply.";
                 sender.sendMessage(Component.text("Downloaded update " + latestVersion + ". Restart to apply.", NamedTextColor.GREEN));
                 plugin.getConfig().set("update.last-installed-tag", latestVersion);
                 plugin.saveConfig();
 
             } catch (Exception e) {
+                update_message = "Update check failed: " + e.getMessage();
                 sender.sendMessage(Component.text("Update check failed: " + e.getMessage(), NamedTextColor.RED));
                 plugin.getLogger().severe("Update failed: " + e);
             }
         });
 
+        discord_broadcast(update_message, sender);
         return true;
     }
 
@@ -117,6 +126,10 @@ public class UpdateCommand implements ISubCommand {
         }
 
         throw new IllegalStateException("Could not find thesandboxcore-1.0.0.jar in the latest release's assets.");
+    }
+
+    private void discord_broadcast(String message, CommandSender sender) {
+        discord.sendStaffMessageFromMinecraft("Update", "Update Requested By: " + sender.getName(), message);
     }
 
     @Override

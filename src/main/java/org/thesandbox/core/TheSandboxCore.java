@@ -667,6 +667,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         final Player p = event.getPlayer();
         Bukkit.getScheduler().runTask(this, () -> {
             // Fake join (same formatting as normal joins)
+
             Bukkit.broadcastMessage(buildJoinMessageFor(p));
 
             // Staff-only notice
