@@ -654,6 +654,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
             // Staff-only notice
             String staffMsg = ChatColor.translateAlternateColorCodes(
                     '&', "&8[&b&lSTAFF&8] &c" + p.getName() + " vanished.");
+            discord.sendStaffMessageFromMinecraft("[VANISH]", "Notice", p.getName() + " is now invisible");
             for (Player viewer : Bukkit.getOnlinePlayers()) {
                 if (viewer.hasPermission("sandbox.staff") && (shushService == null || !shushService.isEnabled(viewer.getUniqueId()))) {
                     viewer.sendMessage(staffMsg);
@@ -673,6 +674,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
             // Staff-only notice
             String staffMsg = ChatColor.translateAlternateColorCodes(
                     '&', "&8[&b&lSTAFF&8] &c" + p.getName() + " unvanished.");
+            discord.sendStaffMessageFromMinecraft("[VANISH]", "Notice", p.getName() + " is now visible");
             for (Player viewer : Bukkit.getOnlinePlayers()) {
                 if (viewer.hasPermission("sandbox.staff") && (shushService == null || !shushService.isEnabled(viewer.getUniqueId()))) {
                     viewer.sendMessage(staffMsg);
