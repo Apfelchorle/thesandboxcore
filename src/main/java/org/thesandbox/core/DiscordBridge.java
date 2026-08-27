@@ -27,6 +27,7 @@ import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 
+import org.thesandbox.core.guilds.Text;
 import org.thesandbox.core.login.LoginService;
 
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -78,6 +79,8 @@ public class DiscordBridge extends ListenerAdapter
 
     // Channels
     private TextChannel staffChannel;
+
+    private TextChannel logsChannel;
     private TextChannel chatChannel;              // public chat
     private TextChannel reportsChannel;
     private TextChannel archivedReportsChannel;
@@ -178,6 +181,7 @@ public class DiscordBridge extends ListenerAdapter
 
         jda = null;
         staffChannel = null;
+        logsChannel = null;
         chatChannel = null;
         reportsChannel = null;
         archivedReportsChannel = null;
@@ -330,6 +334,16 @@ public class DiscordBridge extends ListenerAdapter
         return staffChannel;
     }
 
+    private TextChannel getStaffLogsChannel() {
+        if (jda == null) return null;
+        if (logsChannel != null) return logsChannel;
+        String id = cfg("discord.logs-channel-id", "discord.logs_channel_id");
+        if (id == null || id.isEmpty()) return null;
+        logsChannel = jda.getTextChannelById(id);
+        if (logsChannel == null) plugin.getLogger().warning("[Discord] Logs channel not found: " + id);
+        return logsChannel;
+    }
+
     private TextChannel getChatChannel() {
         if (jda == null) return null;
         if (chatChannel != null) return chatChannel;
@@ -471,7 +485,7 @@ public class DiscordBridge extends ListenerAdapter
         }
     }
 
-    // erm, someother class --> public this ---> private that
+    // erm,  class --> public this ---> private that
     public void sendUpdateEmbeds(Player player, String message) {
         sendUpdateEmbed(message, player);
     }
@@ -1319,7 +1333,7 @@ public class DiscordBridge extends ListenerAdapter
     }
 
     private void sendUpdateEmbed(String update_message, Player p) {
-        TextChannel ch = getStaffChannel();
+        TextChannel ch = getStaffLogsChannel();
         if (ch == null) return;
 
         String name    = p.getName();
