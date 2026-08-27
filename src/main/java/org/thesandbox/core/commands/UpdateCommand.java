@@ -86,7 +86,8 @@ public class UpdateCommand implements ISubCommand {
                     Files.copy(in, targetJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 }
                 update_message = "Downloaded update " + latestVersion + ". Restart to apply.";
-                sender.sendMessage(Component.text("Downloaded update " + latestVersion + ". Restart to apply.", NamedTextColor.GREEN));
+                sender.sendMessage(Component.text(update_message, NamedTextColor.GREEN));
+                discord_broadcast(update_message, sender);
                 plugin.getConfig().set("update.last-installed-tag", latestVersion);
                 plugin.saveConfig();
 
