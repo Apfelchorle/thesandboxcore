@@ -197,6 +197,9 @@ commands:
     permission: sandbox.superuser
     aliases: [pyrorefrence]
 
+  gtfo:
+    description: Ban Said Player For 24h
+    permission: sandbox.staff
   denick:
     description: Remove all online nicknames
     usage: /denick

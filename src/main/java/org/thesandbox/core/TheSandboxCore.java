@@ -42,6 +42,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     private DataManager dataManager;
     private PlayerDataListener dataListener;
 
+    private LoginMessages loginMessages;
 
     private HikariDataSource dataSource; // HIKARI O NAKAMA DESU - "Montagem Hikari"
 
@@ -650,6 +651,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         Bukkit.getScheduler().runTask(this, () -> {
             // Fake leave for everyone
             Bukkit.broadcastMessage(buildLeaveMessageFor(p));
+            LoginMessagesFakeLogin(p);
 
             // Staff-only notice
             String staffMsg = ChatColor.translateAlternateColorCodes(
@@ -670,6 +672,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
             // Fake join (same formatting as normal joins)
 
             Bukkit.broadcastMessage(buildJoinMessageFor(p));
+            LoginMessagesFakeLogin(p);
+
 
             // Staff-only notice
             String staffMsg = ChatColor.translateAlternateColorCodes(
@@ -681,6 +685,10 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
                 }
             }
         });
+    }
+
+    private void LoginMessagesFakeLogin(Player player) {
+        loginMessages.SendLoginMessage(player);
     }
 
     @EventHandler
