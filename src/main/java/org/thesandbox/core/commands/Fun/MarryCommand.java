@@ -84,7 +84,9 @@ public class MarryCommand implements ISubCommand {
         String action = args[1].toLowerCase();
 
         if (action.equals("get")) {
-            playerDataListener.getGender(sender.getUniqueId());
+
+            String gender = playerDataListener.getGender(sender.getUniqueId());
+            sender.sendMessage(Component.text("Your Gender Is: " + gender, NamedTextColor.GREEN));
             return;
         }
 
@@ -117,11 +119,11 @@ public class MarryCommand implements ISubCommand {
         if (canMarryOrDivorce(requester, recipient, false)) {
             marriageRequests.remove(recipient.getUniqueId());
             playerDataListener.Marry(requester, recipient);
-            Bukkit.broadcast(Component.text("❤❤" + recipient.getName() + " and " + requester.getName() + " are now happily married! ❤❤", NamedTextColor.DARK_RED, TextDecoration.BOLD));
+            Bukkit.broadcast(Component.text("❤❤ " + recipient.getName() + " and " + requester.getName() + " are now happily married! ❤❤", NamedTextColor.DARK_RED, TextDecoration.BOLD));
         } else {
             // cucked
             recipient.sendMessage(Component.text("One of you is no longer eligible to marry!", NamedTextColor.RED));
-            // FAKE MESSAGE ANES
+            // FAKE MESSAGE ANES -- These comments are here to make it easy to find these messages later and delete them, yep
             requester.sendMessage(Utils.fakePlayerMessage("usfl", "its okay you'll catch a fish next time", "OP", NamedTextColor.DARK_RED));
         }
     }
