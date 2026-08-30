@@ -1,5 +1,7 @@
 package org.thesandbox.core.commands.Fun;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -16,16 +18,28 @@ import java.util.List;
 
 public class MarryCommand implements ISubCommand {
 
-    PlayerDataListener playerDataListener;
+    private final PlayerDataListener playerDataListener;
+    public MarryCommand(PlayerDataListener playerDataListener) {
+        this.playerDataListener = playerDataListener;
+    }
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length > 0) {
-            if  (args[0].equalsIgnoreCase("marry")) {
-                Marry(sender, args);
-            }
-            if (args[0].equalsIgnoreCase("divorce")) {
-                Divorce(sender, args);
-            }
+
+        if(!(sender instanceof Player)) {
+            sender.sendMessage(Component.text("Only players can execute this command!", NamedTextColor.RED));
+            return true;
+        }
+
+        if (args.length < 2) {
+            sender.sendMessage(Component.text("Usage: /" + label + " <playerName>"));
+            return true;
+        }
+
+        if (args[0].equalsIgnoreCase("marry")) {
+            Marry(sender, args);
+        }
+        if (args[0].equalsIgnoreCase("divorce")) {
+            Divorce(sender, args);
         }
 
         return true;
@@ -38,7 +52,7 @@ public class MarryCommand implements ISubCommand {
         String recieverstatus = playerDataListener.getMarriageStatus(RecieverPlayer.getUniqueId());
         String issuerstatus = playerDataListener.getMarriageStatus(IssuerPlayer.getUniqueId());
 
-        List<String> validstatus = List.of("Married");
+        List<String> validstatus = List.of("married");
 
         if (validstatus.contains(recieverstatus.toLowerCase()) && validstatus.contains(issuerstatus.toLowerCase())) {
             playerDataListener.Divorce(IssuerPlayer,RecieverPlayer);
@@ -52,7 +66,7 @@ public class MarryCommand implements ISubCommand {
         String recieverstatus = playerDataListener.getMarriageStatus(RecieverPlayer.getUniqueId());
         String issuerstatus = playerDataListener.getMarriageStatus(IssuerPlayer.getUniqueId());
 
-        List<String> validstatus = Arrays.asList("Single", "Divorced");
+        List<String> validstatus = Arrays.asList("single", "divorced");
 
         if (validstatus.contains(recieverstatus.toLowerCase()) && validstatus.contains(issuerstatus.toLowerCase())) {
             playerDataListener.Marry(IssuerPlayer,RecieverPlayer);
@@ -65,6 +79,7 @@ public class MarryCommand implements ISubCommand {
         if (args == null) {
             return List.of();
         }
+
         if (args.length == 1) {
             List<String> subCommands = List.of("marry", "divorce");
             String currentInput = args[0].toLowerCase();
