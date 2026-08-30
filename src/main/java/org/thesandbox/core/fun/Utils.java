@@ -55,6 +55,8 @@ public class Utils {
         }.runTaskTimer(plugin, 0L, 4L);
     }
 
+
+
     public static Double randomDoubleRange(double min, double max) {
         return min + (random.nextDouble() * (max - min));
     }
