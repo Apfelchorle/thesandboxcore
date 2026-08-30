@@ -5,6 +5,7 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -40,6 +41,8 @@ public class MarryCommand implements ISubCommand {
         }
 
         String subCommand = args[0].toLowerCase();
+        String argument1 = args[1];
+        String argument2 = args[2];
         String targetName = args[1];
 
         Player TargetPlayer = Bukkit.getPlayer(targetName);
@@ -58,6 +61,8 @@ public class MarryCommand implements ISubCommand {
             case "deny" -> handleDeny(issuerPlayer, TargetPlayer);
             case "request" -> Request(issuerPlayer, TargetPlayer);
             case "divorce" -> Divorce(issuerPlayer, TargetPlayer);
+            case "offline-divorce" -> OfflineDivorce(issuerPlayer, targetName);
+            case "gender" -> handleGender(issuerPlayer, argument1, argument2);
             default -> sender.sendMessage(Component.text("Unknown action! Use marry, divorce, accept, or deny.", NamedTextColor.RED));
         }
 
@@ -66,7 +71,20 @@ public class MarryCommand implements ISubCommand {
 
     // Handlers
 
+    private void handleGender(Player sender, String argument1, String argument2) {
 
+
+        if (argument1.isEmpty() || argument2.isEmpty()) {
+            sender.sendMessage("Usage : /marry gender get | set <gender>");
+            return;
+        }
+
+        switch(argument1) {
+            case "set" -> playerDataListener.setGender(sender.getUniqueId(), argument2);
+            case "get" -> playerDataListener.getGender(sender.getUniqueId());
+            default -> sender.sendMessage("not a valid argument!");
+        }
+    }
     private void handleAccept(Player recipient, Player requester) {
         if (requester == null || !requester.isOnline()) {
             recipient.sendMessage(Component.text("That player is no longer online!", NamedTextColor.RED));
@@ -184,6 +202,31 @@ public class MarryCommand implements ISubCommand {
         }
     }
 
+    private void OfflineDivorce(Player p1, String p2name) {
+
+        String p1Spouse = playerDataListener.getMarriageSpouse(p1.getUniqueId());
+
+        if (p1Spouse == null || p1Spouse.isEmpty()) {
+            p1.sendMessage(Component.text("You are not currently married!", NamedTextColor.RED));
+            return;
+        }
+
+        OfflinePlayer p2 = Bukkit.getOfflinePlayer(p2name);
+
+        if (p2 == null || (!p2.hasPlayedBefore() && !p2.isOnline())) {
+            p1.sendMessage(Component.text("Player '" + p2name + "' could not be found.", NamedTextColor.RED));
+            return;
+        }
+
+        if (p1Spouse.equalsIgnoreCase(p2name)) {
+            playerDataListener.OfflineDivorce(p1, p2);
+            p1.sendMessage(Component.text("You have successfully divorced " + p2name + ".", NamedTextColor.GRAY));
+            Bukkit.broadcast(Component.text(p1.getName() + " and " + (p2.getName() != null ? p2.getName() : p2name) + " have divorced 💔", NamedTextColor.GRAY));
+        } else {
+            p1.sendMessage(Component.text("You are not married to " + p2name + ".", NamedTextColor.RED));
+        }
+    }
+
     @Override
     public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args == null) {
@@ -191,7 +234,7 @@ public class MarryCommand implements ISubCommand {
         }
 
         if (args.length == 1) {
-            List<String> subCommands = List.of("request", "divorce", "accept", "deny");
+            List<String> subCommands = List.of("request", "divorce", "accept", "deny", "offline-divorce");
             String currentInput = args[0].toLowerCase();
 
             return subCommands.stream()

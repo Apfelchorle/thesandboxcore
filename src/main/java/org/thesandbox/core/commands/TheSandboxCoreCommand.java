@@ -1,19 +1,24 @@
 package org.thesandbox.core.commands;
 
+import com.google.protobuf.Any;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.util.PlayerDataListener;
 
 import java.util.List;
 
 public class TheSandboxCoreCommand implements ISubCommand {
 
     private final TheSandboxCore plugin;
+    private final PlayerDataListener playerDataListener;
 
-    public TheSandboxCoreCommand(TheSandboxCore plugin) {
+    public TheSandboxCoreCommand(TheSandboxCore plugin, PlayerDataListener playerDataListener) {
         this.plugin = plugin;
+        this.playerDataListener = playerDataListener;
     }
 
     @Override
@@ -26,6 +31,19 @@ public class TheSandboxCoreCommand implements ISubCommand {
             boolean discord = plugin.getConfig().getBoolean("discord.enabled", false);
             sender.sendMessage(CommandMessages.command(color("&7Discord Bridge: &f" + (discord ? "&aEnabled" : "&cDisabled"))));
             return true;
+        }
+
+        if (args.length == 1 && args[0].equalsIgnoreCase("config")) {
+            String subcommand = args[1];
+            if (subcommand.equalsIgnoreCase("get")) {
+                String data = args[2];
+                String playername = args[3];
+
+                OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playername);
+                String response = playerDataListener.get(offlinePlayer.getUniqueId(),data,"not found").toString();
+
+                sender.sendMessage(response);
+            }
         }
 
         if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {

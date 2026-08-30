@@ -348,6 +348,7 @@ commands:
   marry:
     description: Marriage.
     permission: sandbox.default
+    aliases: [marriage,]
 
   masterbuilderworld:
     description: Teleport to the masterbuilderworld.

@@ -1,6 +1,7 @@
 package org.thesandbox.core.util;
 
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -38,6 +39,7 @@ public class PlayerDataListener implements Listener {
         // marriage
         data.put(PlayerDataKeys.MARRIAGE_SPOUSE, dataManager.loadData(uuid, PlayerDataKeys.MARRIAGE_SPOUSE, ""));
         data.put(PlayerDataKeys.MARRIAGE_STATUS, dataManager.loadData(uuid, PlayerDataKeys.MARRIAGE_STATUS, "Single"));
+        data.put(PlayerDataKeys.GENDER, dataManager.loadData(uuid, PlayerDataKeys.GENDER, "male"));
 
         return data;
     }
@@ -113,6 +115,21 @@ public class PlayerDataListener implements Listener {
         set(reciever.getUniqueId(), PlayerDataKeys.MARRIAGE_SPOUSE, "");
         set(reciever.getUniqueId(), PlayerDataKeys.MARRIAGE_STATUS, "Divorced");
         set(Issuer.getUniqueId(), PlayerDataKeys.MARRIAGE_STATUS, "Divorced");
+    }
+
+    public void OfflineDivorce(Player Issuer, OfflinePlayer reciever) {
+        set(Issuer.getUniqueId(), PlayerDataKeys.MARRIAGE_SPOUSE, "");
+        set(reciever.getUniqueId(), PlayerDataKeys.MARRIAGE_SPOUSE, "");
+        set(reciever.getUniqueId(), PlayerDataKeys.MARRIAGE_STATUS, "Divorced");
+        set(Issuer.getUniqueId(), PlayerDataKeys.MARRIAGE_STATUS, "Divorced");
+    }
+
+    public String getGender(UUID uuid) {
+        return get(uuid, PlayerDataKeys.GENDER, "male");
+    }
+
+    public void setGender(UUID uuid, String gender) {
+        set(uuid, PlayerDataKeys.GENDER, gender);
     }
 
     public int getCoins(UUID uuid) {

@@ -16,4 +16,5 @@ public final class PlayerDataKeys {
 
     public static final String MARRIAGE_STATUS = "MarriageStatus";
     public static final String MARRIAGE_SPOUSE = "MarriageSpouse";
+    public static final String GENDER = "male";
 }
