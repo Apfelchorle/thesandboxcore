@@ -1,7 +1,9 @@
 package org.thesandbox.core.fun;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -35,6 +37,16 @@ public class Utils {
                 randomDoubleRange(-1.0, 1.0) * magnitude,
                 randomDoubleRange(-1.0, 1.0) * magnitude
         );
+    }
+
+    public static Component fakePlayerMessage(String player, String message, String rank, NamedTextColor color) {
+        return Component.text()
+                .append(Component.text(rank, color, TextDecoration.BOLD))
+                .append(Component.text(" • ", NamedTextColor.DARK_GRAY))
+                .append(Component.text(player, color))
+                .append(Component.text(" » ", NamedTextColor.DARK_GRAY))
+                .append(Component.text(message, NamedTextColor.WHITE))
+                .build();
     }
 
     public static void WeAllKnowWhatThisIs(TheSandboxCore plugin, Location location, Sound instrument) {
