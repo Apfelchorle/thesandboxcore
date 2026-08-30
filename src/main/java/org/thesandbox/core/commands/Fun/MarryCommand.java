@@ -162,7 +162,7 @@ public class MarryCommand implements ISubCommand {
 
         if (isDivorce) {
             // both eachother spouses
-            return !p1Spouse.isEmpty() && p1Spouse.equals(p2.getUniqueId().toString());
+            return !p1Spouse.isEmpty() && p1Spouse.equals(p2.getName());
         } else {
             // if both single can marry
             String p1Status = playerDataListener.getMarriageStatus(p1.getUniqueId());
