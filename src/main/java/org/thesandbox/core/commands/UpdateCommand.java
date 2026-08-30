@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 import org.thesandbox.core.DiscordBridge;
 import org.thesandbox.core.TheSandboxCore;
 
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStream;
@@ -132,11 +133,14 @@ public class UpdateCommand implements ISubCommand {
     }
 
 
-    // i have NO idea how to make this work for console users, maybe later
+
     private void discord_broadcast(String message, CommandSender sender) {
-        if (!(sender instanceof Player)) { return; }
-        Player player = Bukkit.getPlayer(sender.getName());
-        discord.sendUpdateEmbeds(player, message);
+        if (sender instanceof Player player) {
+            discord.sendUpdateEmbeds(player, message);
+        } else {
+            String url = "https://media.discordapp.net/attachments/1474457365708411084/1543601248358375434/terminal.png?ex=6a957630&is=6a9424b0&hm=a6d3d1d7d82bb34851dba8eec582923da972540011678d40f746076287635dcb&=&format=webp&quality=lossless&width=938&height=770";
+            discord.sendGenericEmbed(message,Color.MAGENTA, sender.getName(), url, "Logs");
+        }
     }
 
     @Override

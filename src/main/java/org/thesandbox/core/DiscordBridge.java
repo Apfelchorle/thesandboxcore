@@ -900,7 +900,7 @@ public class DiscordBridge extends ListenerAdapter
                     .setEphemeral(true).queue();
             return;
         }
-        boolean requesterPrivileged = hasRole(m, ROLE_MOD) || hasRole(m, ROLE_ADMIN) || hasRole(m, ROLE_SRADMIN);
+        boolean requesterPrivileged = hasRole(m, ROLE_SRADMIN);
 
         if (!(requesterPrivileged)) {
             event.reply("You do not have permission to use this command.");
@@ -923,11 +923,11 @@ public class DiscordBridge extends ListenerAdapter
                 if (ok) {
                     hook.editOriginal("Ran Command: " + cmd)
                             .queue();
-                    sendGenericEmbed("Ran Command: " + cmd, new Color(0x570000),event.getMember().getUser().getName(),event.getMember().getAvatarUrl(), getStaffLogsChannel());
+                    sendGenericEmbed("Ran Command: " + cmd, new Color(0x570000),event.getMember().getUser().getName(),event.getMember().getAvatarUrl(), "Logs");
                 } else {
                     hook.editOriginal("Failed to execute: " + cmd)
                             .queue();
-                    sendGenericEmbed("Failed To Run Command: " + cmd, new Color(0x570000),event.getMember().getUser().getName(),event.getMember().getAvatarUrl(), getStaffLogsChannel());
+                    sendGenericEmbed("Failed To Run Command: " + cmd, new Color(0x570000),event.getMember().getUser().getName(),event.getMember().getAvatarUrl(), "Logs");
                 }
             });
         });
@@ -1387,6 +1387,8 @@ public class DiscordBridge extends ListenerAdapter
         ch.sendMessageEmbeds(eb.build()).queue();
     }
 
+
+
     private void sendUpdateEmbed(String update_message, Player p) {
         TextChannel ch = getStaffLogsChannel();
         if (ch == null) return;
@@ -1401,10 +1403,19 @@ public class DiscordBridge extends ListenerAdapter
         ch.sendMessageEmbeds(eb.build()).queue();
     }
 
-    public void sendGenericEmbed(String msg, Color color, String sender, String avatarurl ,TextChannel ch) {
+    public void sendGenericEmbed(String msg, Color color, String sender, String avatarurl ,String channel) {
+        TextChannel ch;
+        switch (channel) {
+            case "Logs":
+                ch = getStaffLogsChannel();
+                break;
+            case "Staff":
+                ch = getStaffChannel();
+                break;
+            default:
+                ch = getStaffLogsChannel();
+        }
         if (ch == null) return;
-
-
         EmbedBuilder eb = new EmbedBuilder()
                 .setColor(new Color(color.getRGB()))
                 .setAuthor("Requested By " + sender, null, avatarurl)
