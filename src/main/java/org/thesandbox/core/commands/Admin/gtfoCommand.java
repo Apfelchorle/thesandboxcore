@@ -1,4 +1,4 @@
-package org.thesandbox.core.commands;
+package org.thesandbox.core.commands.Admin;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -8,11 +8,10 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.thesandbox.core.commands.ISubCommand;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class gtfoCommand implements ISubCommand {

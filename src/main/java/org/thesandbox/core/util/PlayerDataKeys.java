@@ -11,4 +11,9 @@ public final class PlayerDataKeys {
     public static final String LOGIN_MESSAGES_STATE = "LoginMessages";
 
     public static final String CLOWN_FISH = "ClownFish";
+
+    // marriage
+
+    public static final String MARRIAGE_STATUS = "MarriageStatus";
+    public static final String MARRIAGE_SPOUSE = "MarriageSpouse";
 }

@@ -23,17 +23,22 @@ public class PlayerDataListener implements Listener {
     private Map<String, Object> loadFromDisk(UUID uuid) {
         Map<String, Object> data = new HashMap<>();
 
+        // Coins Balance
         data.put(PlayerDataKeys.COINS, dataManager.loadData(uuid, PlayerDataKeys.COINS, 0));
+
+        // JumpPad State
         data.put(PlayerDataKeys.JUMPPADS_MODE, dataManager.loadData(uuid, PlayerDataKeys.JUMPPADS_MODE, "disabled"));
+
+        // item ownership
         data.put(PlayerDataKeys.LIGHTNING_ROD, dataManager.loadData(uuid, PlayerDataKeys.LIGHTNING_ROD, "not_owned"));
         data.put(PlayerDataKeys.LOGIN_MESSAGE, dataManager.loadData(uuid, PlayerDataKeys.LOGIN_MESSAGE, ""));
         data.put(PlayerDataKeys.LOGIN_MESSAGES_STATE, dataManager.loadData(uuid, PlayerDataKeys.LOGIN_MESSAGES_STATE, "not_owned"));
         data.put(PlayerDataKeys.CLOWN_FISH, dataManager.loadData(uuid, PlayerDataKeys.CLOWN_FISH, "not_owned"));
-//        data.put("coins", dataManager.loadData(uuid, "coins", 0));
-//        data.put("jumppadmode", dataManager.loadData(uuid, "jumppadmode", "disabled"));
-//        data.put("Lightning Rod", dataManager.loadData(uuid, "Lightning Rod", "no"));
-//        data.put("LoginMessage", dataManager.loadData(uuid, "LoginMessage", "")); // login message (the text that will appear when a player joins DONT TOUCH NO TOUCHIE, GET UR GRUBBY HAND SOFF)
-//        data.put("LoginMessages", dataManager.loadData(uuid, "LoginMessages", "not_owned")); // later this can be in 3 states Disabled, Enabled, not_owned
+
+        // marriage
+        data.put(PlayerDataKeys.MARRIAGE_SPOUSE, dataManager.loadData(uuid, PlayerDataKeys.MARRIAGE_SPOUSE, ""));
+        data.put(PlayerDataKeys.MARRIAGE_STATUS, dataManager.loadData(uuid, PlayerDataKeys.MARRIAGE_STATUS, "Single"));
+
         return data;
     }
 
@@ -86,6 +91,30 @@ public class PlayerDataListener implements Listener {
         playerCache.computeIfAbsent(uuid, k -> new HashMap<>()).put(key, value);
     }
 
+    // shortcuts for repetitive tasks:
+
+    public String getMarriageStatus(UUID uuid) {
+        return get(uuid, PlayerDataKeys.MARRIAGE_STATUS, "Single");
+    }
+
+    public String getMarriageSpouse(UUID uuid) {
+        return get(uuid, PlayerDataKeys.MARRIAGE_SPOUSE, "");
+    }
+
+    public void Marry(Player Issuer, Player reciever) {
+        set(Issuer.getUniqueId(), PlayerDataKeys.MARRIAGE_SPOUSE, reciever.getName());
+        set(reciever.getUniqueId(), PlayerDataKeys.MARRIAGE_SPOUSE, Issuer.getName());
+        set(reciever.getUniqueId(), PlayerDataKeys.MARRIAGE_STATUS, "Married");
+        set(Issuer.getUniqueId(), PlayerDataKeys.MARRIAGE_STATUS, "Married");
+    }
+
+    public void Divorce(Player Issuer, Player reciever) {
+        set(Issuer.getUniqueId(), PlayerDataKeys.MARRIAGE_SPOUSE, "");
+        set(reciever.getUniqueId(), PlayerDataKeys.MARRIAGE_SPOUSE, "");
+        set(reciever.getUniqueId(), PlayerDataKeys.MARRIAGE_STATUS, "Divorced");
+        set(Issuer.getUniqueId(), PlayerDataKeys.MARRIAGE_STATUS, "Divorced");
+    }
+
     public int getCoins(UUID uuid) {
         return get(uuid, "coins", 0);
     }
@@ -101,4 +130,6 @@ public class PlayerDataListener implements Listener {
     public void setCoins(UUID uuid, int amount) {
         set(uuid, "coins", amount);
     }
+
+
 }

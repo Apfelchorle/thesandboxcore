@@ -1,13 +1,13 @@
-package org.thesandbox.core.commands;
+package org.thesandbox.core.commands.Fun;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.util.PlayerDataListener;
 
 import java.util.ArrayList;
@@ -159,7 +159,10 @@ public class CoinsCommand implements ISubCommand {
 
             playerDataListener.addCoins(targetPlayer.getUniqueId(), amount);
 
-            Bukkit.broadcast(Component.text(sender.getName() + " has given " + targetPlayer.getName() + " " + amount + " coins!", NamedTextColor.GOLD));
+            if (sender instanceof Player) {
+                Bukkit.broadcast(Component.text(sender.getName() + " has given " + targetPlayer.getName() + " " + amount + " coins!", NamedTextColor.GOLD));
+            }
+
             sender.sendMessage(Component.text(targetPlayer.getName() + " has " + playerDataListener.getCoins(targetPlayer.getUniqueId()) + " Coins!", NamedTextColor.GREEN));
             targetPlayer.sendMessage(Component.text("You've Recieved " + amount + " Coins From " + sender.getName(), NamedTextColor.GREEN));
 

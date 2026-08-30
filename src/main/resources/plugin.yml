@@ -345,9 +345,8 @@ commands:
     usage: /flatlands
     permission: sandbox.default
 
-  adminworld:
-    description: Teleport to the adminworld.
-    usage: /adminworld
+  marry:
+    description: Marriage.
     permission: sandbox.default
 
   masterbuilderworld:
