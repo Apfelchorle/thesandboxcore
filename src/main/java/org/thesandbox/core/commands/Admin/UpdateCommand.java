@@ -1,4 +1,4 @@
-package org.thesandbox.core.commands;
+package org.thesandbox.core.commands.Admin;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -11,6 +11,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.DiscordBridge;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.commands.ISubCommand;
 
 import java.awt.*;
 import java.io.BufferedReader;
@@ -137,8 +138,8 @@ public class UpdateCommand implements ISubCommand {
     private void discord_broadcast(String message, CommandSender sender) {
         if (sender instanceof Player player) {
             discord.sendUpdateEmbeds(player, message);
-        } else {
-            String url = "https://media.discordapp.net/attachments/1474457365708411084/1543601248358375434/terminal.png?ex=6a957630&is=6a9424b0&hm=a6d3d1d7d82bb34851dba8eec582923da972540011678d40f746076287635dcb&=&format=webp&quality=lossless&width=938&height=770";
+        } else { // console fallback (aka sender is not an instance of player)
+            String url = "https://cdn.discordapp.com/emojis/1189462346188472370.webp?size=48&name=PGokey&lossless=true";
             discord.sendGenericEmbed(message,Color.MAGENTA, sender.getName(), url, "Logs");
         }
     }
