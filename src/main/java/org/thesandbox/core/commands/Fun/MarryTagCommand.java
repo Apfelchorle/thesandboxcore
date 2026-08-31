@@ -12,6 +12,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.util.PlayerDataListener;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -21,6 +22,8 @@ public class MarryTagCommand implements ISubCommand
     private final JavaPlugin plugin;
     private final PlayerDataListener playerDataListener;
     private final Essentials essentials;
+
+    List<String> genderPrefixes = Arrays.asList("&a ❤ &r", "&c ❤ &r","&1 ❤ &r");
 
     public MarryTagCommand(JavaPlugin plugin, PlayerDataListener playerDataListener)
     {
@@ -48,27 +51,34 @@ public class MarryTagCommand implements ISubCommand
 
         for (Player target : Bukkit.getOnlinePlayers()) {
             try {
+                UUID playerUuid = target.getUniqueId();
                 User user = essentials.getUser(target);
                 if (user == null) continue;
 
-                if (playerDataListener.getMarriageSpouse(user.getUUID()).isEmpty()) {
+                String spouse = playerDataListener.getMarriageSpouse(playerUuid);
+                if (spouse == null || spouse.isEmpty()) {
                     continue;
                 }
 
-                String emojiPrefix = getGenderEmoji(user);
+                String emojiPrefix = getGenderEmoji(playerUuid);
+
                 String currentNick = user.getNickname();
-                String newNick = emojiPrefix + currentNick;
-
-				if (!(currentNick.contains(emojiPrefix))) {
-					user.setNickname(newNick);
-				}
-
-                target.setDisplayName(target.getName());
-                try {
-                    target.setPlayerListName(target.getName());
-                } catch (Throwable ignored) {
-                    target.sendMessage(Component.text("Nickname updated!", NamedTextColor.GREEN));
+                if (currentNick == null || currentNick.isEmpty()) {
+                    currentNick = target.getName();
                 }
+                for (String prefix : genderPrefixes) {
+                    if (currentNick.startsWith(prefix)) {
+                        currentNick = currentNick.substring(prefix.length());
+                        break;
+                    }
+                }
+
+
+                String newNick = emojiPrefix + currentNick;
+                user.setNickname(newNick);
+
+                target.sendMessage(Component.text("Marriage tag updated!", NamedTextColor.GREEN));
+
             } catch (Throwable t) {
                 sender.sendMessage(Component.text("Failed to set nickname for: " + target.getName(), NamedTextColor.RED));
             }
@@ -76,9 +86,8 @@ public class MarryTagCommand implements ISubCommand
 
         return true;
     }
-
-    private String getGenderEmoji(User user) {
-        String gender = playerDataListener.getGender(user.getUUID());
+    private String getGenderEmoji(UUID user) {
+        String gender = playerDataListener.getGender(user);
 
         return switch (gender) {
             case "male" -> "&1 ❤ &r";

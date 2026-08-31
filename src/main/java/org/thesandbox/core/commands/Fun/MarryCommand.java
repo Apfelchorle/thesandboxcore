@@ -4,6 +4,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -37,6 +38,11 @@ public class MarryCommand implements ISubCommand {
             return true;
         }
 
+        if (args.length < 1) {
+            sender.sendMessage(Component.text("Usage: /" + label + " <request|divorce|offline-divorce|accept|deny|gender|status> <args>", NamedTextColor.RED));
+            return true;
+        }
+
         if (args.length < 2) {
             sender.sendMessage(Component.text("Usage: /" + label + " <request|divorce|offline-divorce|accept|deny|gender> <args>", NamedTextColor.RED));
             return true;
@@ -51,7 +57,7 @@ public class MarryCommand implements ISubCommand {
             case "divorce" -> handleOnlineAction(issuerPlayer, args[1], this::divorce);
             case "offline-divorce" -> offlineDivorce(issuerPlayer, args[1]);
             case "gender" -> handleGender(issuerPlayer,args);
-			case "status" -> handleStatus(issuerPlayer);
+            case "status" -> handleStatus(issuerPlayer,args);
             default -> sender.sendMessage(Component.text("Unknown action! Use request, divorce, offline-divorce, accept, deny, or gender.", NamedTextColor.RED));
         }
 
@@ -66,12 +72,16 @@ public class MarryCommand implements ISubCommand {
 
     // Handlers
 	
-	private void handleStatus(Player issuer) {
-		String status = playerDataListener.getMarriageSpouse(issuer.getUniqueId());
-		if (!status.equals("Divorced") || !status.equals("Single")) {
-			issuer.sendMessage(Component.text("You're married to " + status + ".", NamedTextColor.RED));
+	private void handleStatus(Player sender, String[] args) {
+        String playerName = args[0];
+        OfflinePlayer player = Bukkit.getOfflinePlayer(playerName);
+		String status = playerDataListener.getMarriageStatus(player.getUniqueId());
+        String spouse =  playerDataListener.getMarriageSpouse(player.getUniqueId());
+        // Changed This From Livi's Single And Divorced
+		if (status.equalsIgnoreCase("Married")) {
+			sender.sendMessage(Component.text(playerName + " married to " + spouse + ".", TextColor.color(255, 0, 75)));
 		} else {
-			issuer.sendMessage(Component.text("You aren't married to anyone.", NamedTextColor.RED));
+			sender.sendMessage(Component.text(playerName + "isnt married to anyone.", NamedTextColor.RED));
 		}
 	}
 
