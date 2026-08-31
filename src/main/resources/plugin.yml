@@ -340,6 +340,10 @@ commands:
     usage: /world <world>
     permission: sandbox.default
 
+  marrytag:
+    description: AreYouAreYouCommingToTheTreeTheyStrungUpAManTheySayHeMurderedThree
+    permission: sandbox.default
+
   flatlands:
     description: Teleport to the flatlands.
     usage: /flatlands
