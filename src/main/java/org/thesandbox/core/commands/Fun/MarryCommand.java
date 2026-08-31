@@ -51,6 +51,7 @@ public class MarryCommand implements ISubCommand {
             case "divorce" -> handleOnlineAction(issuerPlayer, args[1], this::divorce);
             case "offline-divorce" -> offlineDivorce(issuerPlayer, args[1]);
             case "gender" -> handleGender(issuerPlayer,args);
+			case "status" -> handleStatus(issuerPlayer);
             default -> sender.sendMessage(Component.text("Unknown action! Use request, divorce, offline-divorce, accept, deny, or gender.", NamedTextColor.RED));
         }
 
@@ -64,6 +65,15 @@ public class MarryCommand implements ISubCommand {
     }
 
     // Handlers
+	
+	private void handleStatus(Player issuer) {
+		String status = playerDataListener.getMarriageSpouse(issuer.getUniqueId());
+		if (!status.equals("Divorced") || !status.equals("Single")) {
+			issuer.sendMessage(Component.text("You're married to " + status + ".", NamedTextColor.RED));
+		} else {
+			issuer.sendMessage(Component.text("You aren't married to anyone.", NamedTextColor.RED));
+		}
+	}
 
     private void handleOnlineAction(Player issuer, String targetName, PlayerBiConsumer action) {
         Player targetPlayer = Bukkit.getPlayer(targetName);
