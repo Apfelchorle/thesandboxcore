@@ -11,6 +11,7 @@ import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.util.PlayerDataListener;
 
 import java.awt.*;
 import java.util.Random;
@@ -20,6 +21,11 @@ import java.util.Random;
 public class Utils {
 
     private static final Random random = new Random();
+    private final PlayerDataListener playerDataListener;
+
+    public Utils(PlayerDataListener playerDataListener) {
+        this.playerDataListener = playerDataListener;
+    }
 
     public static TextColor getRandomChatColor() {
         Color awtColor = new Color(random.nextInt(256), random.nextInt(256), random.nextInt(256));
@@ -48,6 +54,9 @@ public class Utils {
                 .append(Component.text(message, NamedTextColor.WHITE))
                 .build();
     }
+
+
+
 
     public static void WeAllKnowWhatThisIs(TheSandboxCore plugin, Location location, Sound instrument) {
         float[] notes = { 1.0f, 1.0f, 1.2f, 1.5f, 1.2f, 2.0f };

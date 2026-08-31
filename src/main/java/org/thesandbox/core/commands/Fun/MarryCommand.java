@@ -50,14 +50,21 @@ public class MarryCommand implements ISubCommand {
             case "request" -> handleOnlineAction(issuerPlayer, args[1], this::request);
             case "divorce" -> handleOnlineAction(issuerPlayer, args[1], this::divorce);
             case "offline-divorce" -> offlineDivorce(issuerPlayer, args[1]);
-            case "gender" -> handleGender(issuerPlayer, args);
+            case "gender" -> handleGender(issuerPlayer,args);
             default -> sender.sendMessage(Component.text("Unknown action! Use request, divorce, offline-divorce, accept, deny, or gender.", NamedTextColor.RED));
         }
 
         return true;
     }
 
-    // handlers 02
+
+    @FunctionalInterface
+    private interface PlayerBiConsumer {
+        void accept(Player p1, Player p2);
+    }
+
+    // Handlers
+
     private void handleOnlineAction(Player issuer, String targetName, PlayerBiConsumer action) {
         Player targetPlayer = Bukkit.getPlayer(targetName);
         if (targetPlayer == null) {
@@ -72,14 +79,6 @@ public class MarryCommand implements ISubCommand {
 
         action.accept(issuer, targetPlayer);
     }
-
-    @FunctionalInterface
-    private interface PlayerBiConsumer {
-        void accept(Player p1, Player p2);
-    }
-
-    // Handlers
-
     private void handleGender(Player sender, String[] args) {
         String action = args[1].toLowerCase();
 
