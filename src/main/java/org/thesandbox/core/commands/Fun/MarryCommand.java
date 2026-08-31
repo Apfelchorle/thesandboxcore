@@ -265,7 +265,7 @@ public class MarryCommand implements ISubCommand {
         }
 
         if (args.length == 1) {
-            List<String> subCommands = List.of("request", "divorce", "accept", "deny", "offline-divorce", "gender");
+            List<String> subCommands = List.of("request", "divorce", "accept", "deny", "offline-divorce", "gender", "status");
             String currentInput = args[0].toLowerCase();
 
             return subCommands.stream()
