@@ -54,11 +54,12 @@ public class MarryTagCommand implements ISubCommand
                 if (playerDataListener.getMarriageSpouse(user.getUUID()).isEmpty()) {
                     continue;
                 }
-				
-				if (!"❤".equals(user.getNickname().charAt(3))) {
-					String emojiPrefix = getGenderEmoji(user);
-                    String currentNick = user.getNickname();
-                    String newNick = emojiPrefix + currentNick;
+
+                String emojiPrefix = getGenderEmoji(user);
+                String currentNick = user.getNickname();
+                String newNick = emojiPrefix + currentNick;
+
+				if (!(currentNick.contains(emojiPrefix))) {
 					user.setNickname(newNick);
 				}
 
