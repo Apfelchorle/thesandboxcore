@@ -11,6 +11,7 @@ public final class PlayerDataKeys {
     public static final String LOGIN_MESSAGES_STATE = "LoginMessages";
 
     public static final String CLOWN_FISH = "ClownFish";
+    public static final String RIDEABLE_ENDER_PEARL = "Rideable Ender Pearl";
 
     // marriage
 

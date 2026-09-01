@@ -47,6 +47,14 @@ public class MarryTagCommand implements ISubCommand
         }
 
         final String who = (sender instanceof Player) ? sender.getName() : "CONSOLE";
+
+
+        String subCommand = args[0];
+
+        switch (subCommand) {
+            case "update" -> handleUpdate(Bukkit.getPlayer(sender.getName()));
+        }
+
         Bukkit.broadcastMessage(who + " - Updating marriage tags for online players");
 
         for (Player target : Bukkit.getOnlinePlayers()) {
@@ -57,6 +65,7 @@ public class MarryTagCommand implements ISubCommand
 
                 String spouse = playerDataListener.getMarriageSpouse(playerUuid);
                 if (spouse == null || spouse.isEmpty()) {
+
                     continue;
                 }
 
@@ -86,6 +95,30 @@ public class MarryTagCommand implements ISubCommand
 
         return true;
     }
+
+    // Handlers
+    private void handleUpdate(Player player) {
+        try {
+            UUID playerUuid = player.getUniqueId();
+            User user = essentials.getUser(playerUuid);
+            if (user == null) return;
+
+            String currentnick = user.getNickname();
+            String newnick = (getGenderEmoji(playerUuid) +  currentnick);
+            String spouse = playerDataListener.getMarriageSpouse(playerUuid);
+            if (spouse == null || spouse.isEmpty()) {
+                for (String prefix : genderPrefixes) {
+                    if (currentnick.startsWith(prefix)) {
+                        currentnick = currentnick.substring(prefix.length());
+                        break;
+                    }
+                }
+            }
+        } catch (Error e) {
+        }
+    }
+
+    // Getters
     private String getGenderEmoji(UUID user) {
         String gender = playerDataListener.getGender(user);
 

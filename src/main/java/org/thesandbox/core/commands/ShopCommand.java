@@ -18,6 +18,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.fun.items.ClownFishItem;
+import org.thesandbox.core.fun.items.Rideable_Ender_Pearl_Item;
 import org.thesandbox.core.fun.items.itemUTILS.Item;
 import org.thesandbox.core.fun.items.LightningRodItem;
 import org.thesandbox.core.fun.items.LoginMessagesItem;
@@ -30,8 +31,8 @@ public class ShopCommand implements Listener,ISubCommand {
     private final LightningRodItem lightningRodItem;
     private final PlayerDataListener playerDataListener;
     private final LoginMessagesItem loginMessagesItem;
-
     private final ClownFishItem clownFishItem;
+    private final Rideable_Ender_Pearl_Item rideableEnderPearlItem;
     private static class ShopHolder implements InventoryHolder {
 
         private Inventory inventory;
@@ -49,11 +50,13 @@ public class ShopCommand implements Listener,ISubCommand {
     private final Map<Integer, Item> shopSlots = new HashMap<>();
 
 
-    public ShopCommand(TheSandboxCore plugin, PlayerDataListener playerDataListener, LightningRodItem lightningRodItem, LoginMessagesItem loginMessagesItem, ClownFishItem clownFishItem) {
+    public ShopCommand(TheSandboxCore plugin, PlayerDataListener playerDataListener, LightningRodItem lightningRodItem, LoginMessagesItem loginMessagesItem, ClownFishItem clownFishItem, Rideable_Ender_Pearl_Item rideableEnderPearlItem) {
         this.playerDataListener = playerDataListener;
         this.lightningRodItem = lightningRodItem;
         this.loginMessagesItem = loginMessagesItem;
         this.clownFishItem = clownFishItem;
+        this.rideableEnderPearlItem = rideableEnderPearlItem;
+
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
@@ -154,6 +157,9 @@ public class ShopCommand implements Listener,ISubCommand {
 
         shopSlots.put(14, clownFishItem);
         inventory.setItem(14, clownFishItem.create());
+
+        shopSlots.put(15, rideableEnderPearlItem);
+        inventory.setItem(15, rideableEnderPearlItem.create());
         player.openInventory(inventory);
 
         return true;
