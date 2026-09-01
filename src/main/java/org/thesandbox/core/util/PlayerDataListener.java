@@ -35,6 +35,7 @@ public class PlayerDataListener implements Listener {
         data.put(PlayerDataKeys.LOGIN_MESSAGE, dataManager.loadData(uuid, PlayerDataKeys.LOGIN_MESSAGE, ""));
         data.put(PlayerDataKeys.LOGIN_MESSAGES_STATE, dataManager.loadData(uuid, PlayerDataKeys.LOGIN_MESSAGES_STATE, "not_owned"));
         data.put(PlayerDataKeys.CLOWN_FISH, dataManager.loadData(uuid, PlayerDataKeys.CLOWN_FISH, "not_owned"));
+        data.put(PlayerDataKeys.RIDEABLE_ENDER_PEARL, dataManager.loadData(uuid, PlayerDataKeys.RIDEABLE_ENDER_PEARL, "not_owned"));
 
         // marriage
         data.put(PlayerDataKeys.MARRIAGE_SPOUSE, dataManager.loadData(uuid, PlayerDataKeys.MARRIAGE_SPOUSE, ""));
