@@ -45,35 +45,43 @@ public class MarryTagCommand implements ISubCommand
             sender.sendMessage(Component.text("Essentials is not installed or not enabled. Cannot update marriage tags.", NamedTextColor.RED));
             return true;
         }
-
-        final String who = (sender instanceof Player) ? sender.getName() : "CONSOLE";
-
-
+        if (!(sender instanceof Player player)) {
+            return true;
+        }
         String subCommand = args[0];
 
+
         switch (subCommand) {
-            case "update" -> handleUpdate(Bukkit.getPlayer(sender.getName()));
+            case "update" -> handleUpdate(player);
         }
+        return true;
+    }
 
-        Bukkit.broadcastMessage(who + " - Updating marriage tags for online players");
+    // Handlers
+    private void handleUpdate(Player player) {
+        try {
+            UUID playerUuid = player.getUniqueId();
+            User user = essentials.getUser(playerUuid);
+            if (user == null) return;
+            String currentnick = user.getNickname();
+            String newnick = (getGenderEmoji(playerUuid) +  currentnick);
+            String spouse = playerDataListener.getMarriageSpouse(playerUuid);
 
-        for (Player target : Bukkit.getOnlinePlayers()) {
-            try {
-                UUID playerUuid = target.getUniqueId();
-                User user = essentials.getUser(target);
-                if (user == null) continue;
-
-                String spouse = playerDataListener.getMarriageSpouse(playerUuid);
-                if (spouse == null || spouse.isEmpty()) {
-
-                    continue;
+            // divorced people stripped of hearts
+            if (spouse == null || spouse.isEmpty()) {
+                for (String prefix : genderPrefixes) {
+                    if (currentnick.startsWith(prefix)) {
+                        currentnick = currentnick.substring(prefix.length());
+                        user.setNickname(newnick);
+                        break;
+                    }
                 }
-
+            } else {
                 String emojiPrefix = getGenderEmoji(playerUuid);
 
                 String currentNick = user.getNickname();
                 if (currentNick == null || currentNick.isEmpty()) {
-                    currentNick = target.getName();
+                    currentNick = user.getName();
                 }
                 for (String prefix : genderPrefixes) {
                     if (currentNick.startsWith(prefix)) {
@@ -85,36 +93,10 @@ public class MarryTagCommand implements ISubCommand
 
                 String newNick = emojiPrefix + currentNick;
                 user.setNickname(newNick);
-
-                target.sendMessage(Component.text("Marriage tag updated!", NamedTextColor.GREEN));
-
-            } catch (Throwable t) {
-                sender.sendMessage(Component.text("Failed to set nickname for: " + target.getName(), NamedTextColor.RED));
             }
-        }
 
-        return true;
-    }
-
-    // Handlers
-    private void handleUpdate(Player player) {
-        try {
-            UUID playerUuid = player.getUniqueId();
-            User user = essentials.getUser(playerUuid);
-            if (user == null) return;
-
-            String currentnick = user.getNickname();
-            String newnick = (getGenderEmoji(playerUuid) +  currentnick);
-            String spouse = playerDataListener.getMarriageSpouse(playerUuid);
-            if (spouse == null || spouse.isEmpty()) {
-                for (String prefix : genderPrefixes) {
-                    if (currentnick.startsWith(prefix)) {
-                        currentnick = currentnick.substring(prefix.length());
-                        break;
-                    }
-                }
-            }
         } catch (Error e) {
+            player.sendMessage(Component.text("Failed to set nickname for: " + player.getName() + " ERROR : " + e, NamedTextColor.RED));
         }
     }
 
