@@ -90,9 +90,7 @@ public class GrapplingHookItem implements Item, Listener {
             return;
         }
         PlayerFishEvent.State state = event.getState();
-        if (state == PlayerFishEvent.State.IN_GROUND ||
-                state == PlayerFishEvent.State.FAILED_ATTEMPT ||
-                state == PlayerFishEvent.State.CAUGHT_ENTITY) {
+        if (state == PlayerFishEvent.State.REEL_IN) {
             Location playerLoc = player.getLocation();
             Location hookLoc = event.getHook().getLocation();
             Vector direction = hookLoc.toVector().subtract(playerLoc.toVector());
