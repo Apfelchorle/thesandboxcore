@@ -21,6 +21,7 @@ import org.thesandbox.core.fun.items.itemUTILS.ItemKeys;
 import org.thesandbox.core.util.PlayerDataKeys;
 import org.thesandbox.core.util.PlayerDataListener;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class GrapplingHookItem implements Item, Listener {
@@ -90,7 +91,10 @@ public class GrapplingHookItem implements Item, Listener {
             return;
         }
         PlayerFishEvent.State state = event.getState();
-        if (state == PlayerFishEvent.State.REEL_IN) {
+
+        List<String> validstates = Arrays.asList("REEL_IN", "CAUGHT_ENTITY", "FAILED_ATTEMPT", "IN_GROUND");
+
+        if (validstates.contains(state.toString())) {
             Location playerLoc = player.getLocation();
             Location hookLoc = event.getHook().getLocation();
             Vector direction = hookLoc.toVector().subtract(playerLoc.toVector());
