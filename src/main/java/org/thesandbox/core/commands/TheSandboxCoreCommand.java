@@ -1,7 +1,9 @@
 package org.thesandbox.core.commands;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -9,6 +11,7 @@ import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.util.PlayerDataListener;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -27,36 +30,42 @@ public class TheSandboxCoreCommand implements ISubCommand {
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
         // /thesandboxcore -> info
         if (args.length == 0) {
-            sender.sendMessage(CommandMessages.command(color("&6&lTheSandboxCore &7v" + plugin.getDescription().getVersion())));
-            sender.sendMessage(CommandMessages.command(color("&7Author: &f" + String.join(", ", plugin.getDescription().getAuthors()))));
+            sender.sendMessage(color("&6&lTheSandboxCore &7v" + plugin.getPluginMeta().getVersion()));
+            sender.sendMessage(color("&7Author: &f" + String.join(", ", plugin.getPluginMeta().getAuthors())));
             boolean discord = plugin.getConfig().getBoolean("discord.enabled", false);
-            sender.sendMessage(CommandMessages.command(color("&7Discord Bridge: &f" + (discord ? "&aEnabled" : "&cDisabled"))));
+            sender.sendMessage(color("&7Discord Bridge: &f" + (discord ? "&aEnabled" : "&cDisabled")));
             return true;
         }
 
-        // /thesandboxcore config get [key] [player]
-        if (args.length == 4 && args[0].equalsIgnoreCase("config")) {
+        // /thesandboxcore config get [key with spaces...] [player]
+        if (args.length >= 4 && args[0].equalsIgnoreCase("config")) {
             if (!sender.hasPermission("sandbox.admin")) {
-                sender.sendMessage(CommandMessages.error(ChatColor.RED + "You don’t have permission."));
+                sender.sendMessage(Component.text("You don’t have permission.", NamedTextColor.RED));
                 return true;
             }
 
             String subcommand = args[1];
             if (subcommand.equalsIgnoreCase("get")) {
-                String dataKey = args[2];
-                String playerName = args[3];
+                String playerName = args[args.length - 1];
+                String dataKey = String.join(" ", Arrays.copyOfRange(args, 2, args.length - 1));
 
                 // Performance fix: Run database/offline lookup asynchronously
                 Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-                    @SuppressWarnings("deprecation")
                     OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerName);
                     UUID uuid = offlinePlayer.getUniqueId();
 
                     Object dataResult = playerDataListener.get(uuid, dataKey, "not found");
-                    String response = dataResult != null ? dataResult.toString() : "null";
+                    String response = dataResult.toString();
+
+                    // Construct message using non-deprecated Components API
+                    Component message = Component.text()
+                            .append(Component.text(playerName, NamedTextColor.GOLD))
+                            .append(Component.text(" (" + dataKey + "): ", NamedTextColor.GOLD))
+                            .append(Component.text(response, NamedTextColor.WHITE))
+                            .build();
 
                     // Sync back to sender safely
-                    Bukkit.getScheduler().runTask(plugin, () -> sender.sendMessage(ChatColor.GOLD + playerName + " (" + dataKey + "): " + ChatColor.WHITE + response));
+                    Bukkit.getScheduler().runTask(plugin, () -> sender.sendMessage(message));
                 });
                 return true;
             }
@@ -65,22 +74,25 @@ public class TheSandboxCoreCommand implements ISubCommand {
         // /thesandboxcore reload
         if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
             if (!sender.hasPermission("sandbox.admin")) {
-                sender.sendMessage(CommandMessages.error(ChatColor.RED + "You don’t have permission."));
+                sender.sendMessage(Component.text("You don’t have permission.", NamedTextColor.RED));
                 return true;
             }
             long t0 = System.currentTimeMillis();
             plugin.reloadAndReconnect();
             long dt = System.currentTimeMillis() - t0;
-            sender.sendMessage(CommandMessages.command(ChatColor.GREEN + "TheSandboxCore reloaded in " + dt + " ms."));
-            Bukkit.getLogger().info("[TheSandboxCore] Reload triggered by " + sender.getName() + " (" + dt + " ms)");
+
+            sender.sendMessage(Component.text("TheSandboxCore reloaded in " + dt + " ms.", NamedTextColor.GREEN));
+            plugin.getLogger().info("[TheSandboxCore] Reload triggered by " + sender.getName() + " (" + dt + " ms)");
             return true;
         }
-        sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " [reload | config get <key> <player>]"));
+
+        sender.sendMessage(Component.text("Usage: /" + label + " [reload | config get <key> <player>]", NamedTextColor.RED));
         return true;
     }
 
-    private String color(String s) {
-        return ChatColor.translateAlternateColorCodes('&', s);
+    // Modern color conversion using Adventure legacy serializer
+    private Component color(String s) {
+        return LegacyComponentSerializer.legacyAmpersand().deserialize(s);
     }
 
     @Override
@@ -103,10 +115,8 @@ public class TheSandboxCoreCommand implements ISubCommand {
             return completions;
         }
 
-        // args.length == 3 is the data key.
-
-        if (args.length == 4 && args[0].equalsIgnoreCase("config") && args[1].equalsIgnoreCase("get")) {
-            String input = args[3].toLowerCase();
+        if (args.length >= 4 && args[0].equalsIgnoreCase("config") && args[1].equalsIgnoreCase("get")) {
+            String input = args[args.length - 1].toLowerCase();
             return Bukkit.getOnlinePlayers().stream()
                     .map(OfflinePlayer::getName)
                     .filter(name -> name.toLowerCase().startsWith(input))
