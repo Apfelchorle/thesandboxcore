@@ -146,7 +146,7 @@ public class ShopCommand implements Listener,ISubCommand {
 
         // as shown above the Inventory Menu is 9 * 3 which is 27 slots
 
-        shopSlots.put(5, grapplingHookItem);
+        shopSlots.put(4, grapplingHookItem);
         inventory.setItem(5, grapplingHookItem.create());
 
         shopSlots.put(11, lightningRodItem);
