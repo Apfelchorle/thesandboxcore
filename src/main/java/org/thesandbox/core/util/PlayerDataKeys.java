@@ -12,6 +12,7 @@ public final class PlayerDataKeys {
 
     public static final String CLOWN_FISH = "ClownFish";
     public static final String RIDEABLE_ENDER_PEARL = "Rideable Ender Pearl";
+    public static final String GRAPPLING_HOOK = "Grappling Hook";
 
     // marriage
 

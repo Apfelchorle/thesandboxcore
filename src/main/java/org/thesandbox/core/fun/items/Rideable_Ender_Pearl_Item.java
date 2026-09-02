@@ -50,7 +50,7 @@ public class Rideable_Ender_Pearl_Item implements Item, Listener {
                 )
         ));
         meta.setEnchantmentGlintOverride(true);
-        meta.getPersistentDataContainer().set(keys.Rideable_Ender_Pearl_Item, PersistentDataType.BYTE, (byte) 1);
+        meta.getPersistentDataContainer().set(keys.Rideable_Ender_Pearl, PersistentDataType.BYTE, (byte) 1);
 
         item.setItemMeta(meta);
         return item;
@@ -59,7 +59,7 @@ public class Rideable_Ender_Pearl_Item implements Item, Listener {
     @Override
     public boolean matches(ItemStack item) {
         if (item == null || item.getItemMeta() == null) return false;
-        return item.getItemMeta().getPersistentDataContainer().has(keys.Rideable_Ender_Pearl_Item, PersistentDataType.BYTE);
+        return item.getItemMeta().getPersistentDataContainer().has(keys.Rideable_Ender_Pearl, PersistentDataType.BYTE);
     }
 
     @Override

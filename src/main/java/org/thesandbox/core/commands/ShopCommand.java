@@ -17,11 +17,8 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.thesandbox.core.TheSandboxCore;
-import org.thesandbox.core.fun.items.ClownFishItem;
-import org.thesandbox.core.fun.items.Rideable_Ender_Pearl_Item;
+import org.thesandbox.core.fun.items.*;
 import org.thesandbox.core.fun.items.itemUTILS.Item;
-import org.thesandbox.core.fun.items.LightningRodItem;
-import org.thesandbox.core.fun.items.LoginMessagesItem;
 import org.thesandbox.core.util.PlayerDataListener;
 
 import java.util.*;
@@ -33,6 +30,7 @@ public class ShopCommand implements Listener,ISubCommand {
     private final LoginMessagesItem loginMessagesItem;
     private final ClownFishItem clownFishItem;
     private final Rideable_Ender_Pearl_Item rideableEnderPearlItem;
+    private final Grappling_Hook_Item grapplingHookItem;
     private static class ShopHolder implements InventoryHolder {
 
         private Inventory inventory;
@@ -50,12 +48,13 @@ public class ShopCommand implements Listener,ISubCommand {
     private final Map<Integer, Item> shopSlots = new HashMap<>();
 
 
-    public ShopCommand(TheSandboxCore plugin, PlayerDataListener playerDataListener, LightningRodItem lightningRodItem, LoginMessagesItem loginMessagesItem, ClownFishItem clownFishItem, Rideable_Ender_Pearl_Item rideableEnderPearlItem) {
+    public ShopCommand(TheSandboxCore plugin, PlayerDataListener playerDataListener, LightningRodItem lightningRodItem, LoginMessagesItem loginMessagesItem, ClownFishItem clownFishItem, Rideable_Ender_Pearl_Item rideableEnderPearlItem, Grappling_Hook_Item grapplingHookItem) {
         this.playerDataListener = playerDataListener;
         this.lightningRodItem = lightningRodItem;
         this.loginMessagesItem = loginMessagesItem;
         this.clownFishItem = clownFishItem;
         this.rideableEnderPearlItem = rideableEnderPearlItem;
+        this.grapplingHookItem = grapplingHookItem;
 
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
@@ -146,6 +145,10 @@ public class ShopCommand implements Listener,ISubCommand {
         holder.setInventory(inventory);
 
         // as shown above the Inventory Menu is 9 * 3 which is 27 slots
+
+        shopSlots.put(5, grapplingHookItem);
+        inventory.setItem(5, grapplingHookItem.create());
+
         shopSlots.put(11, lightningRodItem);
         inventory.setItem(11, lightningRodItem.create());
 
