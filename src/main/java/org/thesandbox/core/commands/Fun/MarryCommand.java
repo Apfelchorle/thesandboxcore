@@ -57,7 +57,7 @@ public class MarryCommand implements ISubCommand {
             case "divorce" -> handleOnlineAction(issuerPlayer, args[1], this::divorce);
             case "offline-divorce" -> offlineDivorce(issuerPlayer, args[1]);
             case "gender" -> handleGender(issuerPlayer,args);
-            case "status" -> handleStatus(issuerPlayer,args);
+            case "status" -> handleStatus(issuerPlayer, args[1]);
             default -> sender.sendMessage(Component.text("Unknown action! Use request, divorce, offline-divorce, accept, deny, or gender.", NamedTextColor.RED));
         }
 
@@ -72,8 +72,7 @@ public class MarryCommand implements ISubCommand {
 
     // Handlers
 	
-	private void handleStatus(Player sender, String[] args) {
-        String playerName = args[0];
+	private void handleStatus(Player sender, String playerName) {
         OfflinePlayer player = Bukkit.getOfflinePlayer(playerName);
 		String status = playerDataListener.getMarriageStatus(player.getUniqueId());
         String spouse =  playerDataListener.getMarriageSpouse(player.getUniqueId());
@@ -81,7 +80,7 @@ public class MarryCommand implements ISubCommand {
 		if (status.equalsIgnoreCase("Married")) {
 			sender.sendMessage(Component.text(playerName + " married to " + spouse + ".", TextColor.color(255, 0, 75)));
 		} else {
-			sender.sendMessage(Component.text(playerName + "isnt married to anyone.", NamedTextColor.RED));
+			sender.sendMessage(Component.text(playerName + " isn't married to anyone.", NamedTextColor.RED));
 		}
 	}
 
