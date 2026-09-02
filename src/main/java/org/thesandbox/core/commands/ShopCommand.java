@@ -76,7 +76,7 @@ public class ShopCommand implements Listener,ISubCommand {
         int price = item.getPrice();
         UUID puuid = player.getUniqueId();
         int balance = playerDataListener.getCoins(puuid);
-        String item_status = playerDataListener.get(player.getUniqueId(),itemName, "not_owned");
+        String item_status = playerDataListener.get(puuid,itemName, "not_owned");
 
         if (owned_statuses.contains(item_status.toLowerCase())) {
             var leftover = player.getInventory().addItem(item.create());
@@ -163,6 +163,8 @@ public class ShopCommand implements Listener,ISubCommand {
 
         shopSlots.put(15, rideableEnderPearlItem);
         inventory.setItem(15, rideableEnderPearlItem.create());
+
+
         player.openInventory(inventory);
 
         return true;

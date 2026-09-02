@@ -81,17 +81,27 @@ public class GrapplingHookItem implements Item, Listener {
     @EventHandler
     public void onGrapple(PlayerFishEvent event) {
         Player player = event.getPlayer();
-        ItemStack rod = player.getInventory().getItemInMainHand();
+
+        ItemStack rod = (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND)
+                ? player.getInventory().getItemInOffHand()
+                : player.getInventory().getItemInMainHand();
 
         if (!matches(rod)) {
             return;
         }
-
-        Location playerLoc = player.getLocation();
-        Location hookLoc = event.getHook().getLocation();
-        Vector direction = hookLoc.toVector().subtract(playerLoc.toVector());
-        direction.normalize().multiply(1.5);
-        direction.setY(direction.getY() + 0.3);
-        player.setVelocity(direction);
+        PlayerFishEvent.State state = event.getState();
+        if (state == PlayerFishEvent.State.IN_GROUND ||
+                state == PlayerFishEvent.State.FAILED_ATTEMPT ||
+                state == PlayerFishEvent.State.CAUGHT_ENTITY) {
+            Location playerLoc = player.getLocation();
+            Location hookLoc = event.getHook().getLocation();
+            Vector direction = hookLoc.toVector().subtract(playerLoc.toVector());
+            if (direction.lengthSquared() > 0) {
+                direction.normalize();
+            }
+            direction.multiply(1.5);
+            direction.setY(direction.getY() + 0.3);
+            player.setVelocity(direction);
+        }
     }
 }

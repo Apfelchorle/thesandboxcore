@@ -20,7 +20,6 @@ public class OpAllCommand implements ISubCommand {
         String msg = sender.getName() +  " - Opping all players on the server";
         Bukkit.broadcast(Component.text(msg, TextColor.color(0, 187, 255)));
         for (Player player : Bukkit.getOnlinePlayers()) {
-            player.sendMessage(Component.text("You Are Op", TextColor.color(0, 187, 255)));
             if (player.hasPermission("sandbox.default")) {
                 player.sendMessage(Component.text("You Are Op", TextColor.color(0, 187, 255)));
             }
