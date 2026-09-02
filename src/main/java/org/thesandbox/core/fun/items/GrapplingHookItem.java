@@ -1,7 +1,6 @@
 package org.thesandbox.core.fun.items;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
@@ -22,19 +21,16 @@ import org.thesandbox.core.fun.items.itemUTILS.ItemKeys;
 import org.thesandbox.core.util.PlayerDataKeys;
 import org.thesandbox.core.util.PlayerDataListener;
 
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.util.List;
 
-public class Grappling_Hook_Item implements Item, Listener {
+public class GrapplingHookItem implements Item, Listener {
 
-    private PlayerDataListener playerDataListener;
+    private final PlayerDataListener playerDataListener;
     private final TheSandboxCore plugin;
-
     private final ItemKeys keys;
     private static final String NAME = PlayerDataKeys.GRAPPLING_HOOK;
 
-    public Grappling_Hook_Item(PlayerDataListener playerDataListener, TheSandboxCore plugin, ItemKeys keys) {
+    public GrapplingHookItem(PlayerDataListener playerDataListener, TheSandboxCore plugin, ItemKeys keys) {
         this.playerDataListener = playerDataListener;
         this.plugin = plugin;
         this.keys = keys;
@@ -78,11 +74,19 @@ public class Grappling_Hook_Item implements Item, Listener {
     }
 
     @Override
-    public int getPrice() {return plugin.getConfig().getInt("items." + PlayerDataKeys.GRAPPLING_HOOK + ".price", 100);}
+    public int getPrice() {
+        return plugin.getConfig().getInt("items." + PlayerDataKeys.GRAPPLING_HOOK + ".price", 100);
+    }
 
     @EventHandler
     public void onGrapple(PlayerFishEvent event) {
         Player player = event.getPlayer();
+        ItemStack rod = player.getInventory().getItemInMainHand();
+
+        if (!matches(rod)) {
+            return;
+        }
+
         Location playerLoc = player.getLocation();
         Location hookLoc = event.getHook().getLocation();
         Vector direction = hookLoc.toVector().subtract(playerLoc.toVector());
@@ -91,4 +95,3 @@ public class Grappling_Hook_Item implements Item, Listener {
         player.setVelocity(direction);
     }
 }
-

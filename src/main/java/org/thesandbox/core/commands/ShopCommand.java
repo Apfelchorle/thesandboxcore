@@ -30,7 +30,7 @@ public class ShopCommand implements Listener,ISubCommand {
     private final LoginMessagesItem loginMessagesItem;
     private final ClownFishItem clownFishItem;
     private final Rideable_Ender_Pearl_Item rideableEnderPearlItem;
-    private final Grappling_Hook_Item grapplingHookItem;
+    private final GrapplingHookItem grapplingHookItem;
     private static class ShopHolder implements InventoryHolder {
 
         private Inventory inventory;
@@ -48,7 +48,7 @@ public class ShopCommand implements Listener,ISubCommand {
     private final Map<Integer, Item> shopSlots = new HashMap<>();
 
 
-    public ShopCommand(TheSandboxCore plugin, PlayerDataListener playerDataListener, LightningRodItem lightningRodItem, LoginMessagesItem loginMessagesItem, ClownFishItem clownFishItem, Rideable_Ender_Pearl_Item rideableEnderPearlItem, Grappling_Hook_Item grapplingHookItem) {
+    public ShopCommand(TheSandboxCore plugin, PlayerDataListener playerDataListener, LightningRodItem lightningRodItem, LoginMessagesItem loginMessagesItem, ClownFishItem clownFishItem, Rideable_Ender_Pearl_Item rideableEnderPearlItem, GrapplingHookItem grapplingHookItem) {
         this.playerDataListener = playerDataListener;
         this.lightningRodItem = lightningRodItem;
         this.loginMessagesItem = loginMessagesItem;

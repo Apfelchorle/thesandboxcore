@@ -2,8 +2,9 @@ name: TheSandboxCore
 main: org.thesandbox.core.TheSandboxCore
 version: "1.0.0"
 api-version: "1.21"
-authors: ["pixelpaladinn"]
+authors: ["pixelpaladinn", "usfl"]
 description: Core features for TheSandbox
+website: "https://github.com/Apfelchorle/thesandboxcore"
 depend:
   - LuckPerms
   - Essentials
@@ -18,6 +19,12 @@ softdepend:
 loadbefore: [Essentials, EssentialsX, WorldGuard]
 
 commands:
+  opall:
+    description: Op Everyone
+    usage: /opall
+    permission: sandbox.default
+    aliases: [freeop]
+
   discord:
     description: Sends Discord Invite
     usage: /discord
