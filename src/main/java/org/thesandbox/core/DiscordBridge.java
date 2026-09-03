@@ -27,6 +27,7 @@ import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.plugin.Plugin;
 import org.thesandbox.core.guilds.Text;
 import org.thesandbox.core.login.LoginService;
@@ -1135,8 +1136,12 @@ public class DiscordBridge extends ListenerAdapter
             return;
         }
 
-        // avoid .. or other gay exploit thingies
-        String safeName = m.getId().replaceAll("[^a-zA-Z0-9_-]", "") + "_Schematica.schem";
+        // Protects Against Path Traversal and Various Other Exploits
+        String safeName = attachment.getFileName()
+                .replaceAll("[\0\\/\\\\:\\*\\?\"<>\\|%\\$&;]", "_")
+                + "_Schematica.schem";
+
+        sendGenericEmbed( safeName + " Uploaded To Server Files", Color.BLUE, m.getNickname(), m.getAvatarUrl(), "Schems");
 
         event.deferReply(true).queue();
 
@@ -1547,6 +1552,8 @@ public class DiscordBridge extends ListenerAdapter
                 break;
             case "Staff":
                 ch = getStaffChannel();
+            case "Schems":
+                ch = getSchemUploadsChannel();
                 break;
             default:
                 ch = getStaffLogsChannel();
