@@ -93,10 +93,10 @@ public class DiscordBridge extends ListenerAdapter
     private TextChannel archivedReportsChannel;
 
     // ===== Managed Discord role IDs (rank roles) =====
-    private static final String ROLE_MB      = "1545153685506498600"; // Master Builder [NOTE: UPDATED WITH NEW ROLE ID FROM DISCORD]
+    private static final String ROLE_MB      = "1545155091303243807"; // Master Builder [NOTE: UPDATED WITH NEW ROLE ID FROM DISCORD]
     private static final String ROLE_MOD     = "1395155320539578510"; // Moderator
-    private static final String ROLE_ADMIN   = "1395155337643819098"; // Admin
-    private static final String ROLE_SRADMIN = "1395155357323624529"; // Senior Admin
+    private static final String ROLE_ADMIN   = "1475574066499817514"; // Admin
+    private static final String ROLE_SRADMIN = "1160233133837385809"; // Senior Admin
     private static final String ROLE_DEV     = "1397614604640587837"; // Developer
 
     // Verified role (configurable with fallback)
