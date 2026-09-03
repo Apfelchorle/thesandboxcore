@@ -32,13 +32,15 @@ public class StackingPotatoItem implements Item, Listener {
 
     private final String NAME = PlayerDataKeys.Stacking_Potato;
     private final PluginConfigManager pluginConfigManager;
+    private final TheSandboxCore plugin;
     private final ItemKeys itemKeys;
 
     // Tracks each player's current stack, bottom to top
     private final Map<UUID, Deque<LivingEntity>> stacks = new HashMap<>();
 
-    public StackingPotatoItem(PluginConfigManager pluginConfigManager, ItemKeys itemKeys) {
+    public StackingPotatoItem(PluginConfigManager pluginConfigManager, TheSandboxCore plugin, ItemKeys itemKeys) {
         this.pluginConfigManager = pluginConfigManager;
+        this.plugin = plugin;
         this.itemKeys = itemKeys;
     }
 
