@@ -27,6 +27,7 @@ import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 
+import org.bukkit.plugin.Plugin;
 import org.thesandbox.core.guilds.Text;
 import org.thesandbox.core.login.LoginService;
 
@@ -53,6 +54,8 @@ import de.myzelyam.api.vanish.PlayerShowEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.awt.Color;
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.time.Instant;
@@ -72,6 +75,8 @@ import java.util.regex.Matcher;
 
 import org.thesandbox.core.discord.model.ReportRecord;
 
+import javax.swing.text.html.Option;
+
 public class DiscordBridge extends ListenerAdapter
 {
     private final TheSandboxCore plugin;
@@ -80,13 +85,15 @@ public class DiscordBridge extends ListenerAdapter
     // Channels
     private TextChannel staffChannel;
 
+    private TextChannel schemuploadsChannel;
+
     private TextChannel logsChannel;
     private TextChannel chatChannel;              // public chat
     private TextChannel reportsChannel;
     private TextChannel archivedReportsChannel;
 
     // ===== Managed Discord role IDs (rank roles) =====
-    private static final String ROLE_MB      = "1412444546679181312"; // Master Builder
+    private static final String ROLE_MB      = "1545153685506498600"; // Master Builder [NOTE: UPDATED WITH NEW ROLE ID FROM DISCORD]
     private static final String ROLE_MOD     = "1395155320539578510"; // Moderator
     private static final String ROLE_ADMIN   = "1395155337643819098"; // Admin
     private static final String ROLE_SRADMIN = "1395155357323624529"; // Senior Admin
@@ -180,6 +187,7 @@ public class DiscordBridge extends ListenerAdapter
         } catch (Exception ignored) {}
 
         jda = null;
+        schemuploadsChannel = null;
         staffChannel = null;
         logsChannel = null;
         chatChannel = null;
@@ -194,6 +202,14 @@ public class DiscordBridge extends ListenerAdapter
     /* --------------------------- Command registration --------------------------- */
     private void registerGuildCommands(Guild g) {
         g.updateCommands().addCommands(
+
+                // /uploadschem
+                Commands.slash("uploadschem", "Upload A Schem File To The Server!")
+                        .addOptions(
+                                new OptionData(OptionType.ATTACHMENT, "schem", "a .schem file", true)
+                        )
+                        .setGuildOnly(true),
+
                 // /list – show online player list
                 Commands.slash("list", "Show the online player list, formatted like /list in-game")
                         .setGuildOnly(true),
@@ -332,6 +348,16 @@ public class DiscordBridge extends ListenerAdapter
         staffChannel = jda.getTextChannelById(id);
         if (staffChannel == null) plugin.getLogger().warning("[Discord] Staff channel not found: " + id);
         return staffChannel;
+    }
+
+    private TextChannel getSchemUploadsChannel() {
+        if (jda == null) return null;
+        if (schemuploadsChannel != null) return schemuploadsChannel;
+        String id = cfg("discord.schem-uploads", "discord.schem_uploads");
+        if (id == null || id.isEmpty()) return null;
+        schemuploadsChannel = jda.getTextChannelById(id);
+        if (schemuploadsChannel == null) plugin.getLogger().warning("[Discord] Schem uploads channel not found: " + id);
+        return schemuploadsChannel;
     }
 
     private TextChannel getStaffLogsChannel() {
@@ -738,6 +764,11 @@ public class DiscordBridge extends ListenerAdapter
 //            return;
 //        }
 
+        if (cmd.equals("uploadschem")) {
+            handleSchemUploads(event);
+            return;
+        }
+
         if (cmd.equals("masterbuilder")) {
             handleMasterbuilder(event);
             return;
@@ -934,6 +965,10 @@ public class DiscordBridge extends ListenerAdapter
     }
 
 
+    /*               /upload-schem for discord                            */
+
+
+
 
     /* -------------------- /list implementation -------------------- */
     private void handleList(@NotNull SlashCommandInteractionEvent event) {
@@ -1018,6 +1053,7 @@ public class DiscordBridge extends ListenerAdapter
     /* -------------------- /masterbuilder implementation -------------------- */
     private void handleMasterbuilder(@NotNull SlashCommandInteractionEvent event) {
         Guild g = event.getGuild();
+        Member m = event.getMember();
         if (g == null) {
             event.reply("Please run this command in a server channel, not in DMs.")
                     .setEphemeral(true).queue();
@@ -1032,8 +1068,14 @@ public class DiscordBridge extends ListenerAdapter
         }
 
         String username = userOpt.getAsString().trim();
+        boolean requesterPrivileged = hasRole(m, ROLE_ADMIN) || hasRole(m, ROLE_SRADMIN) || hasRole(m, ROLE_MOD) || hasRole(m, ROLE_DEV);
 
-        // Everyone is allowed to use this, so no permission checks.
+        if (!(requesterPrivileged)) {
+            event.reply("You are not allowed to run this command.").queue();
+            return;
+        }
+
+
         event.deferReply(true).queue(hook -> {
             Bukkit.getScheduler().runTask(plugin, () -> {
                 String cmd = "rank set " + username + " masterbuilder";
@@ -1047,6 +1089,99 @@ public class DiscordBridge extends ListenerAdapter
                 }
             });
         });
+    }
+
+    // SCHEM UPLOADS LOGIC
+
+    private static final long MAX_SCHEM_SIZE = 20 * 1024 * 1024; // 20 MegaBytes
+
+    private void handleSchemUploads(@NotNull SlashCommandInteractionEvent event) {
+        Guild g = event.getGuild();
+        Member m = event.getMember();
+        if (g == null) {
+            event.reply("Please run this command in a server channel, not in DMs.")
+                    .setEphemeral(true).queue();
+            return;
+        }
+
+        boolean requesterPrivileged = hasRole(m, ROLE_ADMIN) || hasRole(m, ROLE_SRADMIN)
+                || hasRole(m, ROLE_MOD) || hasRole(m, ROLE_DEV) || hasRole(m, ROLE_MB);
+
+        if (!requesterPrivileged) {
+            event.reply("You are not allowed to run this command.")
+                    .setEphemeral(true).queue();
+            return;
+        }
+
+        OptionMapping fileOpt = event.getOption("file");
+        if (fileOpt == null) {
+            event.reply("You must provide a Valid File.")
+                    .setEphemeral(true).queue();
+            return;
+        }
+
+        Message.Attachment attachment = fileOpt.getAsAttachment();
+        String ext = attachment.getFileExtension();
+        if (ext == null || !ext.equalsIgnoreCase("schem")) {
+            event.reply("You must provide a Valid Minecraft .schem File.")
+                    .setEphemeral(true).queue();
+            return;
+        }
+
+        if (attachment.getSize() > MAX_SCHEM_SIZE) {
+            event.reply("That file is too large (max " + (MAX_SCHEM_SIZE / 1024 / 1024) + " MB).")
+                    .setEphemeral(true).queue();
+            return;
+        }
+
+        // avoid .. or other gay exploit thingies
+        String safeName = m.getId().replaceAll("[^a-zA-Z0-9_-]", "") + "_Schematica.schem";
+
+        event.deferReply(true).queue();
+
+        createSchematicFile(safeName, attachment, event);
+    }
+
+    public void createSchematicFile(String fileName, Message.Attachment attachment,
+                                    SlashCommandInteractionEvent event) {
+        Plugin fawe = Bukkit.getServer().getPluginManager().getPlugin("FastAsyncWorldEdit");
+
+        if (fawe == null || !fawe.isEnabled()) {
+            plugin.getLogger().severe("FastAsyncWorldEdit is not installed or not enabled!");
+            event.getHook().editOriginal("Server error: schematic plugin unavailable.").queue();
+            return;
+        }
+
+        File schematicsFolder = new File(fawe.getDataFolder(), "schematics");
+        if (!schematicsFolder.exists() && !schematicsFolder.mkdirs()) {
+            plugin.getLogger().severe("Could not create schematics folder: " + schematicsFolder.getPath());
+            event.getHook().editOriginal("Server error: could not prepare storage.").queue();
+            return;
+        }
+
+        File newSchematicFile = new File(schematicsFolder, fileName);
+
+        try {
+            if (!newSchematicFile.getCanonicalPath().startsWith(schematicsFolder.getCanonicalPath() + File.separator)) {
+                plugin.getLogger().severe("Rejected suspicious file path: " + newSchematicFile.getPath());
+                event.getHook().editOriginal("Invalid file name.").queue();
+                return;
+            }
+        } catch (IOException e) {
+            event.getHook().editOriginal("Server error validating file path.").queue();
+            return;
+        }
+
+        attachment.getProxy().downloadToPath(newSchematicFile.toPath())
+                .thenAccept(path -> {
+                    plugin.getLogger().info("Successfully saved schematic file: " + path);
+                    event.getHook().editOriginal("Schematic uploaded successfully as `" + fileName + "`.").queue();
+                })
+                .exceptionally(ex -> {
+                    plugin.getLogger().severe("Could not download schematic file: " + ex.getMessage());
+                    event.getHook().editOriginal("Failed to save the schematic file.").queue();
+                    return null;
+                });
     }
 
     /* ===================== Reports (MC -> Discord) ===================== */
