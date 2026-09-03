@@ -1163,7 +1163,7 @@ public class DiscordBridge extends ListenerAdapter
         List<String> userSchematics = config.getStringList(playerName + ".Owned Schematics");
         userSchematics.add(entry);
 
-        config.set(playerName + ".Owned Schematics", userSchematics);
+        config.set(playerName + ".Uploaded Schems", userSchematics);
 
         try {
             config.save(logFile);
