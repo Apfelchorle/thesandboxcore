@@ -61,6 +61,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -1141,12 +1142,24 @@ public class DiscordBridge extends ListenerAdapter
         }
 
         // Protects Against Path Traversal and Various Other Exploits
-        String safeName = attachment.getFileName()
+        /* You Could For Some Of These Just Use attachment.getExtension
+         No Idea How To Do That, Will Figure it out later if i stumbe upon this again
+         */
+        String rawName = attachment.getFileName();
+
+        String baseName = Paths.get(rawName).getFileName().toString();
+
+        int lastDot = baseName.lastIndexOf('.');
+        if (lastDot > 0) {
+            baseName = baseName.substring(0, lastDot);
+        }
+
+        String safeName = baseName
                 .replaceAll("[\0\\/\\\\:\\*\\?\"<>\\|%\\$&;]", "_")
                 + "_Schematica.schem";
 
-        sendGenericEmbed( safeName + " Uploaded To Server Files", Color.BLUE, m.getNickname(), m.getAvatarUrl(), "Schems");
-        sandboxSeesAll(m.getNickname(), safeName);
+        sendGenericEmbed( safeName + " Uploaded To Server Files", Color.BLUE, m.getNickname(), m.getAvatarUrl(), "Logs");
+        sandboxSeesAll(m.getUser().getName(), safeName);
 
         event.deferReply(true).queue();
 
