@@ -1113,7 +1113,7 @@ public class DiscordBridge extends ListenerAdapter
             return;
         }
 
-        OptionMapping fileOpt = event.getOption("file");
+        OptionMapping fileOpt = event.getOption("schem");
         if (fileOpt == null) {
             event.reply("You must provide a Valid File.")
                     .setEphemeral(true).queue();
