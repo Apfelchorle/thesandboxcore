@@ -42,6 +42,7 @@ public class StackingPotatoItem implements Item, Listener {
         this.pluginConfigManager = pluginConfigManager;
         this.plugin = plugin;
         this.itemKeys = itemKeys;
+        Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
     @Override
@@ -55,8 +56,9 @@ public class StackingPotatoItem implements Item, Listener {
                 Component.text("Right-click an entity to stack it!", NamedTextColor.GRAY),
                 Component.text("Left-click to drop the stack.", NamedTextColor.GRAY)
         ));
-        meta.getPersistentDataContainer().set(itemKeys.Stacking_Potato, PersistentDataType.BYTE, (byte) 1);
 
+        meta.setEnchantmentGlintOverride(true);
+        meta.getPersistentDataContainer().set(itemKeys.Stacking_Potato, PersistentDataType.BYTE, (byte) 1);
         item.setItemMeta(meta);
         return item;
     }
@@ -109,7 +111,6 @@ public class StackingPotatoItem implements Item, Listener {
             return;
         }
 
-        // Remove from the top down so each entity cleanly detaches from its mount
         while (!stack.isEmpty()) {
             LivingEntity entity = stack.pollLast();
             entity.leaveVehicle();
