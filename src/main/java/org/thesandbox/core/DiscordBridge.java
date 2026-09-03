@@ -28,6 +28,8 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 
 import net.kyori.adventure.text.format.TextColor;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.thesandbox.core.guilds.Text;
 import org.thesandbox.core.login.LoginService;
@@ -60,6 +62,8 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Deque;
 import java.util.ArrayDeque;
 import java.util.HashMap;
@@ -1142,10 +1146,30 @@ public class DiscordBridge extends ListenerAdapter
                 + "_Schematica.schem";
 
         sendGenericEmbed( safeName + " Uploaded To Server Files", Color.BLUE, m.getNickname(), m.getAvatarUrl(), "Schems");
+        sandboxSeesAll(m.getNickname(), safeName);
 
         event.deferReply(true).queue();
 
         createSchematicFile(safeName, attachment, event);
+    }
+
+    public void sandboxSeesAll(String playerName, String fileName) {
+        File logFile = new File(plugin.getDataFolder(), "schematics.yml");
+        FileConfiguration config = YamlConfiguration.loadConfiguration(logFile);
+
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        String entry = fileName + " (Uploaded: " + timestamp + ")";
+
+        List<String> userSchematics = config.getStringList(playerName + ".Owned Schematics");
+        userSchematics.add(entry);
+
+        config.set(playerName + ".Owned Schematics", userSchematics);
+
+        try {
+            config.save(logFile);
+        } catch (IOException e) {
+            plugin.getLogger().severe("Could not save schematics.yml: " + e.getMessage());
+        }
     }
 
     public void createSchematicFile(String fileName, Message.Attachment attachment,
