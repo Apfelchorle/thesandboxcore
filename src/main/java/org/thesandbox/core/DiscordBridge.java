@@ -1123,6 +1123,7 @@ public class DiscordBridge extends ListenerAdapter
         Message.Attachment attachment = fileOpt.getAsAttachment();
         String ext = attachment.getFileExtension();
         if (ext == null || !ext.equalsIgnoreCase("schem")) {
+            plugin.getLogger().warning("Invalid file extension: " + ext + " Uploaded File Name Info : " + fileOpt.getName());
             event.reply("You must provide a Valid Minecraft .schem File.")
                     .setEphemeral(true).queue();
             return;
