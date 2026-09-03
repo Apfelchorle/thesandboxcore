@@ -122,6 +122,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         saveDefaultConfig();
         setupDatabase();
 
+        PluginConfigManager configManager = new PluginConfigManager(this);
+
         this.dataManager = new DataManager(this);
         this.dataListener = new PlayerDataListener(dataManager);
 
@@ -190,7 +192,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
                 this.discord,
                 dataListener,
                 itemKeys,
-                loginMessages
+                loginMessages,
+                configManager
         ));
 
         // Command Auto Registrar + ItemAutoRegistrar

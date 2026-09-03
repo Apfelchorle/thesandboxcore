@@ -6,6 +6,7 @@ import org.bukkit.Bukkit;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -31,6 +32,7 @@ public class ShopCommand implements Listener,ISubCommand {
     private final ClownFishItem clownFishItem;
     private final Rideable_Ender_Pearl_Item rideableEnderPearlItem;
     private final GrapplingHookItem grapplingHookItem;
+    private final StackingPotatoItem stackingPotatoItem;
     private static class ShopHolder implements InventoryHolder {
 
         private Inventory inventory;
@@ -48,13 +50,14 @@ public class ShopCommand implements Listener,ISubCommand {
     private final Map<Integer, Item> shopSlots = new HashMap<>();
 
 
-    public ShopCommand(TheSandboxCore plugin, PlayerDataListener playerDataListener, LightningRodItem lightningRodItem, LoginMessagesItem loginMessagesItem, ClownFishItem clownFishItem, Rideable_Ender_Pearl_Item rideableEnderPearlItem, GrapplingHookItem grapplingHookItem) {
+    public ShopCommand(TheSandboxCore plugin, PlayerDataListener playerDataListener, LightningRodItem lightningRodItem, LoginMessagesItem loginMessagesItem, ClownFishItem clownFishItem, Rideable_Ender_Pearl_Item rideableEnderPearlItem, GrapplingHookItem grapplingHookItem, StackingPotatoItem stackingPotatoItem) {
         this.playerDataListener = playerDataListener;
         this.lightningRodItem = lightningRodItem;
         this.loginMessagesItem = loginMessagesItem;
         this.clownFishItem = clownFishItem;
         this.rideableEnderPearlItem = rideableEnderPearlItem;
         this.grapplingHookItem = grapplingHookItem;
+        this.stackingPotatoItem = stackingPotatoItem;
 
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
@@ -82,9 +85,11 @@ public class ShopCommand implements Listener,ISubCommand {
             var leftover = player.getInventory().addItem(item.create());
 
             if (!leftover.isEmpty()) {
+                player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
                 player.sendMessage(Component.text("Your Inventory is full!", NamedTextColor.RED));
                 return;
             }
+            player.playSound(player.getLocation(), Sound.ENTITY_ARROW_HIT_PLAYER, 1f, 1f);
             player.sendMessage(Component.text("You received a " + itemName + "!", NamedTextColor.YELLOW));
             return;
         }
@@ -104,6 +109,8 @@ public class ShopCommand implements Listener,ISubCommand {
 
         playerDataListener.set(player.getUniqueId(),itemName, "owned");
         playerDataListener.setCoins(player.getUniqueId(), playerDataListener.getCoins(player.getUniqueId()) - item.getPrice());
+
+        player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1f, 1f);
         player.sendMessage(Component.text("You received a " + itemName + "!", NamedTextColor.YELLOW));
 
         }
@@ -145,6 +152,9 @@ public class ShopCommand implements Listener,ISubCommand {
         holder.setInventory(inventory);
 
         // as shown above the Inventory Menu is 9 * 3 which is 27 slots
+
+        shopSlots.put(3, stackingPotatoItem);
+        inventory.setItem(3, stackingPotatoItem.create());
 
         shopSlots.put(4, grapplingHookItem);
         inventory.setItem(4, grapplingHookItem.create());

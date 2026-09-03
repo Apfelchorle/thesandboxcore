@@ -12,11 +12,14 @@ public final class ItemKeys {
     public final NamespacedKey Rideable_Ender_Pearl;
     public final NamespacedKey Grappling_Hook;
 
+    public final NamespacedKey Stacking_Potato;
+
     public ItemKeys(Plugin plugin) {
         this.lightningRod = new NamespacedKey(plugin, "lightning_rod");
         this.loginMessages = new NamespacedKey(plugin, "login_messages");
         this.clownFish = new NamespacedKey(plugin, "clown_fish");
         this.Rideable_Ender_Pearl = new NamespacedKey(plugin, "Rideable_Ender_Pearl");
         this.Grappling_Hook = new NamespacedKey(plugin, "Grappling_Hook");
+        this.Stacking_Potato = new NamespacedKey(plugin, "Stacking_Potato");
     }
 }
