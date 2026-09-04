@@ -28,6 +28,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 
 import net.kyori.adventure.text.format.TextColor;
+import org.bukkit.*;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
@@ -40,11 +41,6 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Sound;
-import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.event.EventHandler;
@@ -1081,6 +1077,21 @@ public class DiscordBridge extends ListenerAdapter
             return;
         }
 
+        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(username);
+        Player p = Bukkit.getPlayer(offlinePlayer.getUniqueId());
+
+        if (p == null) {
+            event.reply("That player is not online Or Does Not Exist").queue();
+            return;
+        }
+
+        boolean rankedabove = p.hasPermission("sandbox.staff") || p.hasPermission("sandbox.superuser");
+
+        if (rankedabove) {
+            event.reply("Player Already Possess A Higher Rank");
+            return;
+        }
+
 
         event.deferReply(true).queue(hook -> {
             Bukkit.getScheduler().runTask(plugin, () -> {
@@ -1159,19 +1170,20 @@ public class DiscordBridge extends ListenerAdapter
                 + "_Schematica.schem";
 
         sendGenericEmbed( safeName + " Uploaded To Server Files", Color.BLUE, m.getNickname(), m.getAvatarUrl(), "Logs");
-        sandboxSeesAll(m.getUser().getName(), safeName);
+        sandboxSeesAll(m.getUser().getName(), safeName, attachment.getSize());
 
         event.deferReply(true).queue();
 
         createSchematicFile(safeName, attachment, event);
     }
 
-    public void sandboxSeesAll(String playerName, String fileName) {
+    public void sandboxSeesAll(String playerName, String fileName, int FileSize) {
         File logFile = new File(plugin.getDataFolder(), "schematics.yml");
         FileConfiguration config = YamlConfiguration.loadConfiguration(logFile);
 
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String entry = fileName + " (Uploaded: " + timestamp + ")";
+        String formattedFileSize = (FileSize / 1024 / 1024) + " MB).";
+        String entry = fileName + " (Uploaded: " + timestamp + " FileSize: " + formattedFileSize + ")";
 
         List<String> userSchematics = config.getStringList(playerName + ".Owned Schematics");
         userSchematics.add(entry);
