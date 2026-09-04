@@ -58,9 +58,11 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Paths;
+import java.sql.Time;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalField;
 import java.util.Deque;
 import java.util.ArrayDeque;
 import java.util.HashMap;
@@ -72,6 +74,7 @@ import java.util.Set;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
@@ -1111,6 +1114,7 @@ public class DiscordBridge extends ListenerAdapter
     // SCHEM UPLOADS LOGIC
 
     private static final long MAX_SCHEM_SIZE = 20 * 1024 * 1024; // 20 MegaBytes
+    private final Map<Long, Long> lastSchemUploadMs = new ConcurrentHashMap<>();
 
     private void handleSchemUploads(@NotNull SlashCommandInteractionEvent event) {
         Guild g = event.getGuild();
@@ -1129,6 +1133,16 @@ public class DiscordBridge extends ListenerAdapter
                     .setEphemeral(true).queue();
             return;
         }
+
+        long nowMs = System.currentTimeMillis();
+        long lastMs = lastSchemUploadMs.getOrDefault(m.getIdLong(), 0L);
+
+        if (checkSpam(lastMs, nowMs)) {
+            event.reply("You Are Running This Command Too Quickly").setEphemeral(true).queue();
+            return;
+        }
+        lastSchemUploadMs.put(m.getIdLong(), nowMs);
+
 
         OptionMapping fileOpt = event.getOption("schem");
         if (fileOpt == null) {
@@ -1152,8 +1166,8 @@ public class DiscordBridge extends ListenerAdapter
             return;
         }
 
-        // Protects Against Path Traversal and Various Other Exploits
-        /* You Could For Some Of These Just Use attachment.getExtension
+        /* Protects Against Path Traversal and Various Other Exploits
+         You Could For Some Of These Just Use attachment.getExtension
          No Idea How To Do That, Will Figure it out later if i stumbe upon this again
          */
         String rawName = attachment.getFileName();
@@ -1175,6 +1189,11 @@ public class DiscordBridge extends ListenerAdapter
         event.deferReply(true).queue();
 
         createSchematicFile(safeName, attachment, event);
+    }
+
+    public boolean checkSpam(long time, long now) {
+        long deltaTime = now - time;
+        return deltaTime < 20000; // 20+ Seconds != Spam
     }
 
     public void sandboxSeesAll(String playerName, String fileName, int FileSize) {
