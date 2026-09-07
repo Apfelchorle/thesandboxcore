@@ -4,6 +4,7 @@ import java.util.*;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -43,7 +44,7 @@ public class ClownFishItem implements Item {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.getPersistentDataContainer().set(keys.clownFish, PersistentDataType.BYTE, (byte) 1);
-            meta.displayName(Component.text("ClownFish").color(net.kyori.adventure.text.format.NamedTextColor.GOLD));
+            meta.displayName(Component.text("ClownFish").color(net.kyori.adventure.text.format.NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
             item.setItemMeta(meta);
         }
         return item;
