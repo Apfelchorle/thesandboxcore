@@ -111,8 +111,8 @@ public class DiscordBridge extends ListenerAdapter
     private final Map<String, Deque<String>> byPlayer = new HashMap<>();
 
     // Constructors
-    public DiscordBridge(TheSandboxCore plugin) {
-        this.plugin = plugin;
+    public DiscordBridge(TheSandboxCore plugin, PlayerDataListener playerDataListener) {
+        this.plugin = plugin; this.playerDataListener = playerDataListener;
     }
 
     public boolean start() {
@@ -204,6 +204,17 @@ public class DiscordBridge extends ListenerAdapter
     /* --------------------------- Command registration --------------------------- */
     private void registerGuildCommands(Guild g) {
         g.updateCommands().addCommands(
+
+                /* /console */
+                Commands.slash("console", "run any command ingame with console authority")
+                        .addOptions(
+                                new OptionData(OptionType.STRING, "command", "command to run", true)
+                        )
+                        .setGuildOnly(true),
+
+                /* /update */
+                Commands.slash("update", "Run /update ingame")
+                        .setGuildOnly(true),
 
                 // /uploadschem
                 Commands.slash("uploadschem", "Upload A Schem File To The Server!")
@@ -752,15 +763,20 @@ public class DiscordBridge extends ListenerAdapter
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
         String cmd = event.getName().toLowerCase(Locale.ROOT);
 
+        if (cmd.equals("update")) {
+            handleUpdate(event);
+            return;
+        }
+
         if (cmd.equals("list")) {
             handleList(event);
             return;
         }
 
-//        if(cmd.equals("console")) {
-//            IssueInGameCommand(event);
-//            return;
-//        }
+        if(cmd.equals("console")) {
+            IssueInGameCommand(event);
+            return;
+        }
 
 //        if (cmd.equals("ban")) {
 //            return;
@@ -844,6 +860,24 @@ public class DiscordBridge extends ListenerAdapter
         }
 
         handleChatBridgeState(event, action);
+    }
+
+    private void handleUpdate(@NotNull SlashCommandInteractionEvent event) {
+        Member member = event.getMember();
+        Guild guild = event.getGuild();
+        Boolean hasroles = hasRole(member, ROLE_ADMIN) || hasRole(member, ROLE_SRADMIN);
+
+        if (guild == null) {
+            event.reply("Not In Guild").queue();
+            return;
+        }
+
+        if (member == null || !hasroles) {
+            event.reply("Not Authorized").queue();
+            return;
+        }
+
+        IssueInGameCommand(event);
     }
 
     private void handleChatBridgeState(@NotNull SlashCommandInteractionEvent event, String state) {
@@ -1702,12 +1736,12 @@ public class DiscordBridge extends ListenerAdapter
             if (!vanish_status) {
                 sendPlayerJoinEmbed(p);
             } else {
-                sendVanishEmbed(p,"Joined The Game");
+                sendVanishEmbed(p,"Ahead And Joined The Game");
             }
         }
 
         @EventHandler
-        public void onQuit(PlayerQuitEvent e) { sendPlayerQuitEmbed(e.getPlayer()); sendVanishEmbed(e.getPlayer(),"Quitted The Game"); }
+        public void onQuit(PlayerQuitEvent e) { sendPlayerQuitEmbed(e.getPlayer()); sendVanishEmbed(e.getPlayer(),"Ahead And Quit The Game"); }
 
         // SuperVanish / PremiumVanish hooks
         @EventHandler

@@ -160,7 +160,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
         // Events & Discord
         Bukkit.getPluginManager().registerEvents(this, this);
-        discord = new DiscordBridge(this);
+        discord = new DiscordBridge(this, this.dataListener);
         discord.start();
 
         AutoClearService autoClearService = new AutoClearService();
