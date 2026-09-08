@@ -639,11 +639,14 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     // Login message logic (uses shared helper)
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        if (VanishAPI.isInvisible(event.getPlayer())) {
-            return;
-        }
-        event.setJoinMessage(buildJoinMessageFor(event.getPlayer()));
-//        Bukkit.broadcast(LegacyComponentSerializer.legacyAmpersand().deserialize(dataListener.get(event.getPlayer().getUniqueId(), PlayerDataKeys.LOGIN_MESSAGE,"")));
+        Player p = event.getPlayer();
+        event.setJoinMessage(null);
+
+        Bukkit.getScheduler().runTaskLater(this, () -> {
+            if (!p.isOnline()) return;
+            if (VanishAPI.isInvisible(p)) return;
+            event.setJoinMessage(buildJoinMessageFor(p));
+        }, 5L);
     }
 
     @EventHandler
@@ -854,6 +857,9 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
     /** Build the exact join message used for normal joins and PremiumVanish unvanish. */
     private String buildJoinMessageFor(Player p) {
+        if (VanishAPI.isInvisible(p)) {
+            return null;
+        }
         return ChatColor.translateAlternateColorCodes('&', "&a&lJoin &8» &7" + p.getName());
     }
 
