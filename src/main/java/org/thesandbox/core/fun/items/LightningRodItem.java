@@ -40,7 +40,7 @@ public class LightningRodItem implements Item {
         ItemStack item = new ItemStack(Material.BLAZE_ROD);
         ItemMeta meta = item.getItemMeta();
 
-        meta.displayName(Component.text(NAME, NamedTextColor.YELLOW));
+        meta.displayName(Component.text(NAME, NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
         meta.lore(java.util.List.of(Component.text("Strike Bad Actors Down!", NamedTextColor.DARK_GRAY, TextDecoration.BOLD)));
         meta.getPersistentDataContainer().set(keys.lightningRod, PersistentDataType.BYTE, (byte) 1);
 

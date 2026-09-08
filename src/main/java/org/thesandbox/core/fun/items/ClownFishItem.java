@@ -19,10 +19,11 @@ import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.fun.Utils;
 import org.thesandbox.core.fun.items.itemUTILS.Item;
 import org.thesandbox.core.fun.items.itemUTILS.ItemKeys;
+import org.thesandbox.core.util.PlayerDataKeys;
 
 public class ClownFishItem implements Item {
 
-    private static final String NAME = "ClownFish";
+    private static final String NAME = PlayerDataKeys.CLOWN_FISH;
     private final ItemKeys keys;
 
     private static final int RADIUS_HIT = 5;
@@ -44,7 +45,7 @@ public class ClownFishItem implements Item {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.getPersistentDataContainer().set(keys.clownFish, PersistentDataType.BYTE, (byte) 1);
-            meta.displayName(Component.text("ClownFish").color(net.kyori.adventure.text.format.NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
+            meta.displayName(Component.text(NAME).color(net.kyori.adventure.text.format.NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
             item.setItemMeta(meta);
         }
         return item;

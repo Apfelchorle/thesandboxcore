@@ -13,6 +13,7 @@ import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.fun.LoginMessages;
 import org.thesandbox.core.fun.items.itemUTILS.Item;
 import org.thesandbox.core.fun.items.itemUTILS.ItemKeys;
+import org.thesandbox.core.util.PlayerDataKeys;
 import org.thesandbox.core.util.PlayerDataListener;
 
 import java.util.HashMap;
@@ -28,7 +29,7 @@ public class LoginMessagesItem implements Item {
 
     private final long cooldownMs;
     private final Map<UUID, Long> cooldowns = new HashMap<>();
-    private static final String NAME = "LoginMessages";
+    private static final String NAME = PlayerDataKeys.LOGIN_MESSAGES_STATE;
     private final PlayerDataListener playerDataListener;
     private final LoginMessages loginMessages;
 
@@ -46,10 +47,11 @@ public class LoginMessagesItem implements Item {
         ItemStack item = new ItemStack(Material.NAME_TAG);
         ItemMeta meta = item.getItemMeta();
 
-        meta.displayName(Component.text(NAME, NamedTextColor.WHITE));
-        meta.lore(java.util.List.of(Component.text("Have Your Very Own Unique Nicknames!", NamedTextColor.DARK_GRAY, TextDecoration.BOLD)));
+        meta.displayName(Component.text(NAME, NamedTextColor.WHITE)
+                .decoration(TextDecoration.ITALIC, false));
+        meta.lore(java.util.List.of(Component.text("Get Your Very Own Personalized Login Message!", NamedTextColor.DARK_GRAY, TextDecoration.BOLD)));
         meta.getPersistentDataContainer().set(keys.loginMessages, PersistentDataType.BYTE, (byte) 1);
-
+        meta.setEnchantmentGlintOverride(true);
         item.setItemMeta(meta);
         return item;
     }

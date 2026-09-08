@@ -8,9 +8,9 @@ public final class PlayerDataKeys {
     public static final String JUMPPADS_MODE = "jumppadmode";
     public static final String LOGIN_MESSAGE = "LoginMessage";
     public static final String LIGHTNING_ROD = "Lightning Rod";
-    public static final String LOGIN_MESSAGES_STATE = "LoginMessages";
+    public static final String LOGIN_MESSAGES_STATE = "Login Messages";
 
-    public static final String CLOWN_FISH = "ClownFish";
+    public static final String CLOWN_FISH = "Clownfish";
     public static final String RIDEABLE_ENDER_PEARL = "Rideable Ender Pearl";
     public static final String GRAPPLING_HOOK = "Grappling Hook";
     public static final String Stacking_Potato = "Stacking Potato";
