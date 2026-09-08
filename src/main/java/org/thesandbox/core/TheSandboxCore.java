@@ -4,11 +4,13 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import de.myzelyam.api.vanish.PlayerHideEvent;
 import de.myzelyam.api.vanish.PlayerShowEvent;
+import de.myzelyam.api.vanish.VanishAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
@@ -637,7 +639,9 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     // Login message logic (uses shared helper)
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-
+        if (VanishAPI.isInvisible(event.getPlayer())) {
+            return;
+        }
         event.setJoinMessage(buildJoinMessageFor(event.getPlayer()));
 //        Bukkit.broadcast(LegacyComponentSerializer.legacyAmpersand().deserialize(dataListener.get(event.getPlayer().getUniqueId(), PlayerDataKeys.LOGIN_MESSAGE,"")));
     }
