@@ -643,9 +643,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         event.setJoinMessage(null);
 
         Bukkit.getScheduler().runTaskLater(this, () -> {
-            if (!p.isOnline()) return;
             if (VanishAPI.isInvisible(p)) return;
-            event.setJoinMessage(buildJoinMessageFor(p));
+            Bukkit.broadcastMessage(buildJoinMessageFor(p));
         }, 5L);
     }
 

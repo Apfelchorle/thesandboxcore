@@ -95,6 +95,7 @@ public class ShopCommand implements Listener,ISubCommand {
         }
 
         if (balance < price) {
+            player.playSound(player.getLocation(), Sound.ENTITY_VILLAGER_NO, 1f, 1f);
             player.sendMessage(Component.text("You Do Not Have Enough Coins.", NamedTextColor.DARK_RED));
             player.sendMessage(Component.text("You Need " + (price - balance) + " More Coins!", NamedTextColor.DARK_RED));
             return;
