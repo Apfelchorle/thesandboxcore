@@ -640,12 +640,13 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player p = event.getPlayer();
-        event.setJoinMessage(null);
+        Boolean vanish_status = dataListener.get(p.getUniqueId(), PlayerDataKeys.VANISHED, false);
 
-        Bukkit.getScheduler().runTaskLater(this, () -> {
-            if (VanishAPI.isInvisible(p)) return;
-            Bukkit.broadcastMessage(buildJoinMessageFor(p));
-        }, 5L);
+        if (!vanish_status) {
+            event.setJoinMessage(buildJoinMessageFor(p));
+        } else {
+            event.setJoinMessage(null);
+        }
     }
 
     @EventHandler
@@ -658,6 +659,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     public void onVanishHide(PlayerHideEvent event) {
         final Player p = event.getPlayer();
         Bukkit.getScheduler().runTask(this, () -> {
+            // SAVE FOR PLAYER
+            dataListener.set(p.getUniqueId(), PlayerDataKeys.VANISHED, true);
             // Fake leave for everyone
             Bukkit.broadcastMessage(buildLeaveMessageFor(p));
             // Staff-only notice
@@ -675,8 +678,9 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     public void onVanishShow(PlayerShowEvent event) {
         final Player p = event.getPlayer();
         Bukkit.getScheduler().runTask(this, () -> {
+            // SAVE FOR PLAYER
+            dataListener.set(p.getUniqueId(), PlayerDataKeys.VANISHED, false);
             // Fake join (same formatting as normal joins)
-
             Bukkit.broadcastMessage(buildJoinMessageFor(p));
             LoginMessagesFakeLogin(p);
 

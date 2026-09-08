@@ -27,12 +27,10 @@ import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 
-import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.*;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
-import org.thesandbox.core.guilds.Text;
 import org.thesandbox.core.login.LoginService;
 
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -58,11 +56,9 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Paths;
-import java.sql.Time;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.TemporalField;
 import java.util.Deque;
 import java.util.ArrayDeque;
 import java.util.HashMap;
@@ -79,13 +75,14 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
 import org.thesandbox.core.discord.model.ReportRecord;
-
-import javax.swing.text.html.Option;
+import org.thesandbox.core.util.PlayerDataKeys;
+import org.thesandbox.core.util.PlayerDataListener;
 
 public class DiscordBridge extends ListenerAdapter
 {
     private final TheSandboxCore plugin;
     private JDA jda;
+    private PlayerDataListener playerDataListener;
 
     // Channels
     private TextChannel staffChannel;
@@ -1698,10 +1695,19 @@ public class DiscordBridge extends ListenerAdapter
 
     private final class ServerActivityListener implements Listener {
         @EventHandler
-        public void onJoin(PlayerJoinEvent e) { sendPlayerJoinEmbed(e.getPlayer()); }
+        public void onJoin(PlayerJoinEvent e) {
+            Player p = e.getPlayer();
+            Boolean vanish_status = playerDataListener.get(p.getUniqueId(), PlayerDataKeys.VANISHED, false);
+
+            if (!vanish_status) {
+                sendPlayerJoinEmbed(p);
+            } else {
+                sendVanishEmbed(p,"Joined The Game");
+            }
+        }
 
         @EventHandler
-        public void onQuit(PlayerQuitEvent e) { sendPlayerQuitEmbed(e.getPlayer()); }
+        public void onQuit(PlayerQuitEvent e) { sendPlayerQuitEmbed(e.getPlayer()); sendVanishEmbed(e.getPlayer(),"Quitted The Game"); }
 
         // SuperVanish / PremiumVanish hooks
         @EventHandler

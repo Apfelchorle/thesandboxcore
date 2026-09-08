@@ -44,6 +44,8 @@ public class PlayerDataListener implements Listener {
         data.put(PlayerDataKeys.MARRIAGE_STATUS, dataManager.loadData(uuid, PlayerDataKeys.MARRIAGE_STATUS, "Single"));
         data.put(PlayerDataKeys.GENDER, dataManager.loadData(uuid, PlayerDataKeys.GENDER, "male"));
 
+        // staff
+        data.put(PlayerDataKeys.VANISHED, dataManager.loadData(uuid, PlayerDataKeys.VANISHED, false));
         return data;
     }
 
