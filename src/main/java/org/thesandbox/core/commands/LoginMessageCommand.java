@@ -11,7 +11,9 @@ import org.thesandbox.core.fun.LoginMessages;
 import org.thesandbox.core.util.PlayerDataKeys;
 import org.thesandbox.core.util.PlayerDataListener;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class LoginMessageCommand implements ISubCommand {
 
@@ -69,6 +71,15 @@ public class LoginMessageCommand implements ISubCommand {
 
     @Override
     public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        return List.of();
+        if (!(sender instanceof Player) || args.length == 0) {
+            return List.of();
+        }
+
+        List<String> options = List.of("%rank%", "%name%");
+        String current = args[args.length - 1].toLowerCase(Locale.ROOT);
+
+        return options.stream()
+                .filter(opt -> opt.toLowerCase(Locale.ROOT).startsWith(current))
+                .toList();
     }
 }
