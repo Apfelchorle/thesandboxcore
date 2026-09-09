@@ -95,11 +95,11 @@ public class DiscordBridge extends ListenerAdapter
     private TextChannel archivedReportsChannel;
 
     // ===== Managed Discord role IDs (rank roles) =====
-    private static final String ROLE_MB      = "1545155091303243807"; // Master Builder [NOTE: UPDATED WITH NEW ROLE ID FROM DISCORD]
-    private static final String ROLE_MOD     = "1395155320539578510"; // Moderator
-    private static final String ROLE_ADMIN   = "1475574066499817514"; // Admin
-    private static final String ROLE_SRADMIN = "1160233133837385809"; // Senior Admin
-    private static final String ROLE_DEV     = "1397614604640587837"; // Developer
+    private static final String ROLE_MB      = "1545155091303243807"; // Master Builder [NOTE: Please DO NOT EDIT THE ROLE IN DISCORD!!!]
+    private static final String ROLE_MOD     = "1395155320539578510"; // Moderator [Doesnt Exist]
+    private static final String ROLE_ADMIN   = "1475574066499817514"; // Admin [Me & Livi have this role]
+    private static final String ROLE_SRADMIN = "1160233133837385809"; // Senior Admin [This is OP in discord]
+    private static final String ROLE_DEV     = "1397614604640587837"; // Developer [Doesnt Exist]
 
     // Verified role (configurable with fallback)
     private static final String DEFAULT_VERIFIED_ROLE = "1415327115150360617";
@@ -967,10 +967,11 @@ public class DiscordBridge extends ListenerAdapter
                     .setEphemeral(true).queue();
             return;
         }
-        boolean requesterPrivileged = hasRole(m, ROLE_SRADMIN);
+        boolean requesterPrivileged = hasRole(m, ROLE_SRADMIN) || hasRole(m, ROLE_ADMIN);
 
         if (!(requesterPrivileged)) {
-            event.reply("You do not have permission to use this command.");
+            event.reply("You do not have permission to use this command.")
+                    .queue();
             return;
         }
 
@@ -1122,7 +1123,8 @@ public class DiscordBridge extends ListenerAdapter
         boolean rankedabove = p.hasPermission("sandbox.staff") || p.hasPermission("sandbox.superuser");
 
         if (rankedabove) {
-            event.reply("Player Already Possess A Higher Rank");
+            event.reply("Player Already Possess A Higher Rank")
+                    .queue();
             return;
         }
 
