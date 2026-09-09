@@ -652,7 +652,13 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player p = event.getPlayer();
-        event.setQuitMessage(buildLeaveMessageFor(p));
+        Boolean vanish_status = dataListener.get(p.getUniqueId(), PlayerDataKeys.VANISHED, false);
+
+        if (!vanish_status) {
+            event.setQuitMessage(buildLeaveMessageFor(p));
+        } else {
+            event.setQuitMessage(null);
+        }
     }
 
     @EventHandler

@@ -1743,7 +1743,15 @@ public class DiscordBridge extends ListenerAdapter
         }
 
         @EventHandler
-        public void onQuit(PlayerQuitEvent e) { sendPlayerQuitEmbed(e.getPlayer()); sendVanishEmbed(e.getPlayer(),"Ahead And Quit The Game"); }
+        public void onQuit(PlayerQuitEvent e) {
+            Player p = e.getPlayer();
+            Boolean vanish_status = playerDataListener.get(p.getUniqueId(), PlayerDataKeys.VANISHED, false);
+            if (!vanish_status) {
+                sendPlayerQuitEmbed(p);
+            } else {
+                sendVanishEmbed(p,"Ahead And Quit The Game");
+            }
+        }
 
         // SuperVanish / PremiumVanish hooks
         @EventHandler
