@@ -35,6 +35,21 @@ public class ShopCommand implements Listener,ISubCommand {
     private final StackingPotatoItem stackingPotatoItem;
     private final FloatBoatItem floatBoatItem;
     private final WindRodItem windRodItem;
+
+    private record ShopEntry(int slot, Item item) {}
+    private List<ShopEntry> shopLayout() {
+        return List.of(
+                new ShopEntry(3, stackingPotatoItem),
+                new ShopEntry(4, grapplingHookItem),
+                new ShopEntry(11, lightningRodItem),
+                new ShopEntry(12, floatBoatItem),
+                new ShopEntry(13, loginMessagesItem),
+                new ShopEntry(14, clownFishItem),
+                new ShopEntry(15, rideableEnderPearlItem),
+                new ShopEntry(16, windRodItem)
+        );
+    }
+
     private static class ShopHolder implements InventoryHolder {
 
         private Inventory inventory;
@@ -158,26 +173,10 @@ public class ShopCommand implements Listener,ISubCommand {
 
         // as shown above the Inventory Menu is 9 * 3 which is 27 slots
 
-        shopSlots.put(3, stackingPotatoItem);
-        inventory.setItem(3, stackingPotatoItem.create());
-
-        shopSlots.put(4, grapplingHookItem);
-        inventory.setItem(4, grapplingHookItem.create());
-
-        shopSlots.put(11, lightningRodItem);
-        inventory.setItem(11, lightningRodItem.create());
-
-        shopSlots.put(12, floatBoatItem);
-        inventory.setItem(12, floatBoatItem.create());
-
-        shopSlots.put(13, loginMessagesItem);
-        inventory.setItem(13, loginMessagesItem.create());
-
-        shopSlots.put(14, clownFishItem);
-        inventory.setItem(14, clownFishItem.create());
-
-        shopSlots.put(15, rideableEnderPearlItem);
-        inventory.setItem(15, rideableEnderPearlItem.create());
+        for (ShopEntry entry : shopLayout()) {
+            shopSlots.put(entry.slot(), entry.item());
+            inventory.setItem(entry.slot(), shopIcon(player, entry.item()));
+        }
 
 
         player.openInventory(inventory);
