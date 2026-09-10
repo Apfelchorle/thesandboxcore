@@ -1,5 +1,6 @@
 package org.thesandbox.core.fun.items;
 
+import com.destroystokyo.paper.event.player.PlayerJumpEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -12,6 +13,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -99,6 +101,22 @@ public class FloatBoatItem implements Item, Listener {
                 boat.setGravity(false);
             }
         }
+    }
+
+    @EventHandler
+    public void onSneakToggle(PlayerToggleSneakEvent event) {
+        Player player = event.getPlayer();
+        if (!(player.getVehicle() instanceof Boat boat) || !isFloatBoat(boat)) return;
+        if (event.isSneaking()) {
+            boat.setVelocity(boat.getVelocity().setY(-0.2));
+        }
+    }
+
+    @EventHandler
+    public void onJump(PlayerJumpEvent event) {
+        Player player = event.getPlayer();
+        if (!(player.getVehicle() instanceof Boat boat) || !isFloatBoat(boat)) return;
+        boat.setVelocity(boat.getVelocity().setY(0.2));
     }
 
     private void applyNoGravity(Boat boat) {
