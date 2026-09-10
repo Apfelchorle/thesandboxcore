@@ -14,6 +14,8 @@ public final class PlayerDataKeys {
     public static final String RIDEABLE_ENDER_PEARL = "Rideable Ender Pearl";
     public static final String GRAPPLING_HOOK = "Grappling Hook";
     public static final String Stacking_Potato = "Stacking Potato";
+    public static final String FLOAT_BOAT = "Float Boat";
+    public static final String WIND_ROD = "Wind Rod";
 
     // marriage
 

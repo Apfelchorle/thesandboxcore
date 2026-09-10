@@ -33,6 +33,8 @@ public class ShopCommand implements Listener,ISubCommand {
     private final Rideable_Ender_Pearl_Item rideableEnderPearlItem;
     private final GrapplingHookItem grapplingHookItem;
     private final StackingPotatoItem stackingPotatoItem;
+    private final FloatBoatItem floatBoatItem;
+    private final WindRodItem windRodItem;
     private static class ShopHolder implements InventoryHolder {
 
         private Inventory inventory;
@@ -50,7 +52,7 @@ public class ShopCommand implements Listener,ISubCommand {
     private final Map<Integer, Item> shopSlots = new HashMap<>();
 
 
-    public ShopCommand(TheSandboxCore plugin, PlayerDataListener playerDataListener, LightningRodItem lightningRodItem, LoginMessagesItem loginMessagesItem, ClownFishItem clownFishItem, Rideable_Ender_Pearl_Item rideableEnderPearlItem, GrapplingHookItem grapplingHookItem, StackingPotatoItem stackingPotatoItem) {
+    public ShopCommand(TheSandboxCore plugin, PlayerDataListener playerDataListener, LightningRodItem lightningRodItem, LoginMessagesItem loginMessagesItem, ClownFishItem clownFishItem, Rideable_Ender_Pearl_Item rideableEnderPearlItem, GrapplingHookItem grapplingHookItem, StackingPotatoItem stackingPotatoItem, FloatBoatItem floatBoatItem, WindRodItem windRodItem) {
         this.playerDataListener = playerDataListener;
         this.lightningRodItem = lightningRodItem;
         this.loginMessagesItem = loginMessagesItem;
@@ -58,6 +60,8 @@ public class ShopCommand implements Listener,ISubCommand {
         this.rideableEnderPearlItem = rideableEnderPearlItem;
         this.grapplingHookItem = grapplingHookItem;
         this.stackingPotatoItem = stackingPotatoItem;
+        this.floatBoatItem = floatBoatItem;
+        this.windRodItem = windRodItem;
 
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
@@ -163,8 +167,8 @@ public class ShopCommand implements Listener,ISubCommand {
         shopSlots.put(11, lightningRodItem);
         inventory.setItem(11, lightningRodItem.create());
 
-        shopSlots.put(12, lightningRodItem);
-        inventory.setItem(12, getItem(new ItemStack(Material.OAK_BOAT),"Test", "Testing", "&4Testing" , "&aTesting"));
+        shopSlots.put(12, floatBoatItem);
+        inventory.setItem(12, floatBoatItem.create());
 
         shopSlots.put(13, loginMessagesItem);
         inventory.setItem(13, loginMessagesItem.create());
@@ -179,6 +183,29 @@ public class ShopCommand implements Listener,ISubCommand {
         player.openInventory(inventory);
 
         return true;
+    }
+
+    private ItemStack shopIcon(Player player, Item item) {
+        ItemStack stack = item.create();
+        String status = playerDataListener.get(player.getUniqueId(), item.getName(), "not_owned");
+        List<String> ownedStatuses = Arrays.asList("owned", "bought", "enabled", "disabled");
+        if (status != null && ownedStatuses.contains(status.toLowerCase())) {
+            return stack;
+        }
+
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) {
+            return stack;
+        }
+
+        List<Component> lore = meta.lore() != null ? new ArrayList<>(meta.lore()) : new ArrayList<>();
+        if (!lore.isEmpty()) {
+            lore.add(Component.empty());
+        }
+        lore.add(LegacyComponentSerializer.legacyAmpersand().deserialize("&7Price: &e" + item.getPrice()));
+        meta.lore(lore);
+        stack.setItemMeta(meta);
+        return stack;
     }
 
     private ItemStack getItem(ItemStack item, String name, String ... lore) {
