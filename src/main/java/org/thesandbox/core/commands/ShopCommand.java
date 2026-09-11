@@ -188,7 +188,7 @@ public class ShopCommand implements Listener,ISubCommand {
         ItemStack stack = item.create();
         String status = playerDataListener.get(player.getUniqueId(), item.getName(), "not_owned");
         List<String> ownedStatuses = Arrays.asList("owned", "bought", "enabled", "disabled");
-        if (status != null && ownedStatuses.contains(status.toLowerCase())) {
+        if (ownedStatuses.contains(status.toLowerCase())) {
             return stack;
         }
 

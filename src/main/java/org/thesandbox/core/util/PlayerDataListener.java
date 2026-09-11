@@ -38,6 +38,8 @@ public class PlayerDataListener implements Listener {
         data.put(PlayerDataKeys.RIDEABLE_ENDER_PEARL, dataManager.loadData(uuid, PlayerDataKeys.RIDEABLE_ENDER_PEARL, "not_owned"));
         data.put(PlayerDataKeys.GRAPPLING_HOOK, dataManager.loadData(uuid, PlayerDataKeys.GRAPPLING_HOOK, "not_owned"));
         data.put(PlayerDataKeys.Stacking_Potato, dataManager.loadData(uuid, PlayerDataKeys.Stacking_Potato, "not_owned"));
+        data.put(PlayerDataKeys.WIND_ROD, dataManager.loadData(uuid, PlayerDataKeys.WIND_ROD, "not_owned"));
+        data.put(PlayerDataKeys.FLOAT_BOAT, dataManager.loadData(uuid, PlayerDataKeys.FLOAT_BOAT, "not_owned"));
 
         // marriage
         data.put(PlayerDataKeys.MARRIAGE_SPOUSE, dataManager.loadData(uuid, PlayerDataKeys.MARRIAGE_SPOUSE, ""));
