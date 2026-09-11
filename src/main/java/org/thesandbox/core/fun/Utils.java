@@ -88,6 +88,6 @@ public class Utils {
     public static void SendMessage(Player player, String message, TextColor color) {
         Component msg = Component.empty();
         msg = msg.append(Component.text(message).color(color));
-        Bukkit.broadcast(msg);
+        player.sendMessage(msg);
     }
 }

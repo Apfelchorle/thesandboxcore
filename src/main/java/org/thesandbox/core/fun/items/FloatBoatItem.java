@@ -1,6 +1,5 @@
 package org.thesandbox.core.fun.items;
 
-import com.destroystokyo.paper.event.player.PlayerJumpEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -25,12 +24,17 @@ import org.thesandbox.core.fun.items.itemUTILS.Item;
 import org.thesandbox.core.fun.items.itemUTILS.ItemKeys;
 import org.thesandbox.core.util.PlayerDataKeys;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 public class FloatBoatItem implements Item, Listener {
 
     private static final String NAME = PlayerDataKeys.FLOAT_BOAT;
     private static final double VERTICAL_SPEED = 0.25;
+
+    public static final Set<UUID> ALLOWED_DISMOUNTS = new HashSet<>();
 
     private final TheSandboxCore plugin;
     private final ItemKeys keys;
@@ -39,7 +43,7 @@ public class FloatBoatItem implements Item, Listener {
         this.plugin = plugin;
         this.keys = keys;
         Bukkit.getPluginManager().registerEvents(this, plugin);
-        startInputMonitor();
+        startPitchMonitor();
     }
 
     @Override
@@ -51,7 +55,8 @@ public class FloatBoatItem implements Item, Listener {
             meta.displayName(Component.text(NAME, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
             meta.lore(List.of(
                     Component.text("A boat that defies gravity.", NamedTextColor.DARK_GRAY),
-                    Component.text("Shift: Lower | /dismount to exit", NamedTextColor.GRAY)
+                    Component.text("W : Go Up | Shift: Lower | /dismount to exit", NamedTextColor.GRAY),
+                    Component.text("TheSandBox Is Not Responsible For You Going Missing in OuterSpace!")
             ));
             meta.setEnchantmentGlintOverride(true);
             meta.getPersistentDataContainer().set(keys.Float_Boat, PersistentDataType.BYTE, (byte) 1);
@@ -68,7 +73,7 @@ public class FloatBoatItem implements Item, Listener {
 
     @Override
     public void onInteract(PlayerInteractEvent e) {
-        // Handled by vanilla placement
+        // Handled by vanilla boat placement
     }
 
     @Override
@@ -103,34 +108,37 @@ public class FloatBoatItem implements Item, Listener {
     }
 
     @EventHandler
-    public void onJump(PlayerJumpEvent event) {
-        Player player = event.getPlayer();
-        if (!(player.getVehicle() instanceof Boat boat) || !isFloatBoat(boat)) return;
-
-        Vector currentVel = boat.getVelocity();
-        boat.setVelocity(new Vector(currentVel.getX(), VERTICAL_SPEED, currentVel.getZ()));
-    }
-
-    @EventHandler
     public void onDismount(EntityDismountEvent event) {
-        if (!(event.getEntity() instanceof Player)) return;
+        if (!(event.getEntity() instanceof Player player)) return;
         if (!(event.getDismounted() instanceof Boat boat)) return;
 
         if (isFloatBoat(boat)) {
+            // Allow dismount if triggered by /dismount
+            if (ALLOWED_DISMOUNTS.remove(player.getUniqueId())) {
+                return;
+            }
+            // Block normal Shift dismounting
             event.setCancelled(true);
         }
     }
 
-    private void startInputMonitor() {
+    private void startPitchMonitor() {
         new BukkitRunnable() {
             @Override
             public void run() {
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     if (!(player.getVehicle() instanceof Boat boat) || !isFloatBoat(boat)) continue;
 
-                    if (player.isSneaking()) {
-                        Vector currentVel = boat.getVelocity();
-                        boat.setVelocity(new Vector(currentVel.getX(), -VERTICAL_SPEED, currentVel.getZ()));
+                    Vector vel = boat.getVelocity();
+                    float pitch = player.getLocation().getPitch(); // Negative values are looking upward
+
+                    // Ascend when looking upward (pitch < -15°) while moving forward
+                    if (pitch < -15.0f && vel.lengthSquared() > 0.005) {
+                        boat.setVelocity(new Vector(vel.getX(), VERTICAL_SPEED, vel.getZ()));
+                    }
+                    // Descend when holding Shift
+                    else if (player.isSneaking()) {
+                        boat.setVelocity(new Vector(vel.getX(), -VERTICAL_SPEED, vel.getZ()));
                     }
                 }
             }
