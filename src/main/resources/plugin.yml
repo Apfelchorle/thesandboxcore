@@ -19,6 +19,10 @@ softdepend:
 loadbefore: [Essentials, EssentialsX, WorldGuard]
 
 commands:
+  dismount:
+    description: Force dismount from an Entity.
+    usage: /dismount
+
   opall:
     description: Op Everyone
     usage: /opall

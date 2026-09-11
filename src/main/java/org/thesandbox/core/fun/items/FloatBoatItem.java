@@ -11,9 +11,9 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDismountEvent;
 import org.bukkit.event.entity.EntityPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -25,16 +25,12 @@ import org.thesandbox.core.fun.items.itemUTILS.Item;
 import org.thesandbox.core.fun.items.itemUTILS.ItemKeys;
 import org.thesandbox.core.util.PlayerDataKeys;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 public class FloatBoatItem implements Item, Listener {
 
-    private final Map<UUID, Vector> lastBoatVelocity = new HashMap<>();
     private static final String NAME = PlayerDataKeys.FLOAT_BOAT;
-    private static final double GRAVITY_THRESHOLD = 0.01;
+    private static final double VERTICAL_SPEED = 0.25;
 
     private final TheSandboxCore plugin;
     private final ItemKeys keys;
@@ -43,7 +39,7 @@ public class FloatBoatItem implements Item, Listener {
         this.plugin = plugin;
         this.keys = keys;
         Bukkit.getPluginManager().registerEvents(this, plugin);
-        startVelocityMonitor();
+        startInputMonitor();
     }
 
     @Override
@@ -51,26 +47,28 @@ public class FloatBoatItem implements Item, Listener {
         ItemStack item = new ItemStack(Material.OAK_BOAT);
         ItemMeta meta = item.getItemMeta();
 
-        meta.displayName(Component.text(NAME, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
-        meta.lore(List.of(
-                Component.text("A boat that has no gravity.", NamedTextColor.DARK_GRAY)
-        ));
-        meta.setEnchantmentGlintOverride(true);
-        meta.getPersistentDataContainer().set(keys.Float_Boat, PersistentDataType.BYTE, (byte) 1);
-
-        item.setItemMeta(meta);
+        if (meta != null) {
+            meta.displayName(Component.text(NAME, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+            meta.lore(List.of(
+                    Component.text("A boat that defies gravity.", NamedTextColor.DARK_GRAY),
+                    Component.text("Shift: Lower | /dismount to exit", NamedTextColor.GRAY)
+            ));
+            meta.setEnchantmentGlintOverride(true);
+            meta.getPersistentDataContainer().set(keys.Float_Boat, PersistentDataType.BYTE, (byte) 1);
+            item.setItemMeta(meta);
+        }
         return item;
     }
 
     @Override
     public boolean matches(ItemStack item) {
-        if (item == null || item.getItemMeta() == null) return false;
+        if (item == null || !item.hasItemMeta()) return false;
         return item.getItemMeta().getPersistentDataContainer().has(keys.Float_Boat, PersistentDataType.BYTE);
     }
 
     @Override
     public void onInteract(PlayerInteractEvent e) {
-        // Vanilla boat placement must proceed so EntityPlaceEvent can mark it as no-gravity.
+        // Handled by vanilla placement
     }
 
     @Override
@@ -85,22 +83,14 @@ public class FloatBoatItem implements Item, Listener {
 
     @EventHandler
     public void onBoatPlace(EntityPlaceEvent event) {
-        if (!(event.getEntity() instanceof Boat boat)) {
-            return;
-        }
-
+        if (!(event.getEntity() instanceof Boat boat)) return;
         Player player = event.getPlayer();
-        if (player == null) {
-            return;
-        }
+        if (player == null) return;
 
         ItemStack used = player.getInventory().getItem(event.getHand());
-        if (!matches(used)) {
-            return;
-        }
+        if (!matches(used)) return;
 
         applyNoGravity(boat);
-        lastBoatVelocity.put(boat.getUniqueId(), new Vector(0, 0, 0));
     }
 
     @EventHandler
@@ -108,22 +98,7 @@ public class FloatBoatItem implements Item, Listener {
         for (Entity entity : event.getEntities()) {
             if (entity instanceof Boat boat && isFloatBoat(boat)) {
                 boat.setGravity(false);
-                lastBoatVelocity.put(boat.getUniqueId(), new Vector(0, 0, 0));
             }
-        }
-    }
-
-    @EventHandler
-    public void onSneakToggle(PlayerToggleSneakEvent event) {
-        Player player = event.getPlayer();
-        if (!(player.getVehicle() instanceof Boat boat) || !isFloatBoat(boat)) return;
-        if (event.isSneaking()) {
-            boat.setVelocity(boat.getVelocity().setY(-0.2));
-            boat.setGravity(true);
-            lastBoatVelocity.put(boat.getUniqueId(), boat.getVelocity().clone());
-        } else {
-            boat.setGravity(false);
-            lastBoatVelocity.put(boat.getUniqueId(), boat.getVelocity().clone());
         }
     }
 
@@ -131,31 +106,32 @@ public class FloatBoatItem implements Item, Listener {
     public void onJump(PlayerJumpEvent event) {
         Player player = event.getPlayer();
         if (!(player.getVehicle() instanceof Boat boat) || !isFloatBoat(boat)) return;
-        boat.setVelocity(boat.getVelocity().setY(0.2));
-        boat.setGravity(true);
-        lastBoatVelocity.put(boat.getUniqueId(), boat.getVelocity().clone());
+
+        Vector currentVel = boat.getVelocity();
+        boat.setVelocity(new Vector(currentVel.getX(), VERTICAL_SPEED, currentVel.getZ()));
     }
 
-    private void startVelocityMonitor() {
+    @EventHandler
+    public void onDismount(EntityDismountEvent event) {
+        if (!(event.getEntity() instanceof Player)) return;
+        if (!(event.getDismounted() instanceof Boat boat)) return;
+
+        if (isFloatBoat(boat)) {
+            event.setCancelled(true);
+        }
+    }
+
+    private void startInputMonitor() {
         new BukkitRunnable() {
             @Override
             public void run() {
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     if (!(player.getVehicle() instanceof Boat boat) || !isFloatBoat(boat)) continue;
 
-                    UUID boatId = boat.getUniqueId();
-                    Vector currentVelocity = boat.getVelocity();
-                    Vector lastVelocity = lastBoatVelocity.getOrDefault(boatId, new Vector(0, 0, 0));
-
-                    if (currentVelocity.distanceSquared(lastVelocity) > GRAVITY_THRESHOLD) {
-                        if (!boat.hasGravity()) {
-                            boat.setGravity(true);
-                        }
-                    } else if (boat.hasGravity()) {
-                        boat.setGravity(false);
+                    if (player.isSneaking()) {
+                        Vector currentVel = boat.getVelocity();
+                        boat.setVelocity(new Vector(currentVel.getX(), -VERTICAL_SPEED, currentVel.getZ()));
                     }
-
-                    lastBoatVelocity.put(boatId, currentVelocity.clone());
                 }
             }
         }.runTaskTimer(plugin, 1L, 1L);
