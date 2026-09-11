@@ -26,6 +26,8 @@ import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.fun.items.itemUTILS.Item;
 import org.thesandbox.core.fun.items.itemUTILS.ItemKeys;
 import org.thesandbox.core.util.PlayerDataKeys;
+import org.thesandbox.core.util.PlayerDataListener;
+import org.thesandbox.core.util.PluginConfigManager;
 
 import java.util.List;
 import java.util.Set;
@@ -36,22 +38,23 @@ public class FloatBoatItem implements Item, Listener {
 
     private static final String NAME = PlayerDataKeys.FLOAT_BOAT;
 
-    // Increased speeds and forward boost to fix sluggishness
-    private static final double VERTICAL_SPEED = 0.45;
-    private static final double HORIZONTAL_BOOST = 0.08;
-
     public static final Set<UUID> ALLOWED_DISMOUNTS = ConcurrentHashMap.newKeySet();
 
     private final TheSandboxCore plugin;
+    private final PluginConfigManager configManager;
     private final ItemKeys keys;
     private BukkitTask monitorTask;
 
-    public FloatBoatItem(TheSandboxCore plugin, ItemKeys keys) {
+    public FloatBoatItem(TheSandboxCore plugin, PluginConfigManager configManager, ItemKeys keys) {
         this.plugin = plugin;
+        this.configManager = configManager;
         this.keys = keys;
         Bukkit.getPluginManager().registerEvents(this, plugin);
         startPitchMonitor();
     }
+
+    private static final double VERTICAL_SPEED = 1;
+    private static final double HORIZONTAL_BOOST = 0.08;
 
     @Override
     public ItemStack create() {
