@@ -54,9 +54,9 @@ public class FloatBoatItem implements Item, Listener {
         if (meta != null) {
             meta.displayName(Component.text(NAME, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
             meta.lore(List.of(
-                    Component.text("A boat that defies gravity.", NamedTextColor.DARK_GRAY),
-                    Component.text("W : Go Up | Shift: Lower | /dismount to exit", NamedTextColor.GRAY),
-                    Component.text("TheSandBox Is Not Responsible For You Going Missing in OuterSpace!")
+                    Component.text("A boat that defies gravity.", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false),
+                    Component.text("W : Go Up | Shift: Lower | /dismount to exit", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                    Component.text("TheSandBox Is Not Responsible For You Going Missing in OuterSpace!", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false)
             ));
             meta.setEnchantmentGlintOverride(true);
             meta.getPersistentDataContainer().set(keys.Float_Boat, PersistentDataType.BYTE, (byte) 1);
@@ -113,11 +113,9 @@ public class FloatBoatItem implements Item, Listener {
         if (!(event.getDismounted() instanceof Boat boat)) return;
 
         if (isFloatBoat(boat)) {
-            // Allow dismount if triggered by /dismount
             if (ALLOWED_DISMOUNTS.remove(player.getUniqueId())) {
                 return;
             }
-            // Block normal Shift dismounting
             event.setCancelled(true);
         }
     }
@@ -131,26 +129,27 @@ public class FloatBoatItem implements Item, Listener {
 
                     Vector vel = boat.getVelocity();
                     float pitch = player.getLocation().getPitch(); // Negative values are looking upward
-
-                    // Ascend when looking upward (pitch < -15°) while moving forward
                     if (pitch < -15.0f && vel.lengthSquared() > 0.005) {
                         boat.setVelocity(new Vector(vel.getX(), VERTICAL_SPEED, vel.getZ()));
                     }
-                    // Descend when holding Shift
                     else if (player.isSneaking()) {
                         boat.setVelocity(new Vector(vel.getX(), -VERTICAL_SPEED, vel.getZ()));
+                    }
+                    else {
+                        boat.setVelocity(new Vector(vel.getX(), 0, vel.getZ()));
                     }
                 }
             }
         }.runTaskTimer(plugin, 1L, 1L);
     }
-
     private void applyNoGravity(Boat boat) {
         boat.setGravity(false);
         boat.getPersistentDataContainer().set(keys.Float_Boat, PersistentDataType.BYTE, (byte) 1);
     }
-
     private boolean isFloatBoat(Boat boat) {
         return boat.getPersistentDataContainer().has(keys.Float_Boat, PersistentDataType.BYTE);
+    }
+    public boolean isFloatBoatPublic(Boat boat) {
+        return isFloatBoat(boat);
     }
 }
