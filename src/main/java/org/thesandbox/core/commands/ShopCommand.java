@@ -41,12 +41,12 @@ public class ShopCommand implements Listener,ISubCommand {
         return List.of(
                 new ShopEntry(3, stackingPotatoItem),
                 new ShopEntry(4, grapplingHookItem),
+                new ShopEntry(5, windRodItem),
                 new ShopEntry(11, lightningRodItem),
                 new ShopEntry(12, floatBoatItem),
                 new ShopEntry(13, loginMessagesItem),
                 new ShopEntry(14, clownFishItem),
-                new ShopEntry(15, rideableEnderPearlItem),
-                new ShopEntry(16, windRodItem)
+                new ShopEntry(15, rideableEnderPearlItem)
         );
     }
 
