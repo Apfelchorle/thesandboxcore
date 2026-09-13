@@ -21,8 +21,7 @@ public class WorldCommand implements ISubCommand
             "world_nether",
             "world_the_end",
             "masterbuilderworld",
-            "flatlands",
-            "adminworld"
+            "flatlands"
     );
 
     private final JavaPlugin plugin;
