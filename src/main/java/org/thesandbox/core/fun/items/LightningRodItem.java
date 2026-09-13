@@ -41,7 +41,7 @@ public class LightningRodItem implements Item {
         ItemMeta meta = item.getItemMeta();
 
         meta.displayName(Component.text(NAME, NamedTextColor.YELLOW).decoration(TextDecoration.ITALIC, false));
-        meta.lore(java.util.List.of(Component.text("Strike Bad Actors Down!", NamedTextColor.DARK_GRAY, TextDecoration.BOLD)));
+        meta.lore(java.util.List.of(Component.text("Strike bad actors down!", NamedTextColor.DARK_GRAY, TextDecoration.BOLD)));
         meta.getPersistentDataContainer().set(keys.lightningRod, PersistentDataType.BYTE, (byte) 1);
 
         item.setItemMeta(meta);

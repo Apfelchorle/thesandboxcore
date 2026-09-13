@@ -47,7 +47,7 @@ public class GrapplingHookItem implements Item, Listener {
                 .decoration(TextDecoration.ITALIC, false));
 
         meta.lore(List.of(
-                Component.text("Grapple Like Your Favourite Fictional Character",
+                Component.text("Grapple like your favourite fictional character.",
                         TextColor.color(46, 46, 46),
                         TextDecoration.ITALIC)
         ));
