@@ -31,7 +31,8 @@ public class SayCommand implements ISubCommand
         final String coloredMessage = ChatColor.translateAlternateColorCodes('&', rawMessage);
 
         final String senderName = (sender instanceof Player p) ? p.getName() : "CONSOLE";
-        final String prefix = ChatColor.LIGHT_PURPLE + "STAFF | " + senderName + ": " + ChatColor.LIGHT_PURPLE;
+        //refrence message :  • Server » usfl » test
+        final String prefix = "&6 " + senderName + "&r&8 » &r";
 
         // Detect @everyone (case-insensitive)
         final boolean pingEveryone = containsIgnoreCase(coloredMessage, "@everyone");
