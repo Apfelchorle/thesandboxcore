@@ -1,4 +1,4 @@
-package org.thesandbox.core.commands.utilitiy;
+package org.thesandbox.core.commands.utility;
 
 import me.libraryaddict.disguise.DisguiseAPI;
 import me.libraryaddict.disguise.events.DisguiseEvent;

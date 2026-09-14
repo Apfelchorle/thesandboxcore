@@ -1,4 +1,4 @@
-package org.thesandbox.core.commands.utilitiy;
+package org.thesandbox.core.commands.utility;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -15,11 +15,11 @@ import java.io.File;
 import java.util.Collections;
 import java.util.List;
 
-public class EndCommand implements ISubCommand
+public class FlatlandsCommand implements ISubCommand
 {
     private final JavaPlugin plugin;
 
-    public EndCommand(JavaPlugin plugin)
+    public FlatlandsCommand(JavaPlugin plugin)
     {
         this.plugin = plugin;
     }
@@ -33,7 +33,7 @@ public class EndCommand implements ISubCommand
             return true;
         }
 
-        String worldName = "world_the_end";
+        String worldName = "flatlands";
         World world = Bukkit.getWorld(worldName);
 
         if (world == null)
@@ -55,14 +55,14 @@ public class EndCommand implements ISubCommand
 
         if (world == null)
         {
-            player.sendMessage(CommandMessages.error(ChatColor.RED + "Nether is not loaded."));
+            player.sendMessage(CommandMessages.error(ChatColor.RED + "Flatlands world is not loaded."));
             return true;
         }
 
         boolean success = player.teleport(world.getSpawnLocation());
         if (success)
         {
-            player.sendMessage(CommandMessages.command(ChatColor.GRAY + "Teleporting you to the end."));
+            player.sendMessage(CommandMessages.command(ChatColor.GRAY + "Teleporting you to the flatlands."));
         }
         else
         {

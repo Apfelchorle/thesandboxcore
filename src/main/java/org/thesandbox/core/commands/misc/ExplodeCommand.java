@@ -169,9 +169,14 @@ public class ExplodeCommand implements ISubCommand
 
     private Sound fireworkLaunchSound()
     {
-        String[] candidates = { "ENTITY_FIREWORK_ROCKET_LAUNCH", "ENTITY_FIREWORK_LAUNCH", "FIREWORK_LAUNCH" };
+        String[] candidates = {"entity.firework_rocket.launch", "entity.firework.launch", "firework.launch"};
         for (String n : candidates) {
-            try { return Sound.valueOf(n); } catch (IllegalArgumentException ignored) {}
+            NamespacedKey key = NamespacedKey.minecraft(n);
+            Sound sound = Registry.SOUNDS.get(key);
+            try {
+                return sound;
+            } catch (IllegalArgumentException ignored) {
+            }
         }
         return Sound.ENTITY_BAT_TAKEOFF;
     }

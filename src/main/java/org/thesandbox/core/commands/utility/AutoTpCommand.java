@@ -1,4 +1,4 @@
-package org.thesandbox.core.commands.utilitiy;
+package org.thesandbox.core.commands.utility;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;

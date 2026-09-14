@@ -1,4 +1,4 @@
-package org.thesandbox.core.commands.utilitiy;
+package org.thesandbox.core.commands.utility;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
@@ -512,8 +512,8 @@ public class CageCommand implements ISubCommand, Listener
         @Override
         public boolean equals(Object o) {
                 if (this == o) return true;
-                if (!(o instanceof BlockPos pos)) return false;
-                return x == pos.x && y == pos.y && z == pos.z && Objects.equals(world, pos.world);
+                if (!(o instanceof BlockPos(UUID world1, int x1, int y1, int z1))) return false;
+                return x == x1 && y == y1 && z == z1 && Objects.equals(world, world1);
             }
     }
 

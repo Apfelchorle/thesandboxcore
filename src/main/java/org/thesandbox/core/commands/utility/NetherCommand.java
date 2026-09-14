@@ -1,4 +1,4 @@
-package org.thesandbox.core.commands.utilitiy;
+package org.thesandbox.core.commands.utility;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -15,11 +15,11 @@ import java.io.File;
 import java.util.Collections;
 import java.util.List;
 
-public class MasterBuilderWorldCommand implements ISubCommand
+public class NetherCommand implements ISubCommand
 {
     private final JavaPlugin plugin;
 
-    public MasterBuilderWorldCommand(JavaPlugin plugin)
+    public NetherCommand(JavaPlugin plugin)
     {
         this.plugin = plugin;
     }
@@ -33,7 +33,7 @@ public class MasterBuilderWorldCommand implements ISubCommand
             return true;
         }
 
-        String worldName = "masterbuilderworld";
+        String worldName = "world_nether";
         World world = Bukkit.getWorld(worldName);
 
         if (world == null)
@@ -55,14 +55,14 @@ public class MasterBuilderWorldCommand implements ISubCommand
 
         if (world == null)
         {
-            player.sendMessage(CommandMessages.error(ChatColor.RED + "Masterbuilderworld is not loaded."));
+            player.sendMessage(CommandMessages.error(ChatColor.RED + "Nether is not loaded."));
             return true;
         }
 
         boolean success = player.teleport(world.getSpawnLocation());
         if (success)
         {
-            player.sendMessage(CommandMessages.command(ChatColor.GRAY + "Teleporting you to the masterbuilderworld."));
+            player.sendMessage(CommandMessages.command(ChatColor.GRAY + "Teleporting you to the nether."));
         }
         else
         {

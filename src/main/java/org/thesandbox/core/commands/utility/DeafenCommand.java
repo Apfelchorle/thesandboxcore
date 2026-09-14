@@ -1,6 +1,7 @@
-package org.thesandbox.core.commands.utilitiy;
+package org.thesandbox.core.commands.utility;
 
 import org.bukkit.Location;
+import org.bukkit.Registry;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -83,9 +84,10 @@ public class DeafenCommand implements ISubCommand
         return -1.0 + (RANDOM.nextDouble() * 2.0);
     }
 
+    private static final Sound[] CACHED_SOUNDS = Registry.SOUNDS.stream().toArray(Sound[]::new);
+
     private static Sound randomSound()
     {
-        Sound[] values = Sound.values();
-        return values[RANDOM.nextInt(values.length)];
+        return CACHED_SOUNDS[RANDOM.nextInt(CACHED_SOUNDS.length)];
     }
 }
