@@ -1,6 +1,5 @@
 package org.thesandbox.core.util;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.*;
 import org.bukkit.plugin.PluginDescriptionFile;
@@ -23,19 +22,36 @@ import java.util.jar.JarInputStream;
 import java.util.logging.Logger;
 
 public final class CommandAutoRegistrar {
-    // Delegates Bukkit tab completion to ISubCommand#tabComplete for classes that don't implement TabCompleter.
-    private static final class DelegatingTabCompleter implements TabCompleter {
-        private final ISubCommand sub;
-        DelegatingTabCompleter(ISubCommand sub) { this.sub = sub; }
-        @Override
-        public java.util.List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-            try {
-                java.util.List<String> out = sub.tabComplete(sender, command, alias, args);
-                return (out != null) ? out : java.util.Collections.emptyList();
-            } catch (Throwable t) {
-                return java.util.Collections.emptyList();
+    private static List<Class<?>> findCommandClasses(JavaPlugin plugin) {
+        List<Class<?>> list = new ArrayList<>();
+        try {
+            CodeSource src = plugin.getClass().getProtectionDomain().getCodeSource();
+            if (src == null) return list;
+            URL jarUrl = src.getLocation();
+            String path = URLDecoder.decode(jarUrl.getPath(), StandardCharsets.UTF_8);
+
+            try (JarInputStream jis = new JarInputStream(new URL("file", null, path).openStream())) {
+                JarEntry e;
+                String pkgPath = COMMANDS_PKG.replace('.', '/') + "/";
+                while ((e = jis.getNextJarEntry()) != null) {
+                    String name = e.getName();
+                    if (!name.startsWith(pkgPath) || !name.endsWith(".class")) continue;
+                    if (name.contains("$")) continue;
+                    if (!name.endsWith("Command.class")) continue;
+
+                    String className = name.substring(0, name.length() - 6).replace('/', '.'); // strip ".class"
+                    try {
+                        Class<?> c = Class.forName(className, false, plugin.getClass().getClassLoader());
+                        list.add(c);
+                    } catch (Throwable t) {
+                        plugin.getLogger().warning("[CommandAutoRegistrar] Could not load " + className + ": " + t.getMessage());
+                    }
+                }
             }
+        } catch (Exception ex) {
+            plugin.getLogger().severe("[CommandAutoRegistrar] JAR scan error: " + ex.getMessage());
         }
+        return list;
     }
 
 
@@ -197,36 +213,35 @@ public final class CommandAutoRegistrar {
         return out;
     }
 
-    private static List<Class<?>> findCommandClasses(JavaPlugin plugin) {
-        List<Class<?>> list = new ArrayList<>();
-        try {
-            CodeSource src = plugin.getClass().getProtectionDomain().getCodeSource();
-            if (src == null) return list;
-            URL jarUrl = src.getLocation();
-            String path = URLDecoder.decode(jarUrl.getPath(), StandardCharsets.UTF_8.name());
-
-            try (JarInputStream jis = new JarInputStream(new URL("file", null, path).openStream())) {
-                JarEntry e;
-                String pkgPath = COMMANDS_PKG.replace('.', '/') + "/";
-                while ((e = jis.getNextJarEntry()) != null) {
-                    String name = e.getName();
-                    if (!name.startsWith(pkgPath) || !name.endsWith(".class")) continue;
-                    if (name.contains("$")) continue;
-                    if (!name.endsWith("Command.class")) continue;
-
-                    String className = name.substring(0, name.length() - 6).replace('/', '.'); // strip ".class"
-                    try {
-                        Class<?> c = Class.forName(className, false, plugin.getClass().getClassLoader());
-                        list.add(c);
-                    } catch (Throwable t) {
-                        plugin.getLogger().warning("[CommandAutoRegistrar] Could not load " + className + ": " + t.getMessage());
+    private static Object constructBest(JavaPlugin plugin, Class<?> clazz, Map<Class<?>, Object> injector) {
+        Constructor<?>[] ctors = clazz.getDeclaredConstructors();
+        Arrays.sort(ctors, Comparator.comparingInt((Constructor<?> c) -> c.getParameterCount()).reversed());
+        for (Constructor<?> c : ctors) {
+            Class<?>[] paramTypes = c.getParameterTypes();
+            try {
+                Object[] args = buildArgsFor(c.getParameterTypes(), injector);
+                if (args == null) {
+                    for (Class<?> pt : paramTypes) {
+                        if (findAssignable(injector, pt) == null) {
+                            plugin.getLogger().warning("[CommandAutoRegistrar] " + clazz.getSimpleName()
+                                    + " ctor needs " + pt.getName() + " but no matching service was found in the injector.");
+                        }
                     }
+                    continue;
                 }
+                c.setAccessible(true);
+                return c.newInstance(args);
+            } catch (ReflectiveOperationException e) {
+                plugin.getLogger().warning("[CommandAutoRegistrar] " + clazz.getSimpleName()
+                        + " ctor threw during construction: " + (e.getCause() != null ? e.getCause() : e));
             }
-        } catch (Exception ex) {
-            plugin.getLogger().severe("[CommandAutoRegistrar] JAR scan error: " + ex.getMessage());
         }
-        return list;
+        try {
+            Constructor<?> noArg = clazz.getDeclaredConstructor();
+            noArg.setAccessible(true);
+            return noArg.newInstance();
+        } catch (Exception ignored) { }
+        return null;
     }
 
     private static List<String> resolveCommandNames(Class<?> clazz) {
@@ -250,22 +265,17 @@ public final class CommandAutoRegistrar {
         return new ArrayList<>(new LinkedHashSet<>(names));
     }
 
-    private static Object constructBest(JavaPlugin plugin, Class<?> clazz, Map<Class<?>, Object> injector) {
-        Constructor<?>[] ctors = clazz.getDeclaredConstructors();
-        Arrays.sort(ctors, Comparator.comparingInt((Constructor<?> c) -> c.getParameterCount()).reversed());
-        for (Constructor<?> c : ctors) {
-            try {
-                Object[] args = buildArgsFor(c.getParameterTypes(), injector);
-                if (args == null) continue;
-                c.setAccessible(true);
-                return c.newInstance(args);
-            } catch (ReflectiveOperationException ignored) { }
+    private static Object findAssignable(Map<Class<?>, Object> injector, Class<?> want) {
+        // exact
+        Object exact = injector.get(want);
+        if (exact != null) return exact;
+        // any assignable entry
+        for (Map.Entry<Class<?>, Object> e : injector.entrySet()) {
+            Class<?> haveType = e.getKey();
+            Object val = e.getValue();
+            if (want.isAssignableFrom(haveType)) return val;
+            if (want.isInstance(val)) return val;
         }
-        try {
-            Constructor<?> noArg = clazz.getDeclaredConstructor();
-            noArg.setAccessible(true);
-            return noArg.newInstance();
-        } catch (Exception ignored) { }
         return null;
     }
 
@@ -279,17 +289,16 @@ public final class CommandAutoRegistrar {
         return out;
     }
 
-    private static Object findAssignable(Map<Class<?>, Object> injector, Class<?> want) {
-        // exact
-        Object exact = injector.get(want);
-        if (exact != null) return exact;
-        // any assignable entry
-        for (Map.Entry<Class<?>, Object> e : injector.entrySet()) {
-            Class<?> haveType = e.getKey();
-            Object val = e.getValue();
-            if (want.isAssignableFrom(haveType)) return val;
-            if (val != null && want.isInstance(val)) return val;
+    // Delegates Bukkit tab completion to ISubCommand#tabComplete for classes that don't implement TabCompleter.
+    private record DelegatingTabCompleter(ISubCommand sub) implements TabCompleter {
+        @Override
+        public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+            try {
+                List<String> out = sub.tabComplete(sender, command, alias, args);
+                return (out != null) ? out : Collections.emptyList();
+            } catch (Throwable t) {
+                return Collections.emptyList();
+            }
         }
-        return null;
     }
 }
