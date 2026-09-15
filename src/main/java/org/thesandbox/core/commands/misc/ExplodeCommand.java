@@ -29,7 +29,7 @@ public class ExplodeCommand implements ISubCommand
     {
         if (args.length < 1)
         {
-            sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " <player>"));
+            sender.sendMessage(CommandMessages.usage("&r" + "Usage: /" + label + " <player>"));
             return true;
         }
 
