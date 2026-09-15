@@ -1,13 +1,11 @@
 package org.thesandbox.core.commands;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.ChatColor;
 
 public final class CommandMessages
 {
-    private CommandMessages()
+    public CommandMessages()
     {
-        // Utility class
     }
 
     public static String command(String message)
@@ -44,10 +42,7 @@ public final class CommandMessages
                 body = body.substring(6).stripLeading();
             }
         }
-
-        // Deserialize color codes to formatted components/strings
-        Component prefixComponent = LegacyComponentSerializer.legacyAmpersand().deserialize(prefix);
-        return LegacyComponentSerializer.legacySection().serialize(prefixComponent) + body;
+        return ChatColor.translateAlternateColorCodes('&', prefix) + body;
     }
 
     public static String stripLeadingColor(String input)
@@ -59,7 +54,6 @@ public final class CommandMessages
         {
             changed = false;
 
-            // Handle &x&r&r&g&g&b&b or §x§r§r§g§g§b§b hex format
             if (value.length() >= 14 && (value.charAt(0) == '§' || value.charAt(0) == '&')
                     && Character.toLowerCase(value.charAt(1)) == 'x')
             {
@@ -81,7 +75,6 @@ public final class CommandMessages
                 }
             }
 
-            // Handle &#RRGGBB or §#RRGGBB hex format
             if (value.length() >= 8 && (value.startsWith("&#") || value.startsWith("§#")))
             {
                 boolean valid = true;
@@ -101,7 +94,6 @@ public final class CommandMessages
                 }
             }
 
-            // Handle standard &a-f, &0-9, &r codes
             if (value.length() >= 2 && (value.charAt(0) == '§' || value.charAt(0) == '&'))
             {
                 char code = Character.toLowerCase(value.charAt(1));
