@@ -62,7 +62,8 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
         Bukkit.getPluginManager().registerEvents(this, plugin);
         PacketEvents.getAPI().getEventManager().registerListener(this);
 
-        startFlightTask();
+        //startFlightTask();
+        simpleFlightTask();
     }
 
     @Override
@@ -80,6 +81,31 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
         state.shift = input.isShift();
         state.yaw = player.getLocation().getYaw();
         state.pitch = player.getLocation().getPitch();
+    }
+
+
+    // fuck performance and optimization
+    // this is all you're getting you greedy jews
+    public void simpleFlightTask() {
+        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (!(player.getVehicle() instanceof Boat boat) || !isFloatBoat(boat)) {
+                    continue;
+                }
+
+                if (boat.getPassengers().getFirst() != player) continue;
+
+                BoatInputState input = playerInputs.get(player.getUniqueId());
+                if (input == null) continue;
+
+                if (input.jump) {
+                    boat.getVelocity().setY(boat.getVelocity().getY() + VERTICAL_SPEED);
+                }
+                if (input.shift) {
+                    boat.getVelocity().setY(boat.getVelocity().getY() - VERTICAL_SPEED);
+                }
+            }
+        }, 0, 1L);
     }
 
 
