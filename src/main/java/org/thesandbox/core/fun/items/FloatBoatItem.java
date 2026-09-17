@@ -33,6 +33,7 @@ import org.thesandbox.core.util.PlayerDataKeys;
 import org.thesandbox.core.util.PluginConfigManager;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -48,6 +49,14 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
     private final PluginConfigManager configManager;
     private final ItemKeys keys;
 
+    private final Map<UUID, BoatInputState> playerInputs = new ConcurrentHashMap<>();
+
+
+//    public void onPacketReceive(PacketReceiveEvent event) {
+//        plugin.getLogger().info("PACKET RECIEVED :" + event.getPacketType().getName());
+//    }
+
+
     public FloatBoatItem(TheSandboxCore plugin, PluginConfigManager configManager, ItemKeys keys) {
         super(PacketListenerPriority.NORMAL);
         this.plugin = plugin;
@@ -56,83 +65,77 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
 
         Bukkit.getPluginManager().registerEvents(this, plugin);
         PacketEvents.getAPI().getEventManager().registerListener(this);
+
+        startFlightTask();
     }
-
-
-//    public void onPacketReceive(PacketReceiveEvent event) {
-//        plugin.getLogger().info("PACKET RECIEVED :" + event.getPacketType().getName());
-//    }
-
 
     @Override
     public void onPacketReceive(PacketReceiveEvent event) {
-        if (!event.getPacketType().getName().equals(PacketType.Play.Client.PLAYER_INPUT.getName())) return;
-        Player player = event.getPlayer();
-        if (player == null) return;
+        if (event.getPacketType() != PacketType.Play.Client.PLAYER_INPUT) return;
+        if (!(event.getPlayer() instanceof Player player)) return;
 
         WrapperPlayClientPlayerInput input = new WrapperPlayClientPlayerInput(event);
 
-        final boolean jumpPressed = input.isJump();
-        final boolean sneakPressed = input.isShift();
+        BoatInputState state = playerInputs.computeIfAbsent(player.getUniqueId(), k -> new BoatInputState());
 
-        final float forwardInput = input.isForward() ? 1f : (input.isBackward() ? -1f : 0f);
-        final float sidewaysInput = input.isLeft() ? 1f : (input.isRight() ? -1f : 0f);
+        state.forward = input.isForward() ? 1f : (input.isBackward() ? -1f : 0f);
+        state.sideways = input.isLeft() ? 1f : (input.isRight() ? -1f : 0f);
+        state.jump = input.isJump();
+        state.shift = input.isShift();
+        state.yaw = player.getLocation().getYaw();
+        state.pitch = player.getLocation().getPitch();
+    }
 
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            Entity vehicle = player.getVehicle();
-            if (!(vehicle instanceof Boat boat) || !isFloatBoat(boat) || !boat.isValid()) {
-                return;
-            }
-
-
-            float yaw = player.getLocation().getYaw();
-            float pitch = player.getLocation().getPitch();
-
-            double yawRadians = Math.toRadians(yaw);
-            double pitchRadians = Math.toRadians(pitch);
-
-            double rotX = -Math.sin(yawRadians) * Math.cos(pitchRadians);
-            double rotZ = Math.cos(yawRadians) * Math.cos(pitchRadians);
-            double rotY = -Math.sin(pitchRadians);
-
-            plugin.getLogger().info("PlayerInput: jump=" + jumpPressed + " shift=" + sneakPressed + " forward=" + forwardInput + " pitch=" + pitch + " pitchRad=" + pitchRadians + " yawRad=" + yawRadians + " yaw=" + yaw);
-
-            Vector direction = new Vector(rotX, rotY, rotZ);
-            if (direction.lengthSquared() > 0) {
-                direction.normalize();
-            }
-
-            Vector newVel = new Vector(0, 0, 0);
-
-            if (forwardInput > 0) {
-                newVel.add(direction.clone().multiply(FLY_SPEED));
-            } else if (forwardInput < 0) {
-                newVel.add(direction.clone().multiply(-FLY_SPEED));
-            }
-
-            if (sidewaysInput != 0) {
-                Vector sideDirection = new Vector(-direction.getZ(), 0, direction.getX());
-                if (sideDirection.lengthSquared() > 0) {
-                    sideDirection.normalize();
+    public void startFlightTask() {
+        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (!(player.getVehicle() instanceof Boat boat) || !isFloatBoat(boat)) {
+                    continue;
                 }
-                if (sidewaysInput > 0) {
-                    newVel.add(sideDirection.multiply(FLY_SPEED * 0.6));
+
+                BoatInputState input = playerInputs.get(player.getUniqueId());
+                if (input == null) continue;
+
+                // Calculate directional vectors from look angles
+                double yawRad = Math.toRadians(input.yaw);
+                double pitchRad = Math.toRadians(input.pitch);
+
+                Vector lookDir = new Vector(
+                        -Math.sin(yawRad) * Math.cos(pitchRad),
+                        -Math.sin(pitchRad),
+                        Math.cos(yawRad) * Math.cos(pitchRad)
+                ).normalize();
+
+                Vector currentVel = boat.getVelocity();
+                Vector targetVel = new Vector(0, 0, 0);
+
+                // Forward/Backward
+                if (input.forward != 0) {
+                    targetVel.add(lookDir.clone().multiply(input.forward * FLY_SPEED));
+                }
+
+                // Strafe
+                if (input.sideways != 0) {
+                    Vector sideDir = new Vector(-lookDir.getZ(), 0, lookDir.getX()).normalize();
+                    targetVel.add(sideDir.multiply(input.sideways * (FLY_SPEED * 0.5)));
+                }
+
+                // Vertical Elevation (Jump / Look-up / Shift)
+                if (input.jump || input.pitch < -30.0f) {
+                    targetVel.setY(VERTICAL_SPEED);
+                } else if (input.shift || input.pitch > 30.0f) {
+                    targetVel.setY(-VERTICAL_SPEED);
                 } else {
-                    newVel.add(sideDirection.multiply(-FLY_SPEED * 0.6));
+                    targetVel.setY(currentVel.getY() * 0.85); // Gentle vertical dampening
                 }
-            }
 
-            if (jumpPressed || pitch < -25.0f) {
-                newVel.setY(VERTICAL_SPEED);
-            } else if (sneakPressed) {
-                newVel.setY(-VERTICAL_SPEED);
-            } else {
-                newVel.setY(0);
-            }
+                // Interpolate current velocity towards target velocity for smooth flight momentum
+                Vector newVel = currentVel.clone().multiply(0.3).add(targetVel.multiply(0.7));
 
-            boat.setVelocity(newVel);
-            boat.setFallDistance(0);
-        });
+                boat.setVelocity(newVel);
+                boat.setFallDistance(0);
+            }
+        }, 1L, 1L);
     }
 
     @Override
@@ -231,3 +234,4 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
         return isFloatBoat(boat);
     }
 }
+
