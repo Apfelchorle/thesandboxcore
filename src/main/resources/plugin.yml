@@ -8,12 +8,12 @@ website: "https://github.com/Apfelchorle/thesandboxcore"
 depend:
   - LuckPerms
   - Essentials
+  - packetevents
 softdepend:
   - Vault
   - CoreProtect
   - LiteBans
   - PremiumVanish
-  - PacketEvents
   - SuperVanish
   - LibsDisguises
   - SkinsRestorer
