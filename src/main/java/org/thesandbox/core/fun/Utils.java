@@ -4,7 +4,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
@@ -22,8 +21,10 @@ public class Utils {
 
     private static final Random random = new Random();
     private final PlayerDataListener playerDataListener;
+    private static TheSandboxCore plugin;
 
-    public Utils(PlayerDataListener playerDataListener) {
+    public Utils(TheSandboxCore plugin, PlayerDataListener playerDataListener) {
+        Utils.plugin = plugin;
         this.playerDataListener = playerDataListener;
     }
 
@@ -74,6 +75,11 @@ public class Utils {
                 index++;
             }
         }.runTaskTimer(plugin, 0L, 4L);
+    }
+
+    public static void debug(String message) {
+        String info = "[THESANDBOXCORE]-[DEBUG] : " + message;
+        plugin.getLogger().info(info);
     }
 
 

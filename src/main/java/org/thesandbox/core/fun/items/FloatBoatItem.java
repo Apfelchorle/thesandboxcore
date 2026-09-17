@@ -27,6 +27,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Vector;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.fun.Utils;
 import org.thesandbox.core.fun.items.itemUTILS.Item;
 import org.thesandbox.core.fun.items.itemUTILS.ItemKeys;
 import org.thesandbox.core.util.PlayerDataKeys;
@@ -58,12 +59,16 @@ public class FloatBoatItem extends PacketListenerCommon implements Item, Listene
         PacketEvents.getAPI().getEventManager().registerListener(this);
     }
 
+
     @Override
     public void onPacketReceive(PacketReceiveEvent event) {
+        Utils.debug("Packet Recieved");
         if (event.getPacketType() != PacketType.Play.Client.PLAYER_INPUT) return;
-
+        Utils.debug("Packet Got Past If check");
         Player player = event.getPlayer();
+        Utils.debug("Is Player null?");
         if (player == null) return;
+        Utils.debug("Is Player null = False");
 
         WrapperPlayClientPlayerInput input = new WrapperPlayClientPlayerInput(event);
 
@@ -73,9 +78,11 @@ public class FloatBoatItem extends PacketListenerCommon implements Item, Listene
         final float forwardInput = input.isForward() ? 1f : (input.isBackward() ? -1f : 0f);
         final float sidewaysInput = input.isLeft() ? 1f : (input.isRight() ? -1f : 0f);
 
+        Utils.debug("Pre Scheduler");
         Bukkit.getScheduler().runTask(plugin, () -> {
             Entity vehicle = player.getVehicle();
             if (!(vehicle instanceof Boat boat) || !isFloatBoat(boat) || !boat.isValid()) {
+                Utils.debug("Entity is not FloatBoat : FAILED");
                 return;
             }
 
