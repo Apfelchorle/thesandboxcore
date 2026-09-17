@@ -79,6 +79,7 @@ public class FloatBoatItem extends PacketListenerCommon implements Item, Listene
                 return;
             }
 
+
             float yaw = player.getLocation().getYaw();
             float pitch = player.getLocation().getPitch();
 
@@ -88,6 +89,8 @@ public class FloatBoatItem extends PacketListenerCommon implements Item, Listene
             double rotX = -Math.sin(yawRadians) * Math.cos(pitchRadians);
             double rotZ = Math.cos(yawRadians) * Math.cos(pitchRadians);
             double rotY = -Math.sin(pitchRadians);
+
+            plugin.getLogger().info("PlayerInput: jump=" + jumpPressed + " shift=" + sneakPressed + " forward=" + forwardInput + " pitch=" + pitch + " pitchRad=" + pitchRadians + " yawRad=" + yawRadians + " yaw=" + yaw);
 
             Vector direction = new Vector(rotX, rotY, rotZ);
             if (direction.lengthSquared() > 0) {
