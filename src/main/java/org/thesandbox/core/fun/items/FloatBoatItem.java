@@ -30,6 +30,7 @@ import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.fun.items.itemUTILS.Item;
 import org.thesandbox.core.fun.items.itemUTILS.ItemKeys;
 import org.thesandbox.core.util.PlayerDataKeys;
+import org.thesandbox.core.util.PlayerDataListener;
 import org.thesandbox.core.util.PluginConfigManager;
 
 import java.util.List;
@@ -43,21 +44,25 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
     public static final Set<UUID> ALLOWED_DISMOUNTS = ConcurrentHashMap.newKeySet();
     private static final double VERTICAL_SPEED = 0.8;
     private final TheSandboxCore plugin;
-    private final PluginConfigManager configManager;
+    private final PlayerDataKeys playerDataKeys;
     private final ItemKeys keys;
+    private final PlayerDataListener playerDataListener;
+    private PluginConfigManager configManager;
     private final Map<UUID, BoatInputState> playerInputs = new ConcurrentHashMap<>();
 
 
 //    public void onPacketReceive(PacketReceiveEvent event) {
 //        plugin.getLogger().info("PACKET RECIEVED :" + event.getPacketType().getName());
 //    }
+    public boolean lerp = configManager.getOrCreate("items." + NAME + ".lerp", false);
 
-
-    public FloatBoatItem(TheSandboxCore plugin, PluginConfigManager configManager, ItemKeys keys) {
+    public FloatBoatItem(TheSandboxCore plugin, PluginConfigManager configManager, ItemKeys keys, PlayerDataKeys playerDataKeys, PlayerDataListener playerDataListener) {
         super(PacketListenerPriority.NORMAL);
         this.plugin = plugin;
         this.configManager = configManager;
         this.keys = keys;
+        this.playerDataKeys = playerDataKeys;
+        this.playerDataListener = playerDataListener;
 
         Bukkit.getPluginManager().registerEvents(this, plugin);
         PacketEvents.getAPI().getEventManager().registerListener(this);
@@ -120,6 +125,8 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
                     targetY = (currentVel.getY() * 0.85);
                 }
 
+                Vector instantVel = new Vector(targetVel.getX(), targetY, targetVel.getZ());
+
                 Vector newVel = currentVel.clone().multiply(0.3).add(targetVel.multiply(0.7));
                 boolean check = input.jump || input.pitch < -30.0f || input.shift || input.pitch > 30.0f;
 
@@ -129,12 +136,16 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
                     newVel.setY(targetY);
                 }
 
-
-                boat.setVelocity(newVel);
+                if (lerp) {
+                    boat.setVelocity(newVel);
+                } else {
+                    boat.setVelocity(instantVel);
+                }
                 boat.setFallDistance(0);
             }
         }, 1L, 1L);
     }
+
 
     @Override
     public ItemStack create() {
