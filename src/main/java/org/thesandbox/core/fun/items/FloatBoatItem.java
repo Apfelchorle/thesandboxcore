@@ -26,6 +26,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Vector;
+import org.jspecify.annotations.NonNull;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.fun.Utils;
 import org.thesandbox.core.fun.items.itemUTILS.Item;
@@ -61,9 +62,13 @@ public class FloatBoatItem extends PacketListenerCommon implements Item, Listene
 
 
     @Override
-    public void onPacketReceive(PacketReceiveEvent event) {
+    public void onPacketReceive(@NonNull PacketReceiveEvent event) {
+        plugin.getLogger().info("PACKET RECIEVED :" + event.getPacketType().getName());
+    }
+
+    public void RealonPacketReceive(PacketReceiveEvent event) {
         Utils.debug("Packet Recieved");
-        if (event.getPacketType() != PacketType.Play.Client.PLAYER_INPUT) return;
+        if (!event.getPacketType().getName().equals(PacketType.Play.Client.PLAYER_INPUT.getName())) return;
         Utils.debug("Packet Got Past If check");
         Player player = event.getPlayer();
         Utils.debug("Is Player null?");
