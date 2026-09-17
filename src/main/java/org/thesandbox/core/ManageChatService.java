@@ -24,7 +24,6 @@ public class ManageChatService {
     }
 
     public boolean toggle() {
-        muted = !muted;
-        return muted;
+        return !muted;
     }
 }

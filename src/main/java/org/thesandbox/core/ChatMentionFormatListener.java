@@ -2,12 +2,10 @@ package org.thesandbox.core;
 
 import com.earth2me.essentials.Essentials;
 import com.earth2me.essentials.User;
-import io.papermc.paper.event.player.AsyncChatEvent;
-import net.luckperms.api.LuckPerms; // optional import if you reference the type elsewhere
-import net.luckperms.api.LuckPermsProvider;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.luckperms.api.LuckPermsProvider;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
@@ -306,7 +304,7 @@ public class ChatMentionFormatListener implements Listener
         }
 
         String displayName = p.getDisplayName();
-        return displayName == null || displayName.isBlank() ? p.getName() : displayName;
+        return displayName.isBlank() ? p.getName() : displayName;
     }
 
 
