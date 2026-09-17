@@ -30,7 +30,6 @@ import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.fun.items.itemUTILS.Item;
 import org.thesandbox.core.fun.items.itemUTILS.ItemKeys;
 import org.thesandbox.core.util.PlayerDataKeys;
-import org.thesandbox.core.util.PlayerDataListener;
 import org.thesandbox.core.util.PluginConfigManager;
 
 import java.util.List;
@@ -44,9 +43,7 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
     public static final Set<UUID> ALLOWED_DISMOUNTS = ConcurrentHashMap.newKeySet();
     private static final double VERTICAL_SPEED = 0.8;
     private final TheSandboxCore plugin;
-    private final PlayerDataKeys playerDataKeys;
     private final ItemKeys keys;
-    private final PlayerDataListener playerDataListener;
     private PluginConfigManager configManager;
     private final Map<UUID, BoatInputState> playerInputs = new ConcurrentHashMap<>();
 
@@ -56,13 +53,11 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
 //    }
     public boolean lerp = configManager.getOrCreate("items." + NAME + ".lerp", false);
 
-    public FloatBoatItem(TheSandboxCore plugin, PluginConfigManager configManager, ItemKeys keys, PlayerDataKeys playerDataKeys, PlayerDataListener playerDataListener) {
+    public FloatBoatItem(TheSandboxCore plugin, PluginConfigManager configManager, ItemKeys keys) {
         super(PacketListenerPriority.NORMAL);
         this.plugin = plugin;
         this.configManager = configManager;
         this.keys = keys;
-        this.playerDataKeys = playerDataKeys;
-        this.playerDataListener = playerDataListener;
 
         Bukkit.getPluginManager().registerEvents(this, plugin);
         PacketEvents.getAPI().getEventManager().registerListener(this);
