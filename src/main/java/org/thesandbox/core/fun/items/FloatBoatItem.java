@@ -41,14 +41,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FloatBoatItem extends PacketListenerAbstract implements Item, Listener {
     private static final String NAME = PlayerDataKeys.FLOAT_BOAT;
     public static final Set<UUID> ALLOWED_DISMOUNTS = ConcurrentHashMap.newKeySet();
-
     private static final double VERTICAL_SPEED = 0.8;
-    private static final double FLY_SPEED = 1.2;
-
     private final TheSandboxCore plugin;
     private final PluginConfigManager configManager;
     private final ItemKeys keys;
-
     private final Map<UUID, BoatInputState> playerInputs = new ConcurrentHashMap<>();
 
 
@@ -93,10 +89,11 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
                     continue;
                 }
 
+                if (boat.getPassengers().getFirst() != player) continue;
+
                 BoatInputState input = playerInputs.get(player.getUniqueId());
                 if (input == null) continue;
 
-                // Calculate directional vectors from look angles
                 double yawRad = Math.toRadians(input.yaw);
                 double pitchRad = Math.toRadians(input.pitch);
 
@@ -108,19 +105,30 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
 
                 Vector currentVel = boat.getVelocity();
                 Vector targetVel = new Vector(0, 0, 0);
+                double speed = 1.5;
 
+                targetVel.setX(lookDir.getX() * input.forward * speed);
+                targetVel.setZ(lookDir.getZ() * input.forward * speed);
 
-                // Vertical Elevation (Jump / Look-up / Shift)
+// up and down
+                double targetY;
                 if (input.jump || input.pitch < -30.0f) {
-                    targetVel.setY(VERTICAL_SPEED);
+                    targetY = (VERTICAL_SPEED);
                 } else if (input.shift || input.pitch > 30.0f) {
-                    targetVel.setY(-VERTICAL_SPEED);
+                    targetY = (-VERTICAL_SPEED);
                 } else {
-                    targetVel.setY(currentVel.getY() * 0.85); // Gentle vertical dampening
+                    targetY = (currentVel.getY() * 0.85);
                 }
 
-                // Interpolate current velocity towards target velocity for smooth flight momentum
                 Vector newVel = currentVel.clone().multiply(0.3).add(targetVel.multiply(0.7));
+                boolean check = input.jump || input.pitch < -30.0f || input.shift || input.pitch > 30.0f;
+
+                if (check) {
+                    newVel.setY((currentVel.getY() * 0.3) + (targetY * 0.7));
+                } else {
+                    newVel.setY(targetY);
+                }
+
 
                 boat.setVelocity(newVel);
                 boat.setFallDistance(0);
@@ -136,9 +144,7 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
         if (meta != null) {
             meta.displayName(Component.text(NAME, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
             meta.lore(List.of(
-                    Component.text("A boat that defies gravity.", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false),
-                    Component.text("Space/Look Up: Go Up | Shift: Lower | W/A/S/D: Drive", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
-                    Component.text("/dismount to exit safely!", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false)
+                    Component.text("A boat that defies gravity.", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false)
             ));
             meta.setEnchantmentGlintOverride(true);
             meta.getPersistentDataContainer().set(keys.Float_Boat, PersistentDataType.BYTE, (byte) 1);
@@ -205,7 +211,6 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
     public void onPlayerQuit(PlayerQuitEvent event) {
         ALLOWED_DISMOUNTS.remove(event.getPlayer().getUniqueId());
     }
-
     public void cleanup() {
         PacketEvents.getAPI().getEventManager().unregisterListener(this);
         ALLOWED_DISMOUNTS.clear();
