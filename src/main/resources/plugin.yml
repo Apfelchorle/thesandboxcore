@@ -13,6 +13,7 @@ softdepend:
   - CoreProtect
   - LiteBans
   - PremiumVanish
+  - PacketEvents
   - SuperVanish
   - LibsDisguises
   - SkinsRestorer

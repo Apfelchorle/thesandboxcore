@@ -1,5 +1,11 @@
 package org.thesandbox.core.fun.items;
 
+import com.github.retrooper.packetevents.PacketEvents;
+import com.github.retrooper.packetevents.event.PacketListener;
+import com.github.retrooper.packetevents.event.PacketListenerCommon;
+import com.github.retrooper.packetevents.event.PacketReceiveEvent;
+import com.github.retrooper.packetevents.protocol.packettype.PacketType;
+import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerInput;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -19,14 +25,11 @@ import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.fun.items.itemUTILS.Item;
 import org.thesandbox.core.fun.items.itemUTILS.ItemKeys;
 import org.thesandbox.core.util.PlayerDataKeys;
-import org.thesandbox.core.util.PlayerDataListener;
 import org.thesandbox.core.util.PluginConfigManager;
 
 import java.util.List;
@@ -34,27 +37,95 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class FloatBoatItem implements Item, Listener {
+public class FloatBoatItem extends PacketListenerCommon implements Item, Listener, PacketListener {
 
     private static final String NAME = PlayerDataKeys.FLOAT_BOAT;
-
     public static final Set<UUID> ALLOWED_DISMOUNTS = ConcurrentHashMap.newKeySet();
+
+    private static final double VERTICAL_SPEED = 0.8;
+    private static final double FLY_SPEED = 1.2;
 
     private final TheSandboxCore plugin;
     private final PluginConfigManager configManager;
     private final ItemKeys keys;
-    private BukkitTask monitorTask;
 
     public FloatBoatItem(TheSandboxCore plugin, PluginConfigManager configManager, ItemKeys keys) {
         this.plugin = plugin;
         this.configManager = configManager;
         this.keys = keys;
+
         Bukkit.getPluginManager().registerEvents(this, plugin);
-        startPitchMonitor();
+        PacketEvents.getAPI().getEventManager().registerListener(this);
     }
 
-    private static final double VERTICAL_SPEED = 1;
-    private static final double HORIZONTAL_BOOST = 0.08;
+    @Override
+    public void onPacketReceive(PacketReceiveEvent event) {
+        if (event.getPacketType() != PacketType.Play.Client.PLAYER_INPUT) return;
+
+        Player player = event.getPlayer();
+        if (player == null) return;
+
+        WrapperPlayClientPlayerInput input = new WrapperPlayClientPlayerInput(event);
+
+        final boolean jumpPressed = input.isJump();
+        final boolean sneakPressed = input.isShift();
+
+        final float forwardInput = input.isForward() ? 1f : (input.isBackward() ? -1f : 0f);
+        final float sidewaysInput = input.isLeft() ? 1f : (input.isRight() ? -1f : 0f);
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            Entity vehicle = player.getVehicle();
+            if (!(vehicle instanceof Boat boat) || !isFloatBoat(boat) || !boat.isValid()) {
+                return;
+            }
+
+            float yaw = player.getLocation().getYaw();
+            float pitch = player.getLocation().getPitch();
+
+            double yawRadians = Math.toRadians(yaw);
+            double pitchRadians = Math.toRadians(pitch);
+
+            double rotX = -Math.sin(yawRadians) * Math.cos(pitchRadians);
+            double rotZ = Math.cos(yawRadians) * Math.cos(pitchRadians);
+            double rotY = -Math.sin(pitchRadians);
+
+            Vector direction = new Vector(rotX, rotY, rotZ);
+            if (direction.lengthSquared() > 0) {
+                direction.normalize();
+            }
+
+            Vector newVel = new Vector(0, 0, 0);
+
+            if (forwardInput > 0) {
+                newVel.add(direction.clone().multiply(FLY_SPEED));
+            } else if (forwardInput < 0) {
+                newVel.add(direction.clone().multiply(-FLY_SPEED));
+            }
+
+            if (sidewaysInput != 0) {
+                Vector sideDirection = new Vector(-direction.getZ(), 0, direction.getX());
+                if (sideDirection.lengthSquared() > 0) {
+                    sideDirection.normalize();
+                }
+                if (sidewaysInput > 0) {
+                    newVel.add(sideDirection.multiply(FLY_SPEED * 0.6));
+                } else {
+                    newVel.add(sideDirection.multiply(-FLY_SPEED * 0.6));
+                }
+            }
+
+            if (jumpPressed || pitch < -25.0f) {
+                newVel.setY(VERTICAL_SPEED);
+            } else if (sneakPressed) {
+                newVel.setY(-VERTICAL_SPEED);
+            } else {
+                newVel.setY(0);
+            }
+
+            boat.setVelocity(newVel);
+            boat.setFallDistance(0);
+        });
+    }
 
     @Override
     public ItemStack create() {
@@ -65,8 +136,8 @@ public class FloatBoatItem implements Item, Listener {
             meta.displayName(Component.text(NAME, NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
             meta.lore(List.of(
                     Component.text("A boat that defies gravity.", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false),
-                    Component.text("Look Up : Go Up | Shift: Lower | /dismount to exit", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
-                    Component.text("TheSandBox Is Not Responsible For You Going Missing in OuterSpace!", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false)
+                    Component.text("Space/Look Up: Go Up | Shift: Lower | W/A/S/D: Drive", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                    Component.text("/dismount to exit safely!", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false)
             ));
             meta.setEnchantmentGlintOverride(true);
             meta.getPersistentDataContainer().set(keys.Float_Boat, PersistentDataType.BYTE, (byte) 1);
@@ -83,7 +154,6 @@ public class FloatBoatItem implements Item, Listener {
 
     @Override
     public void onInteract(PlayerInteractEvent e) {
-        // Handled by vanilla boat placement
     }
 
     @Override
@@ -93,7 +163,7 @@ public class FloatBoatItem implements Item, Listener {
 
     @Override
     public int getPrice() {
-        return plugin.getConfig().getInt("items." + NAME + ".price", 30);
+        return configManager.getOrCreate("items." + NAME + ".price", 30);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -123,7 +193,6 @@ public class FloatBoatItem implements Item, Listener {
         if (!(event.getDismounted() instanceof Boat boat)) return;
 
         if (isFloatBoat(boat)) {
-            // Remove the single player's permission on dismount
             if (ALLOWED_DISMOUNTS.remove(player.getUniqueId())) {
                 return;
             }
@@ -133,61 +202,11 @@ public class FloatBoatItem implements Item, Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        // Clean up only the quitting player's UUID
         ALLOWED_DISMOUNTS.remove(event.getPlayer().getUniqueId());
     }
 
-    private void startPitchMonitor() {
-        if (monitorTask != null && !monitorTask.isCancelled()) {
-            monitorTask.cancel();
-        }
-
-        monitorTask = new BukkitRunnable() {
-            @Override
-            public void run() {
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    if (!player.isOnline()) continue;
-
-                    Entity vehicle = player.getVehicle();
-                    if (!(vehicle instanceof Boat boat) || !isFloatBoat(boat) || !boat.isValid()) {
-                        continue;
-                    }
-
-                    Vector currentVel = boat.getVelocity();
-                    float pitch = player.getLocation().getPitch();
-                    Vector direction = player.getLocation().getDirection();
-
-                    double targetY = 0;
-                    if (pitch < -15.0f) {
-                        targetY = VERTICAL_SPEED;
-                    } else if (player.isSneaking()) {
-                        targetY = -VERTICAL_SPEED;
-                    }
-
-                    // Add slight horizontal momentum using player direction to reduce mid-air drag
-                    double targetX = currentVel.getX() + (direction.getX() * HORIZONTAL_BOOST);
-                    double targetZ = currentVel.getZ() + (direction.getZ() * HORIZONTAL_BOOST);
-
-                    Vector newVel = new Vector(targetX, targetY, targetZ);
-
-                    // Cap maximum velocity to keep control manageable
-                    if (newVel.lengthSquared() > 1.2) {
-                        newVel.normalize().multiply(1.1);
-                    }
-
-                    boat.setVelocity(newVel);
-                }
-            }
-        }.runTaskTimer(plugin, 1L, 1L);
-    }
-
-    /**
-     * Call this ONLY when your plugin is disabling (onDisable).
-     */
     public void cleanup() {
-        if (monitorTask != null) {
-            monitorTask.cancel();
-        }
+        PacketEvents.getAPI().getEventManager().unregisterListener(this);
         ALLOWED_DISMOUNTS.clear();
     }
 

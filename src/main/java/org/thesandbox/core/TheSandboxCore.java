@@ -10,10 +10,7 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
-import org.bukkit.scoreboard.Scoreboard;
-import org.bukkit.scoreboard.Team;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
@@ -21,10 +18,13 @@ import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.Team;
+import org.thesandbox.core.commands.Admin.UpdateLocalCommand;
+import org.thesandbox.core.commands.CommandManager;
 import org.thesandbox.core.fun.LoginMessages;
 import org.thesandbox.core.fun.items.itemUTILS.Item;
 import org.thesandbox.core.fun.items.itemUTILS.ItemKeys;
-import org.thesandbox.core.commands.CommandManager;
 import org.thesandbox.core.guilds.GuildManager;
 import org.thesandbox.core.login.LoginService;
 import org.thesandbox.core.tags.TagService;
@@ -69,6 +69,9 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     private final java.util.concurrent.ConcurrentHashMap<String, Long> cmdBlockedByName = new java.util.concurrent.ConcurrentHashMap<>(); // case-insensitive keying handled in code
     private volatile boolean cmdBlockAll = false;
 
+    // updateallproxs
+    private UpdateTarget updateTarget;
+    private UpdateLocalCommand updateLocalCommand;
 
     // POTIONSPY: service field
     private PotionSpyService potionSpyService;
@@ -124,6 +127,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         saveDefaultConfig();
         setupDatabase();
 
+
         PluginConfigManager configManager = new PluginConfigManager(this);
 
         this.dataManager = new DataManager(this);
@@ -163,6 +167,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         discord = new DiscordBridge(this, this.dataListener);
         discord.start();
 
+        this.updateLocalCommand = new UpdateLocalCommand(this, discord);
+
         AutoClearService autoClearService = new AutoClearService();
         getServer().getPluginManager().registerEvents(new AutoClearListener(autoClearService), this);
 
@@ -195,7 +201,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
                 dataListener,
                 itemKeys,
                 loginMessages,
-                configManager
+                configManager,
+                updateLocalCommand
         ));
 
         // Command Auto Registrar + ItemAutoRegistrar
@@ -422,9 +429,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         }
 
         // Global block for everyone except moderator+
-        if (cmdBlockAll) return true;
-
-        return false;
+        return cmdBlockAll;
     }
 
     /* =================== DB ==================== */

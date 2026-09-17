@@ -58,6 +58,7 @@ repositories {
 }
 
 dependencies {
+    compileOnly 'com.github.retrooper:packetevents-spigot:2.7.0'
     compileOnly 'io.papermc.paper:paper-api:26.1.2.build.63-stable'
     compileOnly 'net.luckperms:api:5.4'
     compileOnly('net.essentialsx:EssentialsX:2.20.1') {
