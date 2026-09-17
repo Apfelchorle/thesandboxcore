@@ -136,7 +136,13 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
-        PacketEvents.getAPI().init();
+        try {
+            PacketEvents.getAPI().init();
+            getLogger().info("PacketEvents initialized successfully");
+        } catch (Throwable t) {
+            getLogger().severe("PacketEvents failed to init: " + t);
+            t.printStackTrace();
+        }
         saveDefaultConfig();
         setupDatabase();
 
