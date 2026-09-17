@@ -109,16 +109,6 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
                 Vector currentVel = boat.getVelocity();
                 Vector targetVel = new Vector(0, 0, 0);
 
-                // Forward/Backward
-                if (input.forward != 0) {
-                    targetVel.add(lookDir.clone().multiply(input.forward * FLY_SPEED));
-                }
-
-                // Strafe
-                if (input.sideways != 0) {
-                    Vector sideDir = new Vector(-lookDir.getZ(), 0, lookDir.getX()).normalize();
-                    targetVel.add(sideDir.multiply(input.sideways * (FLY_SPEED * 0.5)));
-                }
 
                 // Vertical Elevation (Jump / Look-up / Shift)
                 if (input.jump || input.pitch < -30.0f) {
