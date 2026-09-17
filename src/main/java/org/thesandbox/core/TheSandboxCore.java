@@ -136,6 +136,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
+        PacketEvents.getAPI().init();
         saveDefaultConfig();
         setupDatabase();
 
@@ -229,10 +230,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
     @Override
     public void onDisable() {
-        // SAVE DATA
         if (dataListener != null) dataListener.saveAll();
-
-
         if (liteBansWarningListener != null) liteBansWarningListener.unregister();
         if (discord != null) discord.stop();
         if (guildManager != null) {
@@ -240,6 +238,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
             guildManager.shutdown();
         }
         if (loginService != null) loginService.shutdown();
+        if (PacketEvents.getAPI() != null) PacketEvents.getAPI().terminate();
         closeDataSource();
         getLogger().info("TheSandboxCore disabled!");
     }
