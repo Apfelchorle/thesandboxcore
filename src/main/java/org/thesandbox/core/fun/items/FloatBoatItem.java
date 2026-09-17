@@ -42,16 +42,16 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
     private static final String NAME = PlayerDataKeys.FLOAT_BOAT;
     public static final Set<UUID> ALLOWED_DISMOUNTS = ConcurrentHashMap.newKeySet();
     private static final double VERTICAL_SPEED = 0.8;
+
     private final TheSandboxCore plugin;
     private final ItemKeys keys;
-    private PluginConfigManager configManager;
+    private final PluginConfigManager configManager;
     private final Map<UUID, BoatInputState> playerInputs = new ConcurrentHashMap<>();
 
 
 //    public void onPacketReceive(PacketReceiveEvent event) {
 //        plugin.getLogger().info("PACKET RECIEVED :" + event.getPacketType().getName());
 //    }
-    public boolean lerp = configManager.getOrCreate("items." + NAME + ".lerp", false);
 
     public FloatBoatItem(TheSandboxCore plugin, PluginConfigManager configManager, ItemKeys keys) {
         super(PacketListenerPriority.NORMAL);
@@ -81,6 +81,7 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
         state.yaw = player.getLocation().getYaw();
         state.pitch = player.getLocation().getPitch();
     }
+
 
     public void startFlightTask() {
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
@@ -130,6 +131,8 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
                 } else {
                     newVel.setY(targetY);
                 }
+
+                boolean lerp = getVelocityType();
 
                 if (lerp) {
                     boat.setVelocity(newVel);
@@ -229,6 +232,10 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
 
     private boolean isFloatBoat(Boat boat) {
         return boat != null && boat.getPersistentDataContainer().has(keys.Float_Boat, PersistentDataType.BYTE);
+    }
+
+    private boolean getVelocityType() {
+        return configManager.getOrCreate("items." + NAME + ".lerp", false);
     }
 
     public boolean isFloatBoatPublic(Boat boat) {
