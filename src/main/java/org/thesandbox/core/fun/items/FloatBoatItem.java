@@ -59,13 +59,14 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
         PacketEvents.getAPI().getEventManager().registerListener(this);
     }
 
+
+//    public void onPacketReceive(PacketReceiveEvent event) {
+//        plugin.getLogger().info("PACKET RECIEVED :" + event.getPacketType().getName());
+//    }
+
+
     @Override
     public void onPacketReceive(PacketReceiveEvent event) {
-        plugin.getLogger().info("PACKET RECIEVED :" + event.getPacketType().getName());
-    }
-
-    public void RealonPacketReceive(PacketReceiveEvent event) {
-        Utils.debug("Packet Recieved");
         if (!event.getPacketType().getName().equals(PacketType.Play.Client.PLAYER_INPUT.getName())) return;
         Utils.debug("Packet Got Past If check");
         Player player = event.getPlayer();
