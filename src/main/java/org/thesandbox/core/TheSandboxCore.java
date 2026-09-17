@@ -1,10 +1,12 @@
 package org.thesandbox.core;
 
+import com.github.retrooper.packetevents.PacketEvents;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import de.myzelyam.api.vanish.PlayerHideEvent;
 import de.myzelyam.api.vanish.PlayerShowEvent;
 import de.myzelyam.api.vanish.VanishAPI;
+import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -122,6 +124,16 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     public File getPluginFile() {
         return getFile();
     }
+
+
+    @Override
+    public void onLoad() {
+        getLogger().info("The SandboxCore has been loaded!");
+        PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this));
+        PacketEvents.getAPI().load();
+    }
+
+
     @Override
     public void onEnable() {
         saveDefaultConfig();
