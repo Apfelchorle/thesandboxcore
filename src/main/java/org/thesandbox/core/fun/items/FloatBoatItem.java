@@ -98,12 +98,24 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
                 BoatInputState input = playerInputs.get(player.getUniqueId());
                 if (input == null) continue;
 
+                Vector velocity = boat.getVelocity();
+                boolean modified = false;
+
                 if (input.jump) {
-                    boat.getVelocity().setY(boat.getVelocity().getY() + VERTICAL_SPEED);
+                    plugin.getLogger().info("going up!");
+                    velocity.setY(velocity.getY() + VERTICAL_SPEED);
+                    modified = true;
                 }
                 if (input.shift) {
-                    boat.getVelocity().setY(boat.getVelocity().getY() - VERTICAL_SPEED);
+                    plugin.getLogger().info("going down!");
+                    velocity.setY(velocity.getY() - VERTICAL_SPEED);
+                    modified = true;
                 }
+
+                if (modified) {
+                    boat.setVelocity(velocity);
+                }
+
             }
         }, 0, 1L);
     }
