@@ -129,7 +129,10 @@ public final class ItemAutoRegistrar {
                 }
                 c.setAccessible(true);
                 return c.newInstance(args);
-            } catch (ReflectiveOperationException ignored) { }
+            } catch (ReflectiveOperationException e) {
+                plugin.getLogger().warning("[ItemAutoRegistrar] " + clazz.getSimpleName()
+                        + " ctor threw during construction: " + (e.getCause() != null ? e.getCause() : e));
+            }
         }
         return null;
     }
