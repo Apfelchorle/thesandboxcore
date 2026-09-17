@@ -1,8 +1,8 @@
 package org.thesandbox.core.fun.items;
 
 import com.github.retrooper.packetevents.PacketEvents;
-import com.github.retrooper.packetevents.event.PacketListener;
-import com.github.retrooper.packetevents.event.PacketListenerCommon;
+import com.github.retrooper.packetevents.event.PacketListenerAbstract;
+import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerInput;
@@ -26,7 +26,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.Vector;
-import org.jspecify.annotations.NonNull;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.fun.Utils;
 import org.thesandbox.core.fun.items.itemUTILS.Item;
@@ -39,8 +38,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class FloatBoatItem extends PacketListenerCommon implements Item, Listener, PacketListener {
-
+public class FloatBoatItem extends PacketListenerAbstract implements Item, Listener {
     private static final String NAME = PlayerDataKeys.FLOAT_BOAT;
     public static final Set<UUID> ALLOWED_DISMOUNTS = ConcurrentHashMap.newKeySet();
 
@@ -52,6 +50,7 @@ public class FloatBoatItem extends PacketListenerCommon implements Item, Listene
     private final ItemKeys keys;
 
     public FloatBoatItem(TheSandboxCore plugin, PluginConfigManager configManager, ItemKeys keys) {
+        super(PacketListenerPriority.NORMAL);
         this.plugin = plugin;
         this.configManager = configManager;
         this.keys = keys;
@@ -60,9 +59,8 @@ public class FloatBoatItem extends PacketListenerCommon implements Item, Listene
         PacketEvents.getAPI().getEventManager().registerListener(this);
     }
 
-
     @Override
-    public void onPacketReceive(@NonNull PacketReceiveEvent event) {
+    public void onPacketReceive(PacketReceiveEvent event) {
         plugin.getLogger().info("PACKET RECIEVED :" + event.getPacketType().getName());
     }
 
