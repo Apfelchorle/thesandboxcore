@@ -20,6 +20,12 @@ softdepend:
 loadbefore: [Essentials, EssentialsX, WorldGuard]
 
 commands:
+
+  waterflow:
+    permission: sandbox.staff
+
+  jew:
+    permission: sandbox.staff
   updateallproxies:
     permission: sandbox.superuser
 
