@@ -29,4 +29,24 @@ public class PluginConfigManager {
             return defaultValue;
         }
     }
+
+    public <T> T SafeSet(String key, T value) {
+        FileConfiguration config = plugin.getConfig();
+
+        if (config.isSet(key)) {
+            config.set(key, value);
+            plugin.saveConfig();
+            return value;
+        }
+
+        Object raw = config.get(key);
+        try {
+            @SuppressWarnings("unchecked")
+            T cast = (T) raw;
+            return cast;
+        } catch (ClassCastException e) {
+            plugin.getLogger().warning("Config type mismatch for key '" + key + "', returning default.");
+            return value;
+        }
+    }
 }

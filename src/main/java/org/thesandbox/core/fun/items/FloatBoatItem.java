@@ -102,12 +102,10 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
                 boolean modified = false;
 
                 if (input.jump) {
-                    plugin.getLogger().info("going up!");
                     velocity.setY(velocity.getY() + VERTICAL_SPEED);
                     modified = true;
                 }
                 if (input.shift) {
-                    plugin.getLogger().info("going down!");
                     velocity.setY(velocity.getY() - VERTICAL_SPEED);
                     modified = true;
                 }

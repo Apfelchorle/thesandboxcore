@@ -4,11 +4,13 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.jspecify.annotations.NonNull;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.util.PlayerDataListener;
 
@@ -56,6 +58,12 @@ public class Utils {
                 .build();
     }
 
+
+    public static @NonNull String AdventureAPI(String msg) {
+        return LegacyComponentSerializer.legacySection().serialize(
+                LegacyComponentSerializer.legacyAmpersand().deserialize(msg)
+        );
+    }
 
 
 
