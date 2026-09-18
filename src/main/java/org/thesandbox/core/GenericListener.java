@@ -3,7 +3,7 @@ package org.thesandbox.core;
 import org.bukkit.Material;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockFormEvent;
+import org.bukkit.event.block.BlockFromToEvent;
 import org.thesandbox.core.util.GenericDataKeys;
 import org.thesandbox.core.util.PluginConfigManager;
 
@@ -16,10 +16,10 @@ public class GenericListener implements Listener {
     }
 
     @EventHandler
-    public void onBlockForm(BlockFormEvent event) {
-
+    public void BlockFromTo(BlockFromToEvent event) {
+        Material material = event.getBlock().getType();
         boolean config = pluginConfigManager.getOrCreate(GenericDataKeys.WATER_FLOW, GenericDataKeys.WATER_FLOW_DEFAULT);
-        boolean target = event.getBlock().getType() == Material.WATER || event.getBlock().getType() == Material.LAVA;
+        boolean target = material == Material.WATER || material == Material.LAVA;
 
 
         if (target && config) {
