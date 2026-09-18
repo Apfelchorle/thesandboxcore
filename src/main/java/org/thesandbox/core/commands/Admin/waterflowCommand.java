@@ -30,10 +30,11 @@ public class waterflowCommand implements ISubCommand {
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
         boolean current = configManager.getOrCreate(GenericDataKeys.WATER_FLOW, GenericDataKeys.WATER_FLOW_DEFAULT);
-        configManager.SafeSet(GenericDataKeys.WATER_FLOW, !current);
+        boolean newValue = !current;
+        configManager.forceset(GenericDataKeys.WATER_FLOW, newValue);
 
-        announce(sender, configManager.getOrCreate(GenericDataKeys.WATER_FLOW, GenericDataKeys.WATER_FLOW_DEFAULT));
-        return false;
+        announce(sender, newValue);
+        return true;
     }
 
     private void announce(CommandSender sender, boolean current) {

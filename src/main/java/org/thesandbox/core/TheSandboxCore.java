@@ -25,6 +25,7 @@ import org.bukkit.scoreboard.Team;
 import org.thesandbox.core.commands.Admin.UpdateLocalCommand;
 import org.thesandbox.core.commands.CommandManager;
 import org.thesandbox.core.fun.LoginMessages;
+import org.thesandbox.core.fun.items.FloatBoatItem;
 import org.thesandbox.core.fun.items.itemUTILS.Item;
 import org.thesandbox.core.fun.items.itemUTILS.ItemKeys;
 import org.thesandbox.core.guilds.GuildManager;
@@ -140,6 +141,21 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
+        startup();
+        getLogger().info("TheSandboxCore enabled!");
+    }
+
+    @Override
+    public void onDisable() {
+        cleanup();
+        getLogger().info("TheSandboxCore disabled!");
+    }
+
+
+    /* ================== Anes' o' block =================== */
+
+    private void startup() {
+        getLogger().info("starting up :)");
         try {
             PacketEvents.getAPI().init();
             getLogger().info("PacketEvents initialized successfully");
@@ -209,6 +225,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
         // Generic Listener
         this.genericListener = new GenericListener(configManager);
+        getServer().getPluginManager().registerEvents(this.genericListener, this);
 
 
         // Services List
@@ -236,12 +253,11 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
         setupRankScoreboardTeams();
         refreshAllRankScoreboardTeams();
-
-        getLogger().info("TheSandboxCore enabled!");
+        getLogger().info("startup complete! ;)");
     }
 
-    @Override
-    public void onDisable() {
+    private void cleanup() {
+        getLogger().info("[cleaning up :)]");
         if (dataListener != null) dataListener.saveAll();
         if (liteBansWarningListener != null) liteBansWarningListener.unregister();
         if (discord != null) discord.stop();
@@ -252,9 +268,16 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         if (loginService != null) loginService.shutdown();
         if (PacketEvents.getAPI() != null) PacketEvents.getAPI().terminate();
         closeDataSource();
-        getLogger().info("TheSandboxCore disabled!");
+        registeredItems.stream()
+                .filter(item -> item instanceof FloatBoatItem)
+                .map(item -> (FloatBoatItem) item)
+                .findFirst()
+                .ifPresent(FloatBoatItem::cleanup);
+        getLogger().info("clean up complete! have a nice day! ;)");
     }
 
+
+    /* ==================================================== */
     /* =================== Helper API ==================== */
 
     public ShushService getShushService() { return shushService; }

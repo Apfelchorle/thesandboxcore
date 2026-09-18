@@ -30,23 +30,21 @@ public class PluginConfigManager {
         }
     }
 
-    public <T> T SafeSet(String key, T value) {
+    public <T> void safeSet(String key, T value) {
         FileConfiguration config = plugin.getConfig();
+        Object existing = config.get(key);
 
-        if (config.isSet(key)) {
-            config.set(key, value);
-            plugin.saveConfig();
-            return value;
+        if (existing != null && value != null && !existing.getClass().isInstance(value)) {
+            plugin.getLogger().warning("Refusing to overwrite key '" + key + "' — existing type " + existing.getClass().getSimpleName() + " doesn't match new type " + value.getClass().getSimpleName());
+            return;
         }
 
-        Object raw = config.get(key);
-        try {
-            @SuppressWarnings("unchecked")
-            T cast = (T) raw;
-            return cast;
-        } catch (ClassCastException e) {
-            plugin.getLogger().warning("Config type mismatch for key '" + key + "', returning default.");
-            return value;
-        }
+        config.set(key, value);
+        plugin.saveConfig();
+    }
+
+    public <T> void forceset(String key, T value) {
+        plugin.getConfig().set(key, value);
+        plugin.saveConfig();
     }
 }
