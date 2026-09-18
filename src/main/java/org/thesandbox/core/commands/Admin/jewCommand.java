@@ -34,7 +34,7 @@ public class jewCommand implements ISubCommand {
         String cmdpart3 = "}}]";
         String fullcmd = cmdpart1 + "\"" + cmdpart2 + "\"" + cmdpart3;
 
-        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), fullcmd);
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "minecraft:kill " + fullcmd);
 
         return false;
     }
