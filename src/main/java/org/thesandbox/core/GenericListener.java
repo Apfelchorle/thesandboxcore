@@ -11,8 +11,8 @@ public class GenericListener implements Listener {
 
     private final PluginConfigManager pluginConfigManager;
 
-    public GenericListener(PluginConfigManager pluginConfigManager, PluginConfigManager pluginConfigManager1) {
-        this.pluginConfigManager = pluginConfigManager1;
+    public GenericListener(PluginConfigManager pluginConfigManager) {
+        this.pluginConfigManager = pluginConfigManager;
     }
 
     @EventHandler

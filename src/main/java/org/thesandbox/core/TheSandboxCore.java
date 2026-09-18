@@ -75,6 +75,10 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     private UpdateTarget updateTarget;
     private UpdateLocalCommand updateLocalCommand;
 
+    // generic listener
+
+    private GenericListener genericListener;
+
     // POTIONSPY: service field
     private PotionSpyService potionSpyService;
 
@@ -203,7 +207,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         this.liteBansWarningListener = new LiteBansWarningListener(this);
         this.liteBansWarningListener.register();
 
-        // registered items
+        // Generic Listener
+        this.genericListener = new GenericListener(configManager);
 
 
         // Services List
@@ -221,7 +226,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
                 itemKeys,
                 loginMessages,
                 configManager,
-                updateLocalCommand
+                updateLocalCommand,
+                genericListener
         ));
 
         // Command Auto Registrar + ItemAutoRegistrar

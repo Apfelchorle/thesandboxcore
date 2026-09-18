@@ -32,17 +32,17 @@ public class waterflowCommand implements ISubCommand {
         boolean current = configManager.getOrCreate(GenericDataKeys.WATER_FLOW, GenericDataKeys.WATER_FLOW_DEFAULT);
         configManager.SafeSet(GenericDataKeys.WATER_FLOW, !current);
 
-        announce(sender, current);
+        announce(sender, configManager.getOrCreate(GenericDataKeys.WATER_FLOW, GenericDataKeys.WATER_FLOW_DEFAULT));
         return false;
     }
 
     private void announce(CommandSender sender, boolean current) {
         if (!(sender instanceof Player)) {
-            Component message = Component.text("WaterFlow is Now: " + current);
+            Component message = Component.text("waterFlow is now: " + current);
             sender.sendMessage(message);
         }
         if (sender instanceof Player player) {
-            Utils.SendMessage(player, "waterFlow is now {}" + current, TextColor.color(255, 255, 255));
+            Utils.SendMessage(player, "waterFlow is now: " + current, TextColor.color(255, 255, 255));
         }
         Bukkit.broadcast(Component.text("WaterFlow is Now: " + current));
     }
