@@ -13,9 +13,14 @@ import org.thesandbox.core.util.PluginConfigManager;
 
 import java.util.List;
 
+
 public class waterflowCommand implements ISubCommand {
 
-    private PluginConfigManager configManager;
+    private final PluginConfigManager configManager;
+
+    public waterflowCommand(PluginConfigManager configManager) {
+        this.configManager = configManager;
+    }
 
     /// @param sender  player who sent command
     /// @param command command
