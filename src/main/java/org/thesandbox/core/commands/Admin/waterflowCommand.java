@@ -1,13 +1,10 @@
 package org.thesandbox.core.commands.Admin;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.thesandbox.core.commands.ISubCommand;
-import org.thesandbox.core.fun.Utils;
 import org.thesandbox.core.util.GenericDataKeys;
 import org.thesandbox.core.util.PluginConfigManager;
 
@@ -38,14 +35,8 @@ public class waterflowCommand implements ISubCommand {
     }
 
     private void announce(CommandSender sender, boolean current) {
-        if (!(sender instanceof Player)) {
-            Component message = Component.text("waterFlow is now: " + current);
-            sender.sendMessage(message);
-        }
-        if (sender instanceof Player player) {
-            Utils.SendMessage(player, "waterFlow is now: " + current, TextColor.color(255, 255, 255));
-        }
-        Bukkit.broadcast(Component.text("WaterFlow is Now: " + current));
+        Component message = Component.text("waterFlow is now: " + current);
+        Bukkit.broadcast(message);
     }
 
     /// @param sender  player who sent command

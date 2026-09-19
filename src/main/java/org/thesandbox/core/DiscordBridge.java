@@ -259,6 +259,12 @@ public class DiscordBridge extends ListenerAdapter
         // Currently unused, but kept for future auto-restore logic
     }
 
+    // logger
+
+    public void log(String message) {
+        plugin.getLogger().info(message);
+    }
+
     private Role getVerifiedRole(Guild g) {
         String verifiedRoleId = plugin.getConfig().getString("discord.verified-role-id", DEFAULT_VERIFIED_ROLE);
         if (verifiedRoleId == null || verifiedRoleId.isEmpty()) return null;

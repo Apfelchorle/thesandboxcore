@@ -2,11 +2,14 @@ package org.thesandbox.core;
 
 import com.github.retrooper.packetevents.PacketEvents;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
+import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.Admin.UpdateLocalCommand;
 import org.thesandbox.core.commands.CommandManager;
@@ -86,6 +89,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         return true;
     }
 
+
     public List<Item> getRegisteredItems() {
         return this.registeredItems;
     }
@@ -124,14 +128,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
     @Override
     public void onLoad() {
+        load();
         getLogger().info("The SandboxCore has been loaded!");
-        try {
-            PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this));
-            PacketEvents.getAPI().load();
-        } catch (Throwable t) {
-            getLogger().severe("PacketEvents failed to load: " + t);
-            t.printStackTrace();
-        }
     }
 
     @Override
@@ -147,6 +145,20 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     }
 
     /* ================== startup / cleanup =================== */
+
+
+    private void load() {
+        getLogger().info("loading.. :)");
+        // packet events
+        try {
+            PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this));
+            PacketEvents.getAPI().load();
+        } catch (Throwable t) {
+            getLogger().severe(";( " + "PacketEvents failed to load: " + t);
+            t.printStackTrace();
+        }
+        getLogger().info("loaded! ;)");
+    }
 
     private void startup() {
         getLogger().info("starting up :)");
@@ -364,18 +376,19 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     }
 
     @EventHandler
-    public void onAsyncChat(AsyncPlayerChatEvent event) {
+    public void onAsyncChat(AsyncChatEvent event) {
         Player p = event.getPlayer();
         if (staffChatManager.isStaffChatEnabled(p.getUniqueId())) {
             event.setCancelled(true);
 
             if (staffChatManager.isStaffChatHidden(p.getUniqueId())) {
-                p.sendMessage(org.bukkit.ChatColor.RED + "You cannot talk in staff chat while it is hidden. Use /staffchat hide off.");
+                p.sendMessage(Component.text("You cannot talk in staff chat while it is hidden. Use /staffchat hide off.", NamedTextColor.DARK_RED));
                 return;
             }
 
             String name = p.getName();
-            String msg = event.getMessage();
+            Component rawmsg = event.message();
+            String msg = LegacyComponentSerializer.legacyAmpersand().serialize(rawmsg);
 
             Bukkit.getScheduler().runTask(this, () ->
                     staffChatManager.broadcastStaffChat(name, msg, "", "", StaffChatManager.Source.MINECRAFT));
