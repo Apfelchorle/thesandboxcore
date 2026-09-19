@@ -29,7 +29,9 @@ import org.thesandbox.core.fun.items.FloatBoatItem;
 import org.thesandbox.core.fun.items.itemUTILS.Item;
 import org.thesandbox.core.fun.items.itemUTILS.ItemKeys;
 import org.thesandbox.core.guilds.GuildManager;
+import org.thesandbox.core.listeners.*;
 import org.thesandbox.core.login.LoginService;
+import org.thesandbox.core.services.*;
 import org.thesandbox.core.tags.TagService;
 import org.thesandbox.core.util.*;
 
@@ -257,7 +259,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     }
 
     private void cleanup() {
-        getLogger().info("[cleaning up :)]");
+        getLogger().info("cleaning up :)");
         if (dataListener != null) dataListener.saveAll();
         if (liteBansWarningListener != null) liteBansWarningListener.unregister();
         if (discord != null) discord.stop();
@@ -618,7 +620,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     }
 
     // Login Service Helper
-    public org.thesandbox.core.login.LoginService getLoginService() { return loginService; }
+    public LoginService getLoginService() { return loginService; }
 
     /* =================== CommandSpy Redaction Helper ==================== */
 

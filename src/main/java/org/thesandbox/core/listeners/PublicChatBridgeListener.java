@@ -1,10 +1,12 @@
-package org.thesandbox.core;
+package org.thesandbox.core.listeners;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.entity.Player;
+import org.thesandbox.core.DiscordBridge;
+import org.thesandbox.core.TheSandboxCore;
 
 public class PublicChatBridgeListener implements Listener
 {

@@ -36,7 +36,9 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.thesandbox.core.discord.model.ReportRecord;
+import org.thesandbox.core.listeners.PublicChatBridgeListener;
 import org.thesandbox.core.login.LoginService;
+import org.thesandbox.core.util.HexColorUtil;
 import org.thesandbox.core.util.PlayerDataKeys;
 import org.thesandbox.core.util.PlayerDataListener;
 

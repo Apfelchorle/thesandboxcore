@@ -1,4 +1,4 @@
-package org.thesandbox.core;
+package org.thesandbox.core.listeners;
 
 import com.earth2me.essentials.Essentials;
 import com.earth2me.essentials.User;
@@ -16,6 +16,9 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.plugin.Plugin;
+import org.thesandbox.core.DiscordBridge;
+import org.thesandbox.core.util.HexColorUtil;
+import org.thesandbox.core.TheSandboxCore;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

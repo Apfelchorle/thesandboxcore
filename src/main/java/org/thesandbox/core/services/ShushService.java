@@ -1,7 +1,8 @@
-package org.thesandbox.core;
+package org.thesandbox.core.services;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.thesandbox.core.TheSandboxCore;
 
 import javax.sql.DataSource;
 import java.sql.*;
