@@ -2,6 +2,7 @@ package org.thesandbox.core.listeners;
 
 import com.earth2me.essentials.Essentials;
 import com.earth2me.essentials.User;
+import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -14,11 +15,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.plugin.Plugin;
 import org.thesandbox.core.DiscordBridge;
-import org.thesandbox.core.util.HexColorUtil;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.fun.Utils;
+import org.thesandbox.core.util.HexColorUtil;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -42,12 +43,12 @@ public class ChatMentionFormatListener implements Listener
             Pattern.compile("(?i)(?<!\\w)@everyone(?!\\w)");
 
     @EventHandler(priority = EventPriority.HIGHEST)
-    public void onAsyncChat(AsyncPlayerChatEvent event)
+    public void onAsyncChat(AsyncChatEvent event)
     {
         if (event.isCancelled()) return;
 
         final Player sender = event.getPlayer();
-        final String original = event.getMessage();
+        final String original = Utils.plainText(event.message());
 
         // Guild chat toggle: route through GuildManager so /gchat and toggled chat share formatting, spies, and console logging.
         var guilds = core.getGuildManager();

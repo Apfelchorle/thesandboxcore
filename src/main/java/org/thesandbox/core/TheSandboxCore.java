@@ -5,7 +5,6 @@ import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -14,6 +13,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.Admin.UpdateLocalCommand;
 import org.thesandbox.core.commands.CommandManager;
 import org.thesandbox.core.fun.LoginMessages;
+import org.thesandbox.core.fun.Utils;
 import org.thesandbox.core.fun.items.FloatBoatItem;
 import org.thesandbox.core.fun.items.itemUTILS.Item;
 import org.thesandbox.core.fun.items.itemUTILS.ItemKeys;
@@ -391,8 +391,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
             }
 
             String name = p.getName();
-            Component rawmsg = event.message();
-            String msg = LegacyComponentSerializer.legacyAmpersand().serialize(rawmsg);
+            String msg = Utils.plainText(event.message());
 
             Bukkit.getScheduler().runTask(this, () ->
                     staffChatManager.broadcastStaffChat(name, msg, "", "", StaffChatManager.Source.MINECRAFT));
