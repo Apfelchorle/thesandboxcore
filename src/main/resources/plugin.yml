@@ -20,6 +20,10 @@ softdepend:
 loadbefore: [Essentials, EssentialsX, WorldGuard]
 
 commands:
+
+  chatfilter:
+    description: Toggles ChatFilter
+
   opme:
     description: toggle op status
 
