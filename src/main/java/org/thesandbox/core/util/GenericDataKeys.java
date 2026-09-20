@@ -1,6 +1,8 @@
 package org.thesandbox.core.util;
 
 
+import java.util.List;
+
 public final class GenericDataKeys {
 
     public static final String WATER_FLOW = "Booleans.waterFlow.state";
@@ -13,6 +15,10 @@ public final class GenericDataKeys {
     public static final String CMD_MSGS_USAGE = "&c&lUsage &8» &c";
     public static final String CMD_MSGS_COMMAND = "&7&lCommand &8» &7";
 
+    // chat filter
+
+    public static final List<String> BADWORDS = List.of("nigger", "nigga", "faggot");
+    public static final String CHATFILTER = "chatfilter.blocked-words";
 
     // ================== //
 

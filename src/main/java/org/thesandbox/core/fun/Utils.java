@@ -5,6 +5,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
@@ -67,6 +68,10 @@ public class Utils {
 
     public static @NonNull String AdventureAPI(Component msg) {
         return LegacyComponentSerializer.legacySection().serialize(msg);
+    }
+
+    public static @NonNull String plainText(Component msg) {
+        return PlainTextComponentSerializer.plainText().serialize(msg);
     }
 
 

@@ -1770,7 +1770,7 @@ public class DiscordBridge extends ListenerAdapter
                 .replace("%player%", player.getName())
                 .replace("%message%", replaceLinksWithMediaTag(stripAllColors(message)));
 
-        String safeOut = chatFilter(antiPingEveryoneHere(out));
+        String safeOut = antiPingEveryoneHere(out);
 
         if (plugin.getConfig().getBoolean("discord.use-embeds", false)) {
             ch.sendMessageEmbeds(new EmbedBuilder().setDescription(safeOut).build()).queue(
