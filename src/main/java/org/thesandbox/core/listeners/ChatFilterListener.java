@@ -62,16 +62,11 @@ public class ChatFilterListener implements Listener {
 
             event.renderer((source, sourceDisplayName, message, viewer) -> {
                 if (viewer instanceof Player recipient) {
-
-
                     boolean shouldCensor = playerDataListener.get(recipient.getUniqueId(), PlayerDataKeys.CHATFILTER, false);
-
-
                     if (!shouldCensor) {
-                        return sourceDisplayName.append(Component.text(": ")).append(event.message());
+                        return sourceDisplayName.append(Component.text(": ")).append(message);
                     }
                 }
-
                 return sourceDisplayName.append(Component.text(": ")).append(censoredComponent);
             });
 
