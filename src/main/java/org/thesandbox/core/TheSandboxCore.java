@@ -230,7 +230,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         this.liteBansWarningListener.register();
 
         // chat filter
-        getServer().getPluginManager().registerEvents(new ChatFilterListener(configManager), this);
+        getServer().getPluginManager().registerEvents(new ChatFilterListener(configManager, dataListener), this);
 
         this.genericListener = new GenericListener(configManager);
         getServer().getPluginManager().registerEvents(this.genericListener, this);
