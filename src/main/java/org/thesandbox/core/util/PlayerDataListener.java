@@ -48,6 +48,7 @@ public class PlayerDataListener implements Listener {
 
         // staff
         data.put(PlayerDataKeys.VANISHED, dataManager.loadData(uuid, PlayerDataKeys.VANISHED, false));
+        data.put(PlayerDataKeys.CHATFILTER, dataManager.loadData(uuid, PlayerDataKeys.CHATFILTER, "disabled"));
         return data;
     }
 

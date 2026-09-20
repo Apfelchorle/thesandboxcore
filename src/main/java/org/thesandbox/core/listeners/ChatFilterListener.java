@@ -57,6 +57,7 @@ public class ChatFilterListener implements Listener {
             triggered = true;
         }
 
+        Bukkit.getLogger().warning("[ChatFilter] triggered=" + triggered + " plain=\"" + plain + "\"");
         if (triggered) {
             Component censoredComponent = buildCensoredComponent(plain, pattern, detectedBadWords);
 
