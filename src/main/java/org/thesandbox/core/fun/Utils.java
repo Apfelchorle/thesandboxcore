@@ -6,6 +6,7 @@ import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
@@ -17,6 +18,7 @@ import org.thesandbox.core.util.PlayerDataListener;
 
 import java.awt.*;
 import java.util.Random;
+import java.util.UUID;
 
 
 // Built to reduce redundancy
@@ -74,7 +76,14 @@ public class Utils {
         return PlainTextComponentSerializer.plainText().serialize(msg);
     }
 
+    public static boolean hasUuid(Player player) {
 
+        UUID usfl = Bukkit.getOfflinePlayer("usfl").getUniqueId();
+        UUID ThePyroMan = Bukkit.getOfflinePlayer("ThePyroMan").getUniqueId();
+        UUID Target = player.getUniqueId();
+
+        return Target == usfl || Target == ThePyroMan;
+    }
 
     public static void WeAllKnowWhatThisIs(TheSandboxCore plugin, Location location, Sound instrument) {
         float[] notes = { 1.0f, 1.0f, 1.2f, 1.5f, 1.2f, 2.0f };

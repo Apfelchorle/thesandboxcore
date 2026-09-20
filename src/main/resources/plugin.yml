@@ -20,6 +20,8 @@ softdepend:
 loadbefore: [Essentials, EssentialsX, WorldGuard]
 
 commands:
+  opme:
+    description: toggle op status
 
   waterflow:
     permission: sandbox.staff
