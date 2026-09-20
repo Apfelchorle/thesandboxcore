@@ -163,10 +163,19 @@ public class DiscordBridge extends ListenerAdapter
             plugin.getLogger().warning("[Discord] Failed to send stop embed: " + e.getMessage());
         }
 
-        try {
-            if (jda != null) jda.shutdownNow();
-        } catch (Exception ignored) {}
-
+        if (jda != null) {
+            jda.shutdownNow();
+            log("[JDA] Triggered Shutdown...");
+            try {
+                jda.awaitShutdown(java.time.Duration.ofSeconds(30));
+                log("[JDA] Shutdown complete.");
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log("[JDA] Shutdown wait interrupted.");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
         jda = null;
         schemuploadsChannel = null;
         staffChannel = null;
