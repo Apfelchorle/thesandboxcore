@@ -4,6 +4,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.thesandbox.core.util.GenericDataKeys;
 import org.thesandbox.core.util.PluginConfigManager;
@@ -65,8 +66,8 @@ public class ChatFilterEngine {
 
             String originalBadWord = badWords.get(wordIndex++);
 
-            Component censorToken = Component.text("[CENSORED]")
-                    .color(NamedTextColor.BLACK)
+            Component censorToken = Component.text(" [CENSORED] ")
+                    .color(TextColor.color(133, 0, 6))
                     .decorate(TextDecoration.BOLD)
                     .hoverEvent(HoverEvent.showText(Component.text("Censored Word: " + originalBadWord, NamedTextColor.RED)));
 
