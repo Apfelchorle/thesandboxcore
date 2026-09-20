@@ -64,6 +64,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
     private GenericListener genericListener;
 
+    private ChatFilterEngine chatFilterEngine;
+
     private PotionSpyService potionSpyService;
     public PotionSpyService getPotionSpyService() { return potionSpyService; }
 
@@ -123,6 +125,9 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         return staffChatManager;
     }
 
+    public PlayerDataListener getDataListener() {
+        return dataListener;
+    }
     public CommandSpyManager getCommandSpyManager() {
         return commandSpyManager;
     }
@@ -201,7 +206,9 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
         this.guildManager = new GuildManager(this);
 
-        getServer().getPluginManager().registerEvents(new ChatMentionFormatListener(this), this);
+        this.chatFilterEngine = new ChatFilterEngine(configManager);
+
+        getServer().getPluginManager().registerEvents(new ChatMentionFormatListener(this, chatFilterEngine), this);
         getServer().getPluginManager().registerEvents(new ManageChatListener(manageChatService), this);
 
         AutoTpService autoTpService = new AutoTpService(this);
@@ -230,7 +237,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         this.liteBansWarningListener.register();
 
         // chat filter
-        getServer().getPluginManager().registerEvents(new ChatFilterListener(configManager, dataListener), this);
+        getServer().getPluginManager().registerEvents(new ChatFilterListener(chatFilterEngine), this);
 
         this.genericListener = new GenericListener(configManager);
         getServer().getPluginManager().registerEvents(this.genericListener, this);

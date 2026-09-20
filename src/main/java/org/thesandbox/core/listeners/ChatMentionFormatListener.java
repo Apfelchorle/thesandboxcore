@@ -20,6 +20,7 @@ import org.thesandbox.core.DiscordBridge;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.fun.Utils;
 import org.thesandbox.core.util.HexColorUtil;
+import org.thesandbox.core.util.PlayerDataKeys;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -27,15 +28,17 @@ import java.util.regex.Pattern;
 public class ChatMentionFormatListener implements Listener
 {
     private final TheSandboxCore core;
+    private final ChatFilterEngine chatFilterEngine;
 
     // Adventure / MiniMessage
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
     private final LegacyComponentSerializer legacySerializer =
             LegacyComponentSerializer.legacySection();
 
-    public ChatMentionFormatListener(TheSandboxCore core)
+    public ChatMentionFormatListener(TheSandboxCore core, ChatFilterEngine chatFilterEngine)
     {
         this.core = core;
+        this.chatFilterEngine = chatFilterEngine;
     }
 
     // Case-insensitive word-boundary @everyone
@@ -49,6 +52,9 @@ public class ChatMentionFormatListener implements Listener
 
         final Player sender = event.getPlayer();
         final String original = Utils.plainText(event.message());
+        final ChatFilterEngine.Result filterResult = sender.hasPermission("sandbox.staff")
+                ? null
+                : chatFilterEngine.scan(original);
 
         // Guild chat toggle: route through GuildManager so /gchat and toggled chat share formatting, spies, and console logging.
         var guilds = core.getGuildManager();
@@ -103,7 +109,17 @@ public class ChatMentionFormatListener implements Listener
         Bukkit.getScheduler().runTask(core, () -> {
             for (Player viewer : Bukkit.getOnlinePlayers())
             {
-                String perViewerMsg = finalColored;
+                String textForThisViewer = finalColored;
+
+                if (filterResult != null && filterResult.triggered) {
+                    boolean viewerWantsCensored = core.getDataListener() // however you expose PlayerDataListener from core
+                            .get(viewer.getUniqueId(), PlayerDataKeys.CHATFILTER, false);
+                    if (viewerWantsCensored) {
+                        // Use the censored plain text instead of the colored original for this viewer
+                        textForThisViewer = Utils.plainText(filterResult.censoredComponent);
+                    }
+                }
+                String perViewerMsg = textForThisViewer;
 
                 // If sender is staff and used @everyone, highlight it for everyone
                 boolean pingThisViewer = false;
