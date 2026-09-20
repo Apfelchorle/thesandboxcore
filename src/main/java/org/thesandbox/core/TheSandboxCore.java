@@ -33,6 +33,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+@SuppressWarnings({"SqlNoDataSourceInspection", "SqlResolve"})
 public class TheSandboxCore extends JavaPlugin implements Listener {
 
     public enum Source { MINECRAFT, DISCORD }
@@ -227,6 +228,9 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
         this.liteBansWarningListener = new LiteBansWarningListener(this);
         this.liteBansWarningListener.register();
+
+        // chat filter
+        getServer().getPluginManager().registerEvents(new ChatFilterListener(configManager), this);
 
         this.genericListener = new GenericListener(configManager);
         getServer().getPluginManager().registerEvents(this.genericListener, this);
