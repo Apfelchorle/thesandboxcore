@@ -465,48 +465,12 @@ public class DiscordBridge extends ListenerAdapter
         }
     }
 
-    /* ---------------------- Public chat: MC -> Discord ---------------------- */
-    public void sendPublicMessageFromMinecraft(Player player, String message) {
-        if (!plugin.isDiscordChatBridgeEnabled()) return;
-        TextChannel ch = getChatChannel();
-        if (ch == null) return;
+    private static String chatFilter(String s) {
+        if (s == null) return null;
+        List<String> badwords = new ArrayList<>();
+        String filteredmsg = s.replace("nigger", "[ Not So nice words ;( ]");
 
-        String template = plugin.getConfig().getString(
-                "discord.chat.mc-to-discord-format",
-                "**%rank%%player%** » %message%"
-        );
-
-        // Discord should show the server rank, not the player's guild/tag/LuckPerms prefix.
-        // Example: [Dev] pixelpaladinn instead of [Boss] pixelpaladinn.
-        String rankPrefix = rankPrefixForDiscord(player);
-
-        String out = template
-                // Keep this replacement for older configs that used %luckperms_prefix%; it now resolves to the real rank.
-                .replace("%luckperms_prefix%", rankPrefix)
-                .replace("%rank%", rankPrefix)
-                .replace("%rank_prefix%", rankPrefix)
-                .replace("%player%", player.getName())
-                .replace("%message%", replaceLinksWithMediaTag(stripAllColors(message)));
-
-        String safeOut = antiPingEveryoneHere(out);
-
-        if (plugin.getConfig().getBoolean("discord.use-embeds", false)) {
-            ch.sendMessageEmbeds(new EmbedBuilder().setDescription(safeOut).build()).queue(
-                    ok -> {},
-                    err -> {
-                        plugin.getLogger().warning("[Discord] Failed to send public chat embed, trying plain message: " + err.getMessage());
-                        ch.sendMessage(safeOut).queue(
-                                ok2 -> {},
-                                err2 -> plugin.getLogger().warning("[Discord] Failed to send public chat message: " + err2.getMessage())
-                        );
-                    }
-            );
-        } else {
-            ch.sendMessage(safeOut).queue(
-                    ok -> {},
-                    err -> plugin.getLogger().warning("[Discord] Failed to send public chat message: " + err.getMessage())
-            );
-        }
+        return filteredmsg;
     }
 
     // erm,  class --> public this ---> private that
@@ -1781,6 +1745,50 @@ public class DiscordBridge extends ListenerAdapter
         if (s == null) return null;
         return s.replace("@everyone", "@\u200Beveryone")
                 .replace("@here", "@\u200Bhere");
+    }
+
+    /* ---------------------- Public chat: MC -> Discord ---------------------- */
+    public void sendPublicMessageFromMinecraft(Player player, String message) {
+        if (!plugin.isDiscordChatBridgeEnabled()) return;
+        TextChannel ch = getChatChannel();
+        if (ch == null) return;
+
+        String template = plugin.getConfig().getString(
+                "discord.chat.mc-to-discord-format",
+                "**%rank%%player%** » %message%"
+        );
+
+        // Discord should show the server rank, not the player's guild/tag/LuckPerms prefix.
+        // Example: [Dev] pixelpaladinn instead of [Boss] pixelpaladinn.
+        String rankPrefix = rankPrefixForDiscord(player);
+
+        String out = template
+                // Keep this replacement for older configs that used %luckperms_prefix%; it now resolves to the real rank.
+                .replace("%luckperms_prefix%", rankPrefix)
+                .replace("%rank%", rankPrefix)
+                .replace("%rank_prefix%", rankPrefix)
+                .replace("%player%", player.getName())
+                .replace("%message%", replaceLinksWithMediaTag(stripAllColors(message)));
+
+        String safeOut = chatFilter(antiPingEveryoneHere(out));
+
+        if (plugin.getConfig().getBoolean("discord.use-embeds", false)) {
+            ch.sendMessageEmbeds(new EmbedBuilder().setDescription(safeOut).build()).queue(
+                    ok -> {},
+                    err -> {
+                        plugin.getLogger().warning("[Discord] Failed to send public chat embed, trying plain message: " + err.getMessage());
+                        ch.sendMessage(safeOut).queue(
+                                ok2 -> {},
+                                err2 -> plugin.getLogger().warning("[Discord] Failed to send public chat message: " + err2.getMessage())
+                        );
+                    }
+            );
+        } else {
+            ch.sendMessage(safeOut).queue(
+                    ok -> {},
+                    err -> plugin.getLogger().warning("[Discord] Failed to send public chat message: " + err.getMessage())
+            );
+        }
     }
 
     // Strip MiniMessage-style tags like <red>, <bold>, <hover:...>, </click>, <gradient:#fff:#000>, etc.

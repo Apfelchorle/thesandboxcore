@@ -65,6 +65,10 @@ public class Utils {
         );
     }
 
+    public static @NonNull String AdventureAPI(Component msg) {
+        return LegacyComponentSerializer.legacySection().serialize(msg);
+    }
+
 
 
     public static void WeAllKnowWhatThisIs(TheSandboxCore plugin, Location location, Sound instrument) {
