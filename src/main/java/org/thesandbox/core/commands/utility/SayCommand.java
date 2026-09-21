@@ -32,7 +32,7 @@ public class SayCommand implements ISubCommand
 
         final String senderName = (sender instanceof Player p) ? p.getName() : "CONSOLE";
         //refrence message :  • Server » usfl » test
-        final String prefix = Utils.AdventureAPI("&6 " + senderName + "&r&8 » &r");
+        final String prefix = Utils.AdventureAPI("&6" + senderName + "&r&8 » &r");
 
         // Detect @everyone (case-insensitive)
         final boolean pingEveryone = containsIgnoreCase(coloredMessage, "@everyone");
