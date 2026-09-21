@@ -120,7 +120,7 @@ public class ChatMentionFormatListener implements Listener
 
                 if (filterResult != null && filterResult.triggered) {
                     boolean viewerWantsCensored = core.getDataListener() // however you expose PlayerDataListener from core
-                            .get(viewer.getUniqueId(), PlayerDataKeys.CHATFILTER, false);
+                            .get(viewer.getUniqueId(), PlayerDataKeys.CHATFILTER, true);
                     if (viewerWantsCensored) {
                         viewerBody = filterResult.censoredComponent;
                     }

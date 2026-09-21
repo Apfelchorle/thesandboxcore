@@ -27,7 +27,7 @@ public class chatFilterCommand implements ISubCommand {
         }
 
 
-        boolean current = playerDataListener.get(player.getUniqueId(), PlayerDataKeys.CHATFILTER, false);
+        boolean current = playerDataListener.get(player.getUniqueId(), PlayerDataKeys.CHATFILTER, true);
         boolean newValue = !current;
         playerDataListener.set(player.getUniqueId(), PlayerDataKeys.CHATFILTER, newValue);
         player.sendMessage(Component.text("ChatFilter is now: " + newValue, NamedTextColor.YELLOW));

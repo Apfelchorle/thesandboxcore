@@ -45,7 +45,7 @@ public class PlayerDataListener implements Listener {
 
         // staff
         DEFAULTS.put(PlayerDataKeys.VANISHED, false);
-        DEFAULTS.put(PlayerDataKeys.CHATFILTER, false);
+        DEFAULTS.put(PlayerDataKeys.CHATFILTER, true);
     }
 
     private Map<String, Object> loadFromDisk(UUID uuid) {
