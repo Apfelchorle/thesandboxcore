@@ -66,7 +66,7 @@ public class ChatFilterEngine {
 
             String originalBadWord = badWords.get(wordIndex++);
 
-            Component censorToken = Component.text(" [CENSORED] ")
+            Component censorToken = Component.text(" " + generateGrawlix(originalBadWord.length()) + " ")
                     .color(TextColor.color(133, 0, 6))
                     .decorate(TextDecoration.BOLD)
                     .hoverEvent(HoverEvent.showText(Component.text("Censored Word: " + originalBadWord, NamedTextColor.RED)));
@@ -91,6 +91,19 @@ public class ChatFilterEngine {
         }
         return regex.toString();
     }
+
+    public String generateGrawlix(int wordLength) {
+        String symbols = "$%#&!";
+        java.util.Random random = new java.util.Random();
+        int variance = random.nextInt(5) - 2;
+        int finalLength = Math.max(3, wordLength + variance);
+        StringBuilder result = new StringBuilder(finalLength);
+        for (int i = 0; i < finalLength; i++) {
+            result.append(symbols.charAt(random.nextInt(symbols.length())));
+        }
+        return result.toString();
+    }
+
 
     public static class Result {
         public final boolean triggered;
