@@ -206,7 +206,7 @@ commands:
 
   managechat:
     description: Mute or clear public chat.
-    usage: /managechat <mute|clear>
+    usage: /managechat <mute|clear|forceclear>
     permission: sandbox.staff
     aliases: [mchat,chc,mc,chatcontrol]
 

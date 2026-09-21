@@ -33,6 +33,16 @@ public class Utils {
         this.playerDataListener = playerDataListener;
     }
 
+    public static Component legacyserializer(String text) {
+        if (text.contains("&")) {
+            return LegacyComponentSerializer.legacyAmpersand().deserialize(text);
+        }
+        if (text.contains("§")) {
+            return LegacyComponentSerializer.legacySection().deserialize(text);
+        }
+        return LegacyComponentSerializer.legacyAmpersand().deserialize(text);
+    }
+
     public static TextColor getRandomChatColor() {
         Color awtColor = new Color(random.nextInt(256), random.nextInt(256), random.nextInt(256));
         return TextColor.color(awtColor.getRGB());

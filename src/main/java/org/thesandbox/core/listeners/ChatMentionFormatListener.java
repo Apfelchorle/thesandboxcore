@@ -82,10 +82,8 @@ public class ChatMentionFormatListener implements Listener
         if (useMiniMessage) {
             baseBodyComponent = miniMessage.deserialize(sanitized);
         } else {
-            baseBodyComponent = LegacyComponentSerializer.legacyAmpersand().deserialize(sanitized);
+            baseBodyComponent = Utils.legacyserializer(sanitized);
         }
-
-        Component LegacySectionbaseBodyComponent = legacySerializer.deserialize(sanitized);
 
         // If using MiniMessage, don't translate & → § (let MiniMessage handle things / plain text)
 //        String colored;
@@ -161,7 +159,7 @@ public class ChatMentionFormatListener implements Listener
                     }
                 }
             }
-            Bukkit.getConsoleSender().sendMessage(headerComponent.append(LegacySectionbaseBodyComponent));
+            Bukkit.getConsoleSender().sendMessage(headerComponent.append(baseBodyComponent));
         });
     }
 
