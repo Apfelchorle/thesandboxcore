@@ -193,6 +193,10 @@ public class ChatMentionFormatListener implements Listener
             return LegacyComponentSerializer.legacyAmpersand().deserialize(base);
         }
 
+        if (base.indexOf('§') >= 0) {
+            return LegacyComponentSerializer.legacySection().deserialize(base);
+        }
+
         return Component.text(base, NamedTextColor.GRAY);
     }
 
@@ -203,8 +207,11 @@ public class ChatMentionFormatListener implements Listener
 
             var g = guilds.guildOf(p.getUniqueId());
             if (g == null || g.tag() == null || g.tag().isEmpty()) return Component.empty();
-
-            return LegacyComponentSerializer.legacyAmpersand().deserialize(g.tag());
+            String tag = g.tag();
+            if (tag.contains("§")) {
+                return LegacyComponentSerializer.legacySection().deserialize(tag);
+            }
+            return LegacyComponentSerializer.legacyAmpersand().deserialize(tag);
         } catch (Throwable ignored) {
             return Component.empty();
         }
@@ -418,7 +425,9 @@ public class ChatMentionFormatListener implements Listener
             String prefix = lpUser.getCachedData().getMetaData().getPrefix();
             if (prefix == null || prefix.isEmpty()) return Component.empty();
 
-            // Legacy ampersand/section parsing to Component
+            if (prefix.contains("§")) {
+                return LegacyComponentSerializer.legacySection().deserialize(prefix);
+            }
             return LegacyComponentSerializer.legacyAmpersand().deserialize(prefix);
         } catch (Throwable ignored) {
             return Component.empty();
