@@ -6,6 +6,7 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
+import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.commands.meta.CommandAliases;
 import org.thesandbox.core.commands.meta.CommandName;
@@ -133,6 +134,11 @@ public final class CommandAutoRegistrar {
             ISubCommand instance = (ISubCommand) constructBest(plugin, clazz, injector);
             if (instance == null) {
                 plugin.getLogger().warning("[CommandAutoRegistrar] Could not construct " + clazz.getName() + " (no suitable constructor).");
+                continue;
+            }
+
+            if (plugin instanceof TheSandboxCore core && core.isSurvival() && !instance.allowed()) {
+                plugin.getLogger().info("[CommandAutoRegistrar] Skipping " + clazz.getSimpleName() + " (not allowed on survival).");
                 continue;
             }
 

@@ -17,6 +17,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.fun.Utils;
 import org.thesandbox.core.fun.items.*;
 import org.thesandbox.core.fun.items.itemUTILS.Item;
 import org.thesandbox.core.util.PlayerDataListener;
@@ -227,5 +228,9 @@ public class ShopCommand implements Listener, ISubCommand {
     @Override
     public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args) {
         return List.of();
+    }
+
+    public boolean allowed() {
+        return Utils.survival();
     }
 }

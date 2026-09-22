@@ -38,6 +38,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
     public enum Source { MINECRAFT, DISCORD }
 
+    private ServerMode serverMode;
+    private PluginConfigManager pluginConfigManager;
     // Core data
     private DataManager dataManager;
     private PlayerDataListener dataListener;
@@ -73,6 +75,10 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
     private List<Item> registeredItems = new ArrayList<>();
 
+    public PluginConfigManager getPluginConfigManager() {
+        return pluginConfigManager;
+    }
+
     public DiscordBridge getDiscord() {
         return this.discord;
     }
@@ -105,6 +111,14 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         return shushService;
     }
 
+    /* ================== Server Detection  =================== */
+    private ServerMode resolveServerMode() {
+        String config = pluginConfigManager.getOrCreate(GenericDataKeys.SERVER, GenericDataKeys.FREEBUILD);
+        return switch (config.toLowerCase()) {
+            case "survival" -> ServerMode.SURVIVAL;
+            default -> ServerMode.FREEBUILD;
+        };
+    }
     public GuildManager getGuildManager() {
         return guildManager;
     }
@@ -150,11 +164,19 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         getLogger().info("TheSandboxCore disabled!");
     }
 
-    /* ================== startup / cleanup =================== */
+    public ServerMode getServerMode() {
+        return serverMode;
+    }
 
+    public boolean isSurvival() {
+        return serverMode == ServerMode.SURVIVAL;
+    }
 
     private void load() {
         getLogger().info("loading.. :)");
+
+        serverMode = resolveServerMode();
+        getLogger().info("Server: " + serverMode);
         // packet events
         try {
             PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this));
@@ -165,6 +187,10 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         }
         getLogger().info("loaded! ;)");
     }
+
+    /* ================== startup / cleanup =================== */
+
+    public enum ServerMode {FREEBUILD, SURVIVAL}
 
     private void startup() {
         getLogger().info("starting up :)");

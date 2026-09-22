@@ -20,6 +20,12 @@ public final class GenericDataKeys {
     public static final List<String> BADWORDS = List.of("nigger", "nigga", "faggot");
     public static final String CHATFILTER = "chatfilter.blocked-words";
 
+    // config
+
+    public static final String SERVER = "server";
+    public static final String FREEBUILD = "freebuild";
+    public static final String SURVIVAL = "survival";
+
     // ================== //
 
 

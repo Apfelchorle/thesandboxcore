@@ -118,6 +118,14 @@ public class Utils {
         plugin.getLogger().info(info);
     }
 
+    public static TheSandboxCore.ServerMode getServerMode() {
+        return plugin.getServerMode();
+    }
+
+    public static boolean survival() {
+        return plugin.isSurvival();
+    }
+
 
 
     public static Double randomDoubleRange(double min, double max) {
