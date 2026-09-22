@@ -39,7 +39,6 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     public enum Source { MINECRAFT, DISCORD }
 
     private ServerMode serverMode;
-    private PluginConfigManager pluginConfigManager;
     // Core data
     private DataManager dataManager;
     private PlayerDataListener dataListener;
@@ -75,10 +74,6 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
     private List<Item> registeredItems = new ArrayList<>();
 
-    public PluginConfigManager getPluginConfigManager() {
-        return pluginConfigManager;
-    }
-
     public DiscordBridge getDiscord() {
         return this.discord;
     }
@@ -113,6 +108,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
     /* ================== Server Detection  =================== */
     private ServerMode resolveServerMode() {
+        PluginConfigManager pluginConfigManager = new PluginConfigManager(this);
         String config = pluginConfigManager.getOrCreate(GenericDataKeys.SERVER, GenericDataKeys.FREEBUILD);
         return switch (config.toLowerCase()) {
             case "survival" -> ServerMode.SURVIVAL;
