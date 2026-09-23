@@ -33,19 +33,19 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-@SuppressWarnings({"SqlNoDataSourceInspection", "SqlResolve"})
+@SuppressWarnings({"SqlNoDataSourceInspection", "SqlResolve"}) // to stop gay errors
 public class TheSandboxCore extends JavaPlugin implements Listener {
 
 
-    // Core data
+    // Core
     private DataManager dataManager;
     private PlayerDataListener dataListener;
     private LoginMessages loginMessages;
 
-    // Legacy MySQL (commandspy/staffchat)
+    // sql
     private LegacySqlStore legacySqlStore;
 
-    // Extracted services
+    // Services
     private CommandBlockManager commandBlockManager;
     private RankScoreboardManager rankScoreboardManager;
     private StaffChatManager staffChatManager;
@@ -57,7 +57,6 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     private TagService tagService;
     private GuildManager guildManager;
     private LiteBansWarningListener liteBansWarningListener;
-
     private UpdateTarget updateTarget;
     private UpdateLocalCommand updateLocalCommand;
 
@@ -281,6 +280,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         rankScoreboardManager.setupRankScoreboardTeams();
         rankScoreboardManager.refreshAllRankScoreboardTeams();
 
+        getLogger().info("Discord Chat Bridge : " + DiscordChatBridgeStatus());
+        
         getLogger().info("startup complete! ;)");
     }
 
@@ -297,9 +298,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         if (loginService != null) loginService.shutdown();
 
         try {
-            if (PacketEvents.getAPI() != null) {
-                PacketEvents.getAPI().terminate();
-            }
+            PacketEvents.getAPI().terminate();
         } catch (Throwable t) {
             getLogger().warning("Error terminating PacketEvents: " + t.getMessage());
         }
@@ -377,12 +376,16 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
                     }
                 }
             } catch (SQLException e) {
-                e.printStackTrace();
+                Utils.dump(e, "SQLException");
             }
         });
     }
 
     /* =================== Remaining direct events ==================== */
+
+    public boolean DiscordChatBridgeStatus() {
+        return setDiscordChatBridgeEnabled(false);
+    }
 
     public boolean setDiscordChatBridgeEnabled(boolean enabled) {
         boolean current = isDiscordChatBridgeEnabled();
