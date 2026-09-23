@@ -11,6 +11,7 @@ import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.commands.meta.CommandAliases;
 import org.thesandbox.core.commands.meta.CommandName;
 
+import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.net.URI;
@@ -30,8 +31,9 @@ public final class CommandAutoRegistrar {
             CodeSource src = plugin.getClass().getProtectionDomain().getCodeSource();
             if (src == null) return list;
             URL jarUrl = src.getLocation();
+            URI jarUri = jarUrl.toURI();
             String path = URLDecoder.decode(jarUrl.getPath(), StandardCharsets.UTF_8);
-            try (JarInputStream jis = new JarInputStream(new URI("file", null, path).toURL().openStream())) {
+            try (InputStream is = jarUrl.openStream(); JarInputStream jis = new JarInputStream(is)) {
                 JarEntry e;
                 String pkgPath = COMMANDS_PKG.replace('.', '/') + "/";
                 while ((e = jis.getNextJarEntry()) != null) {
