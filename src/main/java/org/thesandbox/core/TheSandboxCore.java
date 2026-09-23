@@ -384,7 +384,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     /* =================== Remaining direct events ==================== */
 
     public boolean DiscordChatBridgeStatus() {
-        return setDiscordChatBridgeEnabled(false);
+        return setDiscordChatBridgeEnabled(true);
     }
 
     public boolean setDiscordChatBridgeEnabled(boolean enabled) {

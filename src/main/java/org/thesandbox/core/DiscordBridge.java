@@ -1425,7 +1425,7 @@ public class DiscordBridge extends ListenerAdapter
                         case "reported" -> reported = val;
                         case "reason" -> reason = val;
                         case "coordinates" -> {
-                            int[] parsed = parseCoords(val);
+                            int[] parsed = Utils.parseCoords(val);
                             if (parsed != null) { x = parsed[0]; y = parsed[1]; z = parsed[2]; }
                         }
                     }
