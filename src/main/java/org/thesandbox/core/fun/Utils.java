@@ -33,7 +33,7 @@ public class Utils {
         this.playerDataListener = playerDataListener;
     }
 
-    public static void sendASCII() {
+    public static void sendASCII(String msg) {
         String coreArt = """
                   ____  ____  ____  _____
                  /   _\\/  _ \\/  __\\/  __/
@@ -41,6 +41,8 @@ public class Utils {
                  |  \\__| \\_/||    /|  /_\s
                  \\____/\\____/\\_/\\_\\\\____\\
                 \s""";
+
+        String out = coreArt + msg;
         Bukkit.getConsoleSender().sendMessage(coreArt);
     }
 
