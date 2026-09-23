@@ -6,13 +6,14 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
-import org.thesandbox.core.TheSandboxCore;
+import org.jspecify.annotations.NonNull;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.commands.meta.CommandAliases;
 import org.thesandbox.core.commands.meta.CommandName;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -30,8 +31,7 @@ public final class CommandAutoRegistrar {
             if (src == null) return list;
             URL jarUrl = src.getLocation();
             String path = URLDecoder.decode(jarUrl.getPath(), StandardCharsets.UTF_8);
-
-            try (JarInputStream jis = new JarInputStream(new URL("file", null, path).openStream())) {
+            try (JarInputStream jis = new JarInputStream(new URI("file", null, path).toURL().openStream())) {
                 JarEntry e;
                 String pkgPath = COMMANDS_PKG.replace('.', '/') + "/";
                 while ((e = jis.getNextJarEntry()) != null) {
@@ -134,11 +134,6 @@ public final class CommandAutoRegistrar {
             ISubCommand instance = (ISubCommand) constructBest(plugin, clazz, injector);
             if (instance == null) {
                 plugin.getLogger().warning("[CommandAutoRegistrar] Could not construct " + clazz.getName() + " (no suitable constructor).");
-                continue;
-            }
-
-            if (plugin instanceof TheSandboxCore core && core.isSurvival() && !instance.allowed()) {
-                plugin.getLogger().info("[CommandAutoRegistrar] Skipping " + clazz.getSimpleName() + " (not allowed on survival).");
                 continue;
             }
 
@@ -298,7 +293,7 @@ public final class CommandAutoRegistrar {
     // Delegates Bukkit tab completion to ISubCommand#tabComplete for classes that don't implement TabCompleter.
     private record DelegatingTabCompleter(ISubCommand sub) implements TabCompleter {
         @Override
-        public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        public List<String> onTabComplete(@NonNull CommandSender sender, @NonNull Command command, @NonNull String alias, String @NonNull [] args) {
             try {
                 List<String> out = sub.tabComplete(sender, command, alias, args);
                 return (out != null) ? out : Collections.emptyList();
