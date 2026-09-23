@@ -17,8 +17,10 @@ import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.util.PlayerDataListener;
 
 import java.awt.*;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 
 // Built to reduce redundancy
@@ -44,6 +46,14 @@ public class Utils {
 
         String out = coreArt + msg;
         Bukkit.getConsoleSender().sendMessage(coreArt);
+    }
+
+    public static void dump(Throwable t, String msg) {
+        Logger logger = plugin.getLogger();
+        StackTraceElement[] stackTrace = t.getStackTrace();
+        plugin.getLogger().severe("Throwable" + msg + " : " + t);
+        logger.warning("Important" + msg + " : " + t.getMessage() + "\n" + t.getCause().getMessage());
+        logger.severe("StackTrace " + msg + " : " + Arrays.stream(stackTrace));
     }
 
     public static Component legacyserializer(String text) {

@@ -36,7 +36,6 @@ import java.util.List;
 @SuppressWarnings({"SqlNoDataSourceInspection", "SqlResolve"})
 public class TheSandboxCore extends JavaPlugin implements Listener {
 
-    public enum Source { MINECRAFT, DISCORD }
 
     // Core data
     private DataManager dataManager;
@@ -65,13 +64,11 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     private GenericListener genericListener;
 
     private ChatFilterEngine chatFilterEngine;
-
     private PotionSpyService potionSpyService;
-    public PotionSpyService getPotionSpyService() { return potionSpyService; }
-
     private ShushService shushService;
-
     private List<Item> registeredItems = new ArrayList<>();
+
+    // getters
 
     public DiscordBridge getDiscord() {
         return this.discord;
@@ -81,43 +78,51 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         return getConfig().getBoolean("discord.chat-bridge.enabled", true);
     }
 
-    public boolean setDiscordChatBridgeEnabled(boolean enabled) {
-        boolean current = isDiscordChatBridgeEnabled();
-        if (current == enabled) return false;
-        getConfig().set("discord.chat-bridge.enabled", enabled);
-        saveConfig();
-        if (discord != null) {
-            discord.applyChatBridgePermissionState();
-        }
-        return true;
+    public PotionSpyService getPotionSpyService() {
+        return potionSpyService;
     }
-
-
     public List<Item> getRegisteredItems() {
         return this.registeredItems;
     }
-
     public File getPluginFile() {
         return getFile();
     }
-
     public ShushService getShushService() {
         return shushService;
     }
-
-    /* ================== Server Detection  =================== */
     public GuildManager getGuildManager() {
         return guildManager;
     }
-
     public LoginService getLoginService() {
         return loginService;
     }
-
     public CommandBlockManager getCommandBlockManager() {
         return commandBlockManager;
     }
 
+    public DataManager getDataManager() {
+        return dataManager;
+    }
+
+    public LoginMessages getLoginMessages() {
+        return loginMessages;
+    }
+
+    public TagService getTagService() {
+        return tagService;
+    }
+
+    public UpdateLocalCommand getUpdateLocalCommand() {
+        return updateLocalCommand;
+    }
+
+    public GenericListener getGenericListener() {
+        return genericListener;
+    }
+
+    public ChatFilterEngine getChatFilterEngine() {
+        return chatFilterEngine;
+    }
     public RankScoreboardManager getRankScoreboardManager() {
         return rankScoreboardManager;
     }
@@ -159,22 +164,20 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
             PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this));
             PacketEvents.getAPI().load();
         } catch (Throwable t) {
-            getLogger().severe(";( " + "PacketEvents failed to load: " + t);
-            t.printStackTrace();
+            Utils.dump(t, " ): PacketEvents Failed to load!");
         }
         getLogger().info("loaded! ;)");
     }
 
     /* ================== startup / cleanup =================== */
     private void startup() {
+        Utils.sendASCII("Starting TheSandboxCore ...");
         getLogger().info("starting up :)");
-
         try {
             PacketEvents.getAPI().init();
             getLogger().info("PacketEvents initialized successfully");
         } catch (Throwable t) {
-            getLogger().severe("PacketEvents failed to init: " + t);
-            t.printStackTrace();
+            Utils.dump(t, "PacketEvents failed to initialize");
         }
 
         saveDefaultConfig();
@@ -380,6 +383,17 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     }
 
     /* =================== Remaining direct events ==================== */
+
+    public boolean setDiscordChatBridgeEnabled(boolean enabled) {
+        boolean current = isDiscordChatBridgeEnabled();
+        if (current == enabled) return false;
+        getConfig().set("discord.chat-bridge.enabled", enabled);
+        saveConfig();
+        if (discord != null) {
+            discord.applyChatBridgePermissionState();
+        }
+        return true;
+    }
 
     @org.bukkit.event.EventHandler
     public void onJoinLoadLegacyData(org.bukkit.event.player.PlayerJoinEvent event) {
