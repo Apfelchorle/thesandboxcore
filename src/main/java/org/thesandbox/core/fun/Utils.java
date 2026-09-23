@@ -33,6 +33,17 @@ public class Utils {
         this.playerDataListener = playerDataListener;
     }
 
+    public static void sendASCII() {
+        String coreArt = """
+                  ____  ____  ____  _____
+                 /   _\\/  _ \\/  __\\/  __/
+                 |  /  | / \\||  \\/||  \\ \s
+                 |  \\__| \\_/||    /|  /_\s
+                 \\____/\\____/\\_/\\_\\\\____\\
+                \s""";
+        Bukkit.getConsoleSender().sendMessage(coreArt);
+    }
+
     public static Component legacyserializer(String text) {
         if (text.contains("&")) {
             return LegacyComponentSerializer.legacyAmpersand().deserialize(text);

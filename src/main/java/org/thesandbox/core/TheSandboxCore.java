@@ -152,6 +152,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     }
 
     private void load() {
+        Utils.sendASCII();
         getLogger().info("loading.. :)");
         // packet events
         try {
@@ -165,8 +166,6 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     }
 
     /* ================== startup / cleanup =================== */
-    
-
     private void startup() {
         getLogger().info("starting up :)");
 
