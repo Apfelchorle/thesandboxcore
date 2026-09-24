@@ -208,7 +208,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
         this.guildManager = new GuildManager(this);
 
-        this.chatFilterEngine = new ChatFilterEngine(configManager);
+        this.chatFilterEngine = new ChatFilterEngine(configManager, this);
 
         getServer().getPluginManager().registerEvents(new ChatMentionFormatListener(this, chatFilterEngine), this);
         getServer().getPluginManager().registerEvents(new ManageChatListener(manageChatService), this);
@@ -221,7 +221,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         new org.thesandbox.core.tags.TagCleanupListener(this, tagService, guildManager).register();
 
         Bukkit.getPluginManager().registerEvents(this, this);
-        discord = new DiscordBridge(this, this.dataListener);
+        discord = new DiscordBridge(this, this.chatFilterEngine, this.dataListener);
         discord.start();
 
         this.updateLocalCommand = new UpdateLocalCommand(this, discord);

@@ -210,7 +210,7 @@ public class Utils {
         StringBuffer sb = new StringBuffer();
         while (m.find()) {
             String raw = m.group();
-            String url = Utils.trimTrailingUrlPunctuation(raw);
+            String url = trimTrailingUrlPunctuation(raw);
             String trailing = raw.substring(url.length());
             m.appendReplacement(sb, Matcher.quoteReplacement("[Media](" + url + ")" + trailing));
         }

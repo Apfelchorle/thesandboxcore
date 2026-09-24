@@ -9,7 +9,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.thesandbox.core.fun.Utils;
-import org.thesandbox.core.util.RankKeys;
 
 public class ChatFilterListener implements Listener {
 
@@ -22,7 +21,7 @@ public class ChatFilterListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onChat(AsyncChatEvent event) {
         Player sender = event.getPlayer();
-        if (sender.hasPermission(RankKeys.STAFF)) return;
+//        if (sender.hasPermission(RankKeys.STAFF)) return;
 
         String plain = Utils.plainText(event.message());
         ChatFilterEngine.Result result = engine.scan(plain);

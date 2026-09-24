@@ -36,6 +36,7 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.thesandbox.core.discord.model.ReportRecord;
 import org.thesandbox.core.fun.Utils;
+import org.thesandbox.core.listeners.ChatFilterEngine;
 import org.thesandbox.core.listeners.PublicChatBridgeListener;
 import org.thesandbox.core.login.LoginService;
 import org.thesandbox.core.util.HexColorUtil;
@@ -62,6 +63,8 @@ import static org.thesandbox.core.fun.Utils.*;
 public class DiscordBridge extends ListenerAdapter
 {
     private final TheSandboxCore plugin;
+
+    private final ChatFilterEngine chatFilterEngine;
     private JDA jda;
     private final PlayerDataListener playerDataListener;
 
@@ -92,8 +95,10 @@ public class DiscordBridge extends ListenerAdapter
     private final Map<String, Deque<String>> byPlayer = new HashMap<>();
 
     // Constructors
-    public DiscordBridge(TheSandboxCore plugin, PlayerDataListener playerDataListener) {
-        this.plugin = plugin; this.playerDataListener = playerDataListener;
+    public DiscordBridge(TheSandboxCore plugin, ChatFilterEngine chatFilterEngine, PlayerDataListener playerDataListener) {
+        this.plugin = plugin;
+        this.chatFilterEngine = chatFilterEngine;
+        this.playerDataListener = playerDataListener;
     }
 
     public boolean start() {
@@ -175,7 +180,7 @@ public class DiscordBridge extends ListenerAdapter
                 Thread.currentThread().interrupt();
                 log("[JDA] Shutdown wait interrupted.");
             } catch (Exception e) {
-                e.printStackTrace();
+                dump(e, " [JDA] EXCEPTION : ");
             }
         }
         jda = null;
@@ -1151,6 +1156,7 @@ public class DiscordBridge extends ListenerAdapter
             }
 
             String msg = event.getMessage().getContentDisplay();
+            final ChatFilterEngine.Result filterResult = chatFilterEngine.scan(msg);
             final String MESSAGE_TOKEN = "%MESSAGE_TOKEN%";
 
             String outAmpWithToken = template
@@ -1169,27 +1175,41 @@ public class DiscordBridge extends ListenerAdapter
             addEmbedMediaPlaceholders(event.getMessage(), mediaUrls);
 
             if (mediaUrls.isEmpty()) {
-                String outAmpFull = template
+                String formattedBase = template
                         .replace("%role%", roleFormatted)
                         .replace("%roletag%", roleFormatted)
                         .replace("%rolecolor%", roleColorCode == null ? "" : roleColorCode)
                         .replace("%user%", userColored)
-                        .replace("%message%", msg)
                         .replace("  ", " ");
 
+                String uncensoredFull = formattedBase.replace("%message%", msg);
+                String censoredFull = filterResult.triggered ? formattedBase.replace("%message%", filterResult.censoredPlain) : uncensoredFull;
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     for (Player p : Bukkit.getOnlinePlayers()) {
-                        String perViewer = highlightDiscordMentionAmpersand(outAmpFull, p.getName());
-                        boolean ping = !perViewer.equals(outAmpFull);
+                        boolean viewerWantsCensored = filterResult.triggered
+                                && playerDataListener.get(p.getUniqueId(), PlayerDataKeys.CHATFILTER, false);
+
+                        String outAmpFullPerViewer = viewerWantsCensored ? censoredFull : uncensoredFull;
+
+                        String perViewer = highlightDiscordMentionAmpersand(outAmpFullPerViewer, p.getName());
+                        boolean ping = messageMentions(msg, p.getName());
+
                         p.sendMessage(HexColorUtil.translate(perViewer));
                         if (ping) {
-                            try { p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, SoundCategory.MASTER, 1337F, 0.9F); } catch (Throwable ignored) {}
+                            try {
+                                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, SoundCategory.MASTER, 1337F, 0.9F);
+                            } catch (Throwable ignored) {
+                            }
                         }
                     }
                 });
             } else {
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     for (Player p : Bukkit.getOnlinePlayers()) {
+                        boolean viewerWantsCensored = filterResult.triggered
+                                && playerDataListener.get(p.getUniqueId(), PlayerDataKeys.CHATFILTER, false);
+                        String viewerMsg = viewerWantsCensored ? filterResult.censoredPlain : msg;
+
                         String perViewer = highlightDiscordMentionAmpersand(outAmpWithToken, p.getName());
                         int i = perViewer.indexOf(MESSAGE_TOKEN);
                         String before = i >= 0 ? perViewer.substring(0, i) : perViewer;
@@ -1197,7 +1217,7 @@ public class DiscordBridge extends ListenerAdapter
 
                         boolean ping = messageMentions(msg, p.getName());
 
-                        String cleanMsg = stripAllUrls(msg).trim();
+                        String cleanMsg = stripAllUrls(viewerMsg).trim();
                         BaseComponent[] messageComps = cleanMsg.isBlank()
                                 ? new BaseComponent[0]
                                 : legacy(cleanMsg + " ");
