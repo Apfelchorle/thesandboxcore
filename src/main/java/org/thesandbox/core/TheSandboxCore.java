@@ -43,6 +43,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     private DataManager dataManager;
     private PlayerDataListener dataListener;
     private LoginMessages loginMessages;
+    private EntityWiper entityWiper;
 
     // sql
     private LegacySqlStore legacySqlStore;
@@ -185,12 +186,12 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         } catch (Throwable t) {
             Utils.dump(t, "PacketEvents failed to initialize");
         }
-
+        Utils.setPlugin(this);
         saveDefaultConfig();
 
         // entity wiper
-        EntityWiper entityWiper = new EntityWiper(this);
-        entityWiper.start(20L * 60 * AUTO_WIPE_INTERVAL_DEFAULT);
+        this.entityWiper = new EntityWiper(this);
+        this.entityWiper.start(20L * 60 * AUTO_WIPE_INTERVAL_DEFAULT);
         getServer().getPluginManager().registerEvents(entityWiper, this);
         getLogger().info("EntityWiper has been initialized successfully" + " - Interval: " + AUTO_WIPE_INTERVAL_DEFAULT);
 
@@ -301,6 +302,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     private void cleanup() {
         getLogger().info("[cleaning up :)]");
 
+        if (entityWiper != null) entityWiper.stop();
         if (dataListener != null) dataListener.saveAll();
         if (liteBansWarningListener != null) liteBansWarningListener.unregister();
         if (discord != null) discord.stop();

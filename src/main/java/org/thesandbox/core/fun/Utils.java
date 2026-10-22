@@ -38,8 +38,12 @@ public class Utils {
         this.playerDataListener = playerDataListener;
     }
 
+
     public static final Pattern ANY_URL = Pattern.compile("(?i)https?://[^\\s<>()]+", Pattern.CASE_INSENSITIVE);
 
+    public static void setPlugin(TheSandboxCore plugin) {
+        Utils.plugin = plugin;
+    }
     public static void dump(Throwable t, String msg) {
         Logger logger = plugin.getLogger();
         StackTraceElement[] stackTrace = t.getStackTrace();
@@ -49,8 +53,16 @@ public class Utils {
     }
 
     public static void log(String msg) {
-        plugin.getLogger().info("&9" + msg);
+
+        msg = "&9 " + msg;
+
+        if (plugin != null) {
+            plugin.getLogger().info(msg);
+        } else {
+            Bukkit.getLogger().info(msg);
+        }
     }
+
 
     public static Component legacyserializer(String text) {
         if (text.contains("&")) {
