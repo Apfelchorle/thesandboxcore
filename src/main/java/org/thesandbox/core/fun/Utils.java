@@ -34,7 +34,7 @@ public class Utils {
     private static TheSandboxCore plugin;
 
     public Utils(TheSandboxCore plugin, PlayerDataListener playerDataListener) {
-        Utils.plugin = plugin;
+        this.plugin = plugin;
         this.playerDataListener = playerDataListener;
     }
 
