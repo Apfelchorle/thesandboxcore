@@ -54,8 +54,6 @@ public class Utils {
 
     public static void log(String msg) {
 
-        msg = "&9 " + msg;
-
         if (plugin != null) {
             plugin.getLogger().info(msg);
         } else {
