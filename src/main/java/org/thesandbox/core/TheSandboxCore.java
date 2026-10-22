@@ -33,6 +33,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.thesandbox.core.services.EntityWiper.AUTO_WIPE_INTERVAL_DEFAULT;
+
 @SuppressWarnings({"SqlNoDataSourceInspection", "SqlResolve"}) // to stop gay errors
 public class TheSandboxCore extends JavaPlugin implements Listener {
 
@@ -67,6 +69,9 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     private ShushService shushService;
     private List<Item> registeredItems = new ArrayList<>();
 
+    private PluginConfigManager pluginConfigManager;
+
+
     // getters
 
     public DiscordBridge getDiscord() {
@@ -86,6 +91,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     public File getPluginFile() {
         return getFile();
     }
+
+    public PluginConfigManager getPluginConfigManager() { return pluginConfigManager; }
     public ShushService getShushService() {
         return shushService;
     }
@@ -180,6 +187,11 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         }
 
         saveDefaultConfig();
+
+        // entity wiper
+        EntityWiper entityWiper = new EntityWiper(this);
+        entityWiper.start(20L * 60 * AUTO_WIPE_INTERVAL_DEFAULT);
+        getServer().getPluginManager().registerEvents(entityWiper, this);
 
         legacySqlStore = new LegacySqlStore(this);
         legacySqlStore.setup();
@@ -281,7 +293,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         rankScoreboardManager.refreshAllRankScoreboardTeams();
 
         getLogger().info("Discord Chat Bridge : " + DiscordChatBridgeStatus());
-        
+
         getLogger().info("startup complete! ;)");
     }
 
