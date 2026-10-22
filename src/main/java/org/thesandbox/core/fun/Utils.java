@@ -48,6 +48,10 @@ public class Utils {
         logger.severe("StackTrace " + msg + " : " + Arrays.stream(stackTrace));
     }
 
+    public static void log(String msg) {
+        plugin.getLogger().info("&9" + msg);
+    }
+
     public static Component legacyserializer(String text) {
         if (text.contains("&")) {
             return LegacyComponentSerializer.legacyAmpersand().deserialize(text);

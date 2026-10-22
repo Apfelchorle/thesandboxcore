@@ -14,6 +14,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
+import org.thesandbox.core.fun.Utils;
 
 public class EntityWiper implements org.bukkit.event.Listener
 {
@@ -49,6 +50,7 @@ public class EntityWiper implements org.bukkit.event.Listener
 
     public void start(long intervalTicks)
     {
+        Utils.log("entitywiper started!");
         stop();
 
         wipeTask = Bukkit.getScheduler().runTaskTimer(
@@ -66,6 +68,7 @@ public class EntityWiper implements org.bukkit.event.Listener
             wipeTask.cancel();
             wipeTask = null;
         }
+        Utils.log("entitywiper stopped!");
     }
 
     public boolean isWipeable(Entity entity)
@@ -89,7 +92,7 @@ public class EntityWiper implements org.bukkit.event.Listener
         {
             removed += wipeEntities(world, force);
         }
-
+        Utils.log("entitywiper removed " + removed + " entities");
         return removed;
     }
 
@@ -147,7 +150,7 @@ public class EntityWiper implements org.bukkit.event.Listener
                 entity.remove();
             }
         }
-
+        Utils.log("entitywiper removed " + removed + " entities");
         return removed;
     }
 
