@@ -56,7 +56,7 @@ public class ChatFilterEngine {
         if (!triggered) {
             return new Result(false, plain, plain, null, detectedBadWords);
         }
-        String censoredPlain = pattern.matcher(plain).replaceAll("&4****");
+        String censoredPlain = pattern.matcher(plain).replaceAll("&4****&r");
         Component censored = buildCensoredComponent(plain, pattern, detectedBadWords);
         return new Result(true, plain, censoredPlain, censored, detectedBadWords);
     }

@@ -61,6 +61,12 @@ public class Utils {
         }
     }
 
+    public static void mlog(String[] messages) {
+        for  (String message : messages) {
+            log("\n" + message);
+        }
+    }
+
 
     public static Component legacyserializer(String text) {
         if (text.contains("&")) {

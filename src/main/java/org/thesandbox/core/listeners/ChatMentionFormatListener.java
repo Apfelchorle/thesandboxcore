@@ -56,9 +56,7 @@ public class ChatMentionFormatListener implements Listener
         final Component originalComponent = event.message();
         final String rawText = Utils.plainText(originalComponent);
 
-        final ChatFilterEngine.Result filterResult = sender.hasPermission("sandbox.staff")
-                ? null
-                : chatFilterEngine.scan(rawText);
+        final ChatFilterEngine.Result filterResult = chatFilterEngine.scan(rawText);
 
         // Guild chat toggle: route through GuildManager so /gchat and toggled chat share formatting, spies, and console logging.
         var guilds = core.getGuildManager();
@@ -119,7 +117,7 @@ public class ChatMentionFormatListener implements Listener
                 Component viewerBody = baseBodyComponent;
 
                 if (filterResult != null && filterResult.triggered) {
-                    boolean viewerWantsCensored = core.getDataListener() // however you expose PlayerDataListener from core
+                    boolean viewerWantsCensored = core.getDataListener()
                             .get(viewer.getUniqueId(), PlayerDataKeys.CHATFILTER, true);
                     if (viewerWantsCensored) {
                         viewerBody = filterResult.censoredComponent;

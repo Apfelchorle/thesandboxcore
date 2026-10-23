@@ -190,10 +190,10 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         saveDefaultConfig();
 
         // entity wiper
-        this.entityWiper = new EntityWiper(this);
-        this.entityWiper.start(20L * 60 * AUTO_WIPE_INTERVAL_DEFAULT);
-        getServer().getPluginManager().registerEvents(entityWiper, this);
-        getLogger().info("EntityWiper has been initialized successfully" + " - Interval: " + AUTO_WIPE_INTERVAL_DEFAULT);
+//        this.entityWiper = new EntityWiper(this);
+//        this.entityWiper.start(20L * 60 * AUTO_WIPE_INTERVAL_DEFAULT);
+//        getServer().getPluginManager().registerEvents(entityWiper, this);
+//        getLogger().info("EntityWiper has been initialized successfully" + " - Interval: " + AUTO_WIPE_INTERVAL_DEFAULT);
 
         legacySqlStore = new LegacySqlStore(this);
         legacySqlStore.setup();

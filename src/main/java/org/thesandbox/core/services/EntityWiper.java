@@ -1,10 +1,5 @@
 package org.thesandbox.core.services;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.World;
@@ -15,6 +10,8 @@ import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.thesandbox.core.fun.Utils;
+
+import java.util.*;
 
 public class EntityWiper implements org.bukkit.event.Listener
 {
