@@ -4,6 +4,11 @@ public final class PlayerDataKeys {
 
     private PlayerDataKeys() {}
 
+    // player
+    public static final String FIRST_TIME_JOINING = "FirstTimeJoining";
+
+    // stuff
+
     public static final String COINS = "coins";
     public static final String JUMPPADS_MODE = "jumppadmode";
     public static final String LOGIN_MESSAGE = "LoginMessage";

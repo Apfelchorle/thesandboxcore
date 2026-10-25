@@ -1,5 +1,7 @@
 package org.thesandbox.core.util;
 
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPlayerInfo.PlayerData;
+import java.util.*;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -8,12 +10,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
-import java.util.*;
-
 public class PlayerDataListener implements Listener {
 
     private final DataManager dataManager;
     private final Map<UUID, Map<String, Object>> playerCache = new HashMap<>();
+
     public PlayerDataListener(DataManager dataManager) {
         this.dataManager = dataManager;
     }
@@ -21,6 +22,9 @@ public class PlayerDataListener implements Listener {
     private static final Map<String, Object> DEFAULTS = new LinkedHashMap<>();
 
     static {
+        // player states
+        DEFAULTS.put(PlayerDataKeys.FIRST_TIME_JOINING, true);
+
         // Coins Balance
         DEFAULTS.put(PlayerDataKeys.COINS, 0);
 
@@ -50,7 +54,9 @@ public class PlayerDataListener implements Listener {
 
     private Map<String, Object> loadFromDisk(UUID uuid) {
         Map<String, Object> data = new HashMap<>();
-        DEFAULTS.forEach((key, defaultValue) -> data.put(key, dataManager.loadData(uuid, key, defaultValue)));
+        DEFAULTS.forEach((key, defaultValue) ->
+            data.put(key, dataManager.loadData(uuid, key, defaultValue))
+        );
         return data;
     }
 
@@ -83,7 +89,9 @@ public class PlayerDataListener implements Listener {
         for (UUID uuid : new HashSet<>(playerCache.keySet())) {
             Map<String, Object> data = playerCache.get(uuid);
             if (data != null) {
-                data.forEach((key, value) -> dataManager.saveData(uuid, key, value));
+                data.forEach((key, value) ->
+                    dataManager.saveData(uuid, key, value)
+                );
             }
         }
     }
@@ -114,8 +122,16 @@ public class PlayerDataListener implements Listener {
     }
 
     public void Marry(Player Issuer, Player reciever) {
-        set(Issuer.getUniqueId(), PlayerDataKeys.MARRIAGE_SPOUSE, reciever.getName());
-        set(reciever.getUniqueId(), PlayerDataKeys.MARRIAGE_SPOUSE, Issuer.getName());
+        set(
+            Issuer.getUniqueId(),
+            PlayerDataKeys.MARRIAGE_SPOUSE,
+            reciever.getName()
+        );
+        set(
+            reciever.getUniqueId(),
+            PlayerDataKeys.MARRIAGE_SPOUSE,
+            Issuer.getName()
+        );
         set(reciever.getUniqueId(), PlayerDataKeys.MARRIAGE_STATUS, "Married");
         set(Issuer.getUniqueId(), PlayerDataKeys.MARRIAGE_STATUS, "Married");
     }
@@ -157,6 +173,4 @@ public class PlayerDataListener implements Listener {
     public void setCoins(UUID uuid, int amount) {
         set(uuid, PlayerDataKeys.COINS, amount);
     }
-
-
 }
