@@ -48,11 +48,7 @@ public class UpdateLocalCommand implements ISubCommand {
             return true;
         }
         // part of Commands Rewrite [Testing Phase]
-        CommandCenter.request(
-            command.getName(),
-            sender,
-            LoginService.Rank.OPERATOR
-        );
+        CommandCenter.request(command, sender, LoginService.Rank.OPERATOR);
 
         List<UpdateTarget> targets = loadTargets();
 

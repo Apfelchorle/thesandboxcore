@@ -20,6 +20,11 @@ softdepend:
 loadbefore: [Essentials, EssentialsX, WorldGuard]
 
 commands:
+  slowrestart:
+    description: duh
+
+  devtest:
+    description: Devtest Duh
 
   chatfilter:
     description: Toggles ChatFilter
@@ -111,16 +116,16 @@ commands:
     aliases: [push]
 
   mobpurge:
-     description: Despawn mobs in all worlds
-     usage: /mobpurge [name]
-     permission: sandbox.staff
-     aliases: [mp]
+    description: Despawn mobs in all worlds
+    usage: /mobpurge [name]
+    permission: sandbox.staff
+    aliases: [mp]
 
   plugincontrol:
-     description: (DEBUG) Enable, disable, reload, or list plugins.
-     usage: "/plugincontrol <enable|disable|reload> <plugin> | list"
-     aliases: [plc]
-     permission: sandbox.superuser
+    description: (DEBUG) Enable, disable, reload, or list plugins.
+    usage: "/plugincontrol <enable|disable|reload> <plugin> | list"
+    aliases: [plc]
+    permission: sandbox.superuser
 
   freeze:
     description: Toggle global or per-player freeze
@@ -182,7 +187,7 @@ commands:
     description: Teleport to spawn point for current world instead of Essentials spawn
     usage: /localspawn
     permission: sandbox.default
-    aliases: [worldspawn,gotospawn]
+    aliases: [worldspawn, gotospawn]
 
   glow:
     description: Toggle the glowing outline effect for your player
@@ -208,7 +213,7 @@ commands:
     description: Mute or clear public chat.
     usage: /managechat <mute|clear|forceclear>
     permission: sandbox.staff
-    aliases: [mchat,chc,mc,chatcontrol]
+    aliases: [mchat, chc, mc, chatcontrol]
 
   debugstick:
     description: Obtain a Debug Stick
@@ -229,7 +234,6 @@ commands:
   gtfo:
     description: Ban Said Player For 24h
     permission: sandbox.staff
-
 
   denick:
     description: Remove all online nicknames
@@ -262,7 +266,7 @@ commands:
     description: Clear your inventory, others' inventory, or everyone's inventory
     usage: /clearinventory <player|all>
     permission: sandbox.default
-    aliases: [clearinv,ci,cinv]
+    aliases: [clearinv, ci, cinv]
 
   adventure:
     description: Change your gamemode to adventure or set another's.
@@ -381,7 +385,7 @@ commands:
   marry:
     description: Marriage.
     permission: sandbox.default
-    aliases: [marriage,]
+    aliases: [marriage]
 
   masterbuilderworld:
     description: Teleport to the masterbuilderworld.

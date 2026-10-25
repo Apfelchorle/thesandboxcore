@@ -23,11 +23,7 @@ public class DevTestCommand implements ISubCommand {
         String[] args
     ) {
         if (
-            CommandCenter.request(
-                command.getName(),
-                sender,
-                LoginService.Rank.OPERATOR
-            )
+            CommandCenter.request(command, sender, LoginService.Rank.OPERATOR)
         ) {
             Utils.mlog("Bleep Bloop Command Worked!");
             passedTest(sender);

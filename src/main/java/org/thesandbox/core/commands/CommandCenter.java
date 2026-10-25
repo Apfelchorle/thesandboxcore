@@ -1,6 +1,7 @@
 package org.thesandbox.core.commands;
 
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
@@ -18,12 +19,13 @@ public class CommandCenter {
     public CommandCenter() {}
 
     public static boolean request(
-        String command,
+        Command command,
         CommandSender sender,
         LoginService.Rank requiredRank
     ) {
+        String command_name = command.getName();
         Utils.mlog(
-            "-command: " + command,
+            "-command: " + command_name,
             "-CommandSender: " + sender,
             plugin.getName()
         );
