@@ -213,7 +213,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         legacySqlStore = new LegacySqlStore(this);
         legacySqlStore.setup();
 
-        PluginConfigManager configManager = new PluginConfigManager(this);
+        this.pluginConfigManager = new PluginConfigManager(this);
+        PluginConfigManager configManager = this.pluginConfigManager;
 
         this.dataManager = new DataManager(this);
         this.dataListener = new PlayerDataListener(dataManager);
