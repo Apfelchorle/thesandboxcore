@@ -1,8 +1,17 @@
 package org.thesandbox.core;
 
+import static org.thesandbox.core.services.EntityWiper.AUTO_WIPE_INTERVAL_DEFAULT;
+
 import com.github.retrooper.packetevents.PacketEvents;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 import io.papermc.paper.event.player.AsyncChatEvent;
+import java.io.File;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -11,6 +20,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.Admin.UpdateLocalCommand;
+import org.thesandbox.core.commands.CommandCenter;
 import org.thesandbox.core.commands.CommandManager;
 import org.thesandbox.core.fun.LoginMessages;
 import org.thesandbox.core.fun.Utils;
@@ -25,19 +35,14 @@ import org.thesandbox.core.services.*;
 import org.thesandbox.core.tags.TagService;
 import org.thesandbox.core.util.*;
 
-import java.io.File;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.thesandbox.core.services.EntityWiper.AUTO_WIPE_INTERVAL_DEFAULT;
-
-@SuppressWarnings({"SqlNoDataSourceInspection", "SqlResolve"}) // to stop gay errors
+@SuppressWarnings({ "SqlNoDataSourceInspection", "SqlResolve" }) // to stop gay errors
 public class TheSandboxCore extends JavaPlugin implements Listener {
 
+    private static TheSandboxCore instance;
+
+    public static TheSandboxCore getInstance() {
+        return instance;
+    }
 
     // Core
     private DataManager dataManager;
@@ -71,10 +76,9 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     private List<Item> registeredItems = new ArrayList<>();
 
     private PluginConfigManager pluginConfigManager;
-
+    private CommandCenter commandCenter;
 
     // getters
-
     public DiscordBridge getDiscord() {
         return this.discord;
     }
@@ -86,23 +90,31 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     public PotionSpyService getPotionSpyService() {
         return potionSpyService;
     }
+
     public List<Item> getRegisteredItems() {
         return this.registeredItems;
     }
+
     public File getPluginFile() {
         return getFile();
     }
 
-    public PluginConfigManager getPluginConfigManager() { return pluginConfigManager; }
+    public PluginConfigManager getPluginConfigManager() {
+        return pluginConfigManager;
+    }
+
     public ShushService getShushService() {
         return shushService;
     }
+
     public GuildManager getGuildManager() {
         return guildManager;
     }
+
     public LoginService getLoginService() {
         return loginService;
     }
+
     public CommandBlockManager getCommandBlockManager() {
         return commandBlockManager;
     }
@@ -130,6 +142,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     public ChatFilterEngine getChatFilterEngine() {
         return chatFilterEngine;
     }
+
     public RankScoreboardManager getRankScoreboardManager() {
         return rankScoreboardManager;
     }
@@ -141,6 +154,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     public PlayerDataListener getDataListener() {
         return dataListener;
     }
+
     public CommandSpyManager getCommandSpyManager() {
         return commandSpyManager;
     }
@@ -164,6 +178,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     }
 
     private void load() {
+        instance = this;
         Utils.sendASCII("Loading TheSandboxCore ...");
         getLogger().info("loading.. :)");
         // packet events
@@ -190,10 +205,10 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         saveDefaultConfig();
 
         // entity wiper
-//        this.entityWiper = new EntityWiper(this);
-//        this.entityWiper.start(20L * 60 * AUTO_WIPE_INTERVAL_DEFAULT);
-//        getServer().getPluginManager().registerEvents(entityWiper, this);
-//        getLogger().info("EntityWiper has been initialized successfully" + " - Interval: " + AUTO_WIPE_INTERVAL_DEFAULT);
+        //        this.entityWiper = new EntityWiper(this);
+        //        this.entityWiper.start(20L * 60 * AUTO_WIPE_INTERVAL_DEFAULT);
+        //        getServer().getPluginManager().registerEvents(entityWiper, this);
+        //        getLogger().info("EntityWiper has been initialized successfully" + " - Interval: " + AUTO_WIPE_INTERVAL_DEFAULT);
 
         legacySqlStore = new LegacySqlStore(this);
         legacySqlStore.setup();
@@ -208,15 +223,28 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         getServer().getPluginManager().registerEvents(this.loginMessages, this);
 
         ItemKeys itemKeys = new ItemKeys(this);
-        this.registeredItems = ItemAutoRegistrar.registerAll(this, itemKeys, dataListener, loginMessages, configManager);
+        this.registeredItems = ItemAutoRegistrar.registerAll(
+            this,
+            itemKeys,
+            dataListener,
+            loginMessages,
+            configManager
+        );
 
         loginService = new LoginService(this);
         loginService.init();
 
         rankScoreboardManager = new RankScoreboardManager(loginService);
         commandBlockManager = new CommandBlockManager();
-        commandSpyManager = new CommandSpyManager(this, () -> legacySqlStore.getDataSource());
-        staffChatManager = new StaffChatManager(this, () -> legacySqlStore.getDataSource(), () -> shushService, () -> discord);
+        commandSpyManager = new CommandSpyManager(this, () ->
+            legacySqlStore.getDataSource()
+        );
+        staffChatManager = new StaffChatManager(
+            this,
+            () -> legacySqlStore.getDataSource(),
+            () -> shushService,
+            () -> discord
+        );
 
         ManageChatService manageChatService = new ManageChatService(this);
 
@@ -224,49 +252,103 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
         this.chatFilterEngine = new ChatFilterEngine(configManager, this);
 
-        getServer().getPluginManager().registerEvents(new ChatMentionFormatListener(this, chatFilterEngine), this);
-        getServer().getPluginManager().registerEvents(new ManageChatListener(manageChatService), this);
+        getServer()
+            .getPluginManager()
+            .registerEvents(
+                new ChatMentionFormatListener(this, chatFilterEngine),
+                this
+            );
+        getServer()
+            .getPluginManager()
+            .registerEvents(new ManageChatListener(manageChatService), this);
 
         AutoTpService autoTpService = new AutoTpService(this);
-        getServer().getPluginManager().registerEvents(new AutoTpListener(this, autoTpService), this);
+        getServer()
+            .getPluginManager()
+            .registerEvents(new AutoTpListener(this, autoTpService), this);
 
         this.tagService = new TagService(this);
         this.tagService.init();
-        new org.thesandbox.core.tags.TagCleanupListener(this, tagService, guildManager).register();
+        new org.thesandbox.core.tags.TagCleanupListener(
+            this,
+            tagService,
+            guildManager
+        ).register();
 
         Bukkit.getPluginManager().registerEvents(this, this);
-        discord = new DiscordBridge(this, this.chatFilterEngine, this.dataListener);
+        discord = new DiscordBridge(
+            this,
+            this.chatFilterEngine,
+            this.dataListener
+        );
         discord.start();
 
         this.updateLocalCommand = new UpdateLocalCommand(this, discord);
 
         AutoClearService autoClearService = new AutoClearService();
-        getServer().getPluginManager().registerEvents(new AutoClearListener(autoClearService), this);
+        getServer()
+            .getPluginManager()
+            .registerEvents(new AutoClearListener(autoClearService), this);
 
-        this.potionSpyService = new PotionSpyService(this, legacySqlStore.getDataSource());
-        getServer().getPluginManager().registerEvents(this.potionSpyService, this);
+        this.potionSpyService = new PotionSpyService(
+            this,
+            legacySqlStore.getDataSource()
+        );
+        getServer()
+            .getPluginManager()
+            .registerEvents(this.potionSpyService, this);
 
-        this.shushService = new ShushService(this, legacySqlStore.getDataSource());
-        getServer().getPluginManager().registerEvents(new ShushListener(this), this);
+        this.shushService = new ShushService(
+            this,
+            legacySqlStore.getDataSource()
+        );
+        getServer()
+            .getPluginManager()
+            .registerEvents(new ShushListener(this), this);
 
         this.liteBansWarningListener = new LiteBansWarningListener(this);
         this.liteBansWarningListener.register();
 
         // chat filter
-        getServer().getPluginManager().registerEvents(new ChatFilterListener(chatFilterEngine), this);
+        getServer()
+            .getPluginManager()
+            .registerEvents(new ChatFilterListener(chatFilterEngine), this);
 
         this.genericListener = new GenericListener(configManager);
-        getServer().getPluginManager().registerEvents(this.genericListener, this);
+        getServer()
+            .getPluginManager()
+            .registerEvents(this.genericListener, this);
 
         // Join/leave + vanish behavior (extracted)
-        getServer().getPluginManager().registerEvents(
-                new JoinLeaveListener(this, dataListener, loginMessages, rankScoreboardManager, shushService), this);
+        getServer()
+            .getPluginManager()
+            .registerEvents(
+                new JoinLeaveListener(
+                    this,
+                    dataListener,
+                    loginMessages,
+                    rankScoreboardManager,
+                    shushService
+                ),
+                this
+            );
 
         // Command-block / commandspy / tpo-archive on every command (extracted)
-        getServer().getPluginManager().registerEvents(
-                new CommandPreListener(this, commandBlockManager, commandSpyManager, () -> shushService, () -> discord), this);
+        getServer()
+            .getPluginManager()
+            .registerEvents(
+                new CommandPreListener(
+                    this,
+                    commandBlockManager,
+                    commandSpyManager,
+                    () -> shushService,
+                    () -> discord
+                ),
+                this
+            );
 
-        List<Object> commandServices = new ArrayList<>(List.of(
+        List<Object> commandServices = new ArrayList<>(
+            List.of(
                 tagService,
                 loginService,
                 autoClearService,
@@ -286,7 +368,8 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
                 rankScoreboardManager,
                 staffChatManager,
                 commandSpyManager
-        ));
+            )
+        );
 
         commandServices.addAll(this.registeredItems);
         CommandAutoRegistrar.registerAll(this, commandServices.toArray());
@@ -304,7 +387,9 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
         if (entityWiper != null) entityWiper.stop();
         if (dataListener != null) dataListener.saveAll();
-        if (liteBansWarningListener != null) liteBansWarningListener.unregister();
+        if (
+            liteBansWarningListener != null
+        ) liteBansWarningListener.unregister();
         if (discord != null) discord.stop();
         if (guildManager != null) {
             guildManager.save();
@@ -315,16 +400,19 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         try {
             PacketEvents.getAPI().terminate();
         } catch (Throwable t) {
-            getLogger().warning("Error terminating PacketEvents: " + t.getMessage());
+            getLogger().warning(
+                "Error terminating PacketEvents: " + t.getMessage()
+            );
         }
 
         if (legacySqlStore != null) legacySqlStore.close();
 
-        registeredItems.stream()
-                .filter(item -> item instanceof FloatBoatItem)
-                .map(item -> (FloatBoatItem) item)
-                .findFirst()
-                .ifPresent(FloatBoatItem::cleanup);
+        registeredItems
+            .stream()
+            .filter(item -> item instanceof FloatBoatItem)
+            .map(item -> (FloatBoatItem) item)
+            .findFirst()
+            .ifPresent(FloatBoatItem::cleanup);
 
         getLogger().info("clean up complete! have a nice day! ;)");
     }
@@ -349,14 +437,24 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
             try (Connection conn = dataSource.getConnection()) {
                 // CommandSpy
-                try (PreparedStatement ps = conn.prepareStatement("SELECT enabled FROM commandspy WHERE uuid=?")) {
+                try (
+                    PreparedStatement ps = conn.prepareStatement(
+                        "SELECT enabled FROM commandspy WHERE uuid=?"
+                    )
+                ) {
                     ps.setString(1, player.getUniqueId().toString());
                     ResultSet rs = ps.executeQuery();
                     if (rs.next()) {
-                        commandSpyManager.applyLoadedState(player.getUniqueId(), rs.getBoolean("enabled"));
+                        commandSpyManager.applyLoadedState(
+                            player.getUniqueId(),
+                            rs.getBoolean("enabled")
+                        );
                     } else {
-                        try (PreparedStatement ins = conn.prepareStatement(
-                                "INSERT INTO commandspy (uuid, enabled) VALUES (?, ?)")) {
+                        try (
+                            PreparedStatement ins = conn.prepareStatement(
+                                "INSERT INTO commandspy (uuid, enabled) VALUES (?, ?)"
+                            )
+                        ) {
                             ins.setString(1, player.getUniqueId().toString());
                             ins.setBoolean(2, true);
                             ins.executeUpdate();
@@ -365,25 +463,44 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
                 }
 
                 // StaffChat (speak + hidden)
-                try (PreparedStatement ps = conn.prepareStatement("SELECT enabled, hidden FROM staffchat WHERE uuid=?")) {
+                try (
+                    PreparedStatement ps = conn.prepareStatement(
+                        "SELECT enabled, hidden FROM staffchat WHERE uuid=?"
+                    )
+                ) {
                     ps.setString(1, player.getUniqueId().toString());
                     ResultSet rs = ps.executeQuery();
                     if (rs.next()) {
                         boolean enabled = rs.getBoolean("enabled");
                         boolean hidden = false;
-                        try { hidden = rs.getBoolean("hidden"); } catch (SQLException ignore) {}
-                        staffChatManager.applyLoadedState(player.getUniqueId(), enabled, hidden);
+                        try {
+                            hidden = rs.getBoolean("hidden");
+                        } catch (SQLException ignore) {}
+                        staffChatManager.applyLoadedState(
+                            player.getUniqueId(),
+                            enabled,
+                            hidden
+                        );
                     } else {
-                        try (PreparedStatement ins = conn.prepareStatement(
-                                "INSERT INTO staffchat (uuid, enabled, hidden) VALUES (?, ?, ?)")) {
+                        try (
+                            PreparedStatement ins = conn.prepareStatement(
+                                "INSERT INTO staffchat (uuid, enabled, hidden) VALUES (?, ?, ?)"
+                            )
+                        ) {
                             ins.setString(1, player.getUniqueId().toString());
                             ins.setBoolean(2, false);
                             ins.setBoolean(3, false);
                             ins.executeUpdate();
                         } catch (SQLException fallback) {
-                            try (PreparedStatement ins2 = conn.prepareStatement(
-                                    "INSERT INTO staffchat (uuid, enabled) VALUES (?, ?)")) {
-                                ins2.setString(1, player.getUniqueId().toString());
+                            try (
+                                PreparedStatement ins2 = conn.prepareStatement(
+                                    "INSERT INTO staffchat (uuid, enabled) VALUES (?, ?)"
+                                )
+                            ) {
+                                ins2.setString(
+                                    1,
+                                    player.getUniqueId().toString()
+                                );
                                 ins2.setBoolean(2, false);
                                 ins2.executeUpdate();
                             }
@@ -414,7 +531,9 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     }
 
     @org.bukkit.event.EventHandler
-    public void onJoinLoadLegacyData(org.bukkit.event.player.PlayerJoinEvent event) {
+    public void onJoinLoadLegacyData(
+        org.bukkit.event.player.PlayerJoinEvent event
+    ) {
         loadPlayer(event.getPlayer());
     }
 
@@ -425,7 +544,12 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
             event.setCancelled(true);
 
             if (staffChatManager.isStaffChatHidden(p.getUniqueId())) {
-                p.sendMessage(Component.text("You cannot talk in staff chat while it is hidden. Use /staffchat hide off.", NamedTextColor.DARK_RED));
+                p.sendMessage(
+                    Component.text(
+                        "You cannot talk in staff chat while it is hidden. Use /staffchat hide off.",
+                        NamedTextColor.DARK_RED
+                    )
+                );
                 return;
             }
 
@@ -433,7 +557,14 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
             String msg = Utils.plainText(event.message());
 
             Bukkit.getScheduler().runTask(this, () ->
-                    staffChatManager.broadcastStaffChat(name, msg, "", "", StaffChatManager.Source.MINECRAFT));
+                staffChatManager.broadcastStaffChat(
+                    name,
+                    msg,
+                    "",
+                    "",
+                    StaffChatManager.Source.MINECRAFT
+                )
+            );
         }
     }
 }
