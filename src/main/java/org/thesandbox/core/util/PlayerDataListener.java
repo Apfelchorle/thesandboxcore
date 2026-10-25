@@ -1,37 +1,37 @@
 package org.thesandbox.core.util;
 
-import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerPlayerInfo.PlayerData;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+
+import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.thesandbox.core.TheSandboxCore;
 
 public class PlayerDataListener implements Listener {
 
+    private final TheSandboxCore plugin;
     private final DataManager dataManager;
-    private final Map<UUID, Map<String, Object>> playerCache = new HashMap<>();
+    private final Map<UUID, Map<String, Object>> playerCache =
+        new ConcurrentHashMap<>();
 
-    public PlayerDataListener(DataManager dataManager) {
+    public PlayerDataListener(TheSandboxCore plugin, DataManager dataManager) {
+        this.plugin = plugin;
         this.dataManager = dataManager;
     }
 
     private static final Map<String, Object> DEFAULTS = new LinkedHashMap<>();
 
     static {
-        // player states
         DEFAULTS.put(PlayerDataKeys.FIRST_TIME_JOINING, true);
-
-        // Coins Balance
         DEFAULTS.put(PlayerDataKeys.COINS, 0);
-
-        // JumpPad State
         DEFAULTS.put(PlayerDataKeys.JUMPPADS_MODE, "disabled");
-
-        // item ownership
         DEFAULTS.put(PlayerDataKeys.LIGHTNING_ROD, "not_owned");
         DEFAULTS.put(PlayerDataKeys.LOGIN_MESSAGE, "");
         DEFAULTS.put(PlayerDataKeys.LOGIN_MESSAGES_STATE, "not_owned");
@@ -41,29 +41,22 @@ public class PlayerDataListener implements Listener {
         DEFAULTS.put(PlayerDataKeys.Stacking_Potato, "not_owned");
         DEFAULTS.put(PlayerDataKeys.WIND_ROD, "not_owned");
         DEFAULTS.put(PlayerDataKeys.FLOAT_BOAT, "not_owned");
-
-        // marriage
-        DEFAULTS.put(PlayerDataKeys.MARRIAGE_SPOUSE, "");
         DEFAULTS.put(PlayerDataKeys.MARRIAGE_STATUS, "Single");
+        DEFAULTS.put(PlayerDataKeys.MARRIAGE_SPOUSE, "");
         DEFAULTS.put(PlayerDataKeys.GENDER, "male");
-
-        // staff
         DEFAULTS.put(PlayerDataKeys.VANISHED, false);
         DEFAULTS.put(PlayerDataKeys.CHATFILTER, true);
     }
 
-    private Map<String, Object> loadFromDisk(UUID uuid) {
-        Map<String, Object> data = new HashMap<>();
-        DEFAULTS.forEach((key, defaultValue) ->
-            data.put(key, dataManager.loadData(uuid, key, defaultValue))
-        );
-        return data;
-    }
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onAsyncLogin(AsyncPlayerPreLoginEvent event) {
+        if (
+            event.getLoginResult() != AsyncPlayerPreLoginEvent.Result.ALLOWED
+        ) return;
 
-    @EventHandler
-    public void onPlayerJoin(PlayerJoinEvent event) {
-        UUID uuid = event.getPlayer().getUniqueId();
-        playerCache.put(uuid, loadFromDisk(uuid));
+        UUID uuid = event.getUniqueId();
+        Map<String, Object> data = dataManager.loadAllData(uuid, DEFAULTS);
+        playerCache.put(uuid, new ConcurrentHashMap<>(data));
     }
 
     @EventHandler
@@ -73,25 +66,18 @@ public class PlayerDataListener implements Listener {
         Map<String, Object> data = playerCache.remove(uuid);
         if (data == null) return;
 
-        data.forEach((key, value) -> dataManager.saveData(uuid, key, value));
-    }
+        Map<String, Object> snapshot = new HashMap<>(data);
 
-    public void loadAll() {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            UUID uuid = player.getUniqueId();
-            if (!playerCache.containsKey(uuid)) {
-                playerCache.put(uuid, loadFromDisk(uuid));
-            }
-        }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            dataManager.saveAllData(uuid, snapshot);
+        });
     }
 
     public void saveAll() {
         for (UUID uuid : new HashSet<>(playerCache.keySet())) {
             Map<String, Object> data = playerCache.get(uuid);
             if (data != null) {
-                data.forEach((key, value) ->
-                    dataManager.saveData(uuid, key, value)
-                );
+                dataManager.saveAllData(uuid, new HashMap<>(data));
             }
         }
     }
@@ -108,69 +94,62 @@ public class PlayerDataListener implements Listener {
     }
 
     public void set(UUID uuid, String key, Object value) {
-        playerCache.computeIfAbsent(uuid, k -> new HashMap<>()).put(key, value);
+        playerCache
+            .computeIfAbsent(uuid, k -> new ConcurrentHashMap<>())
+            .put(key, value);
     }
 
-    // shortcuts for repetitive tasks:
-
-    public String getMarriageStatus(UUID uuid) {
-        return get(uuid, PlayerDataKeys.MARRIAGE_STATUS, "Single");
-    }
-
-    public String getMarriageSpouse(UUID uuid) {
-        return get(uuid, PlayerDataKeys.MARRIAGE_SPOUSE, "");
-    }
-
-    public void Marry(Player Issuer, Player reciever) {
-        set(
-            Issuer.getUniqueId(),
-            PlayerDataKeys.MARRIAGE_SPOUSE,
-            reciever.getName()
-        );
-        set(
-            reciever.getUniqueId(),
-            PlayerDataKeys.MARRIAGE_SPOUSE,
-            Issuer.getName()
-        );
-        set(reciever.getUniqueId(), PlayerDataKeys.MARRIAGE_STATUS, "Married");
-        set(Issuer.getUniqueId(), PlayerDataKeys.MARRIAGE_STATUS, "Married");
-    }
-
-    public void Divorce(Player Issuer, Player reciever) {
-        set(Issuer.getUniqueId(), PlayerDataKeys.MARRIAGE_SPOUSE, "");
-        set(reciever.getUniqueId(), PlayerDataKeys.MARRIAGE_SPOUSE, "");
-        set(reciever.getUniqueId(), PlayerDataKeys.MARRIAGE_STATUS, "Divorced");
-        set(Issuer.getUniqueId(), PlayerDataKeys.MARRIAGE_STATUS, "Divorced");
-    }
-
-    public void OfflineDivorce(Player Issuer, OfflinePlayer reciever) {
-        set(Issuer.getUniqueId(), PlayerDataKeys.MARRIAGE_SPOUSE, "");
-        set(reciever.getUniqueId(), PlayerDataKeys.MARRIAGE_SPOUSE, "");
-        set(reciever.getUniqueId(), PlayerDataKeys.MARRIAGE_STATUS, "Divorced");
-        set(Issuer.getUniqueId(), PlayerDataKeys.MARRIAGE_STATUS, "Divorced");
-    }
-
-    public String getGender(UUID uuid) {
-        return get(uuid, PlayerDataKeys.GENDER, "male");
-    }
-
-    public void setGender(UUID uuid, String gender) {
-        set(uuid, PlayerDataKeys.GENDER, gender);
-    }
 
     public int getCoins(UUID uuid) {
         return get(uuid, PlayerDataKeys.COINS, 0);
     }
-
+    public void setCoins(UUID uuid, int coins) {
+        set(uuid, PlayerDataKeys.COINS, coins);
+    }
     public void addCoins(UUID uuid, int amount) {
         set(uuid, PlayerDataKeys.COINS, getCoins(uuid) + amount);
     }
-
     public void removeCoins(UUID uuid, int amount) {
         set(uuid, PlayerDataKeys.COINS, getCoins(uuid) - amount);
     }
 
-    public void setCoins(UUID uuid, int amount) {
-        set(uuid, PlayerDataKeys.COINS, amount);
+    public String getMarriageStatus(UUID uuid) {
+        return get(uuid, PlayerDataKeys.MARRIAGE_STATUS, "divorced");
     }
+    public String getMarriageSpouse(UUID uuid) {
+        return get(uuid, PlayerDataKeys.MARRIAGE_SPOUSE, "");
+    }
+    public void Marry(Player p1, Player p2) {
+        UUID uuid = p1.getUniqueId();
+        UUID uuid2 = p2.getUniqueId();
+        set(uuid, PlayerDataKeys.MARRIAGE_STATUS, "married");
+        set(uuid2, PlayerDataKeys.MARRIAGE_SPOUSE, p2.getName());
+        set(uuid2, PlayerDataKeys.MARRIAGE_STATUS, "married");
+        set(uuid2, PlayerDataKeys.MARRIAGE_SPOUSE, p1.getName());
+    }
+
+    public void Divorce(Player p1, Player p2) {
+        UUID uuid = p1.getUniqueId();
+        UUID uuid2 = p2.getUniqueId();
+        set(uuid, PlayerDataKeys.MARRIAGE_STATUS, "divorced");
+        set(uuid, PlayerDataKeys.MARRIAGE_SPOUSE, "");
+        set(uuid2, PlayerDataKeys.MARRIAGE_SPOUSE, "");
+        set(uuid2, PlayerDataKeys.MARRIAGE_STATUS, "divorced");
+    }
+
+    public void OfflineDivorce(Player p1, OfflinePlayer p2) {
+        UUID uuid = p1.getUniqueId();
+        UUID uuid2 = p2.getUniqueId();
+        set(uuid, PlayerDataKeys.MARRIAGE_STATUS, "divorced");
+        set(uuid, PlayerDataKeys.MARRIAGE_SPOUSE, "");
+        set(uuid2, PlayerDataKeys.MARRIAGE_SPOUSE, "");
+        set(uuid2, PlayerDataKeys.MARRIAGE_STATUS, "divorced");
+    }
+    public void setGender(UUID uuid, String gender ) {
+        set(uuid, PlayerDataKeys.GENDER, gender);
+    }
+    public String getGender(UUID uuid) {
+        return get(uuid, PlayerDataKeys.GENDER, "male");
+    }
+
 }

@@ -20,6 +20,8 @@ import org.thesandbox.core.util.PluginConfigManager;
 
 public class GenericListener implements Listener {
 
+    private boolean waterFlowBlocked = false;
+
     private final PluginConfigManager pluginConfigManager;
     private TheSandboxCore core = TheSandboxCore.getInstance();
     private PlayerDataListener pdl = core.getDataListener();
@@ -30,15 +32,9 @@ public class GenericListener implements Listener {
 
     @EventHandler
     public void BlockFromTo(BlockFromToEvent event) {
+        if (!waterFlowBlocked) return;
         Material material = event.getBlock().getType();
-        boolean config = pluginConfigManager.getOrCreate(
-            GenericDataKeys.WATER_FLOW,
-            GenericDataKeys.WATER_FLOW_DEFAULT
-        );
-        boolean target =
-            material == Material.WATER || material == Material.LAVA;
-
-        if (target && config) {
+        if (material == Material.WATER || material == Material.LAVA) {
             event.setCancelled(true);
         }
     }

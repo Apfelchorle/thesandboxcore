@@ -217,7 +217,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         PluginConfigManager configManager = this.pluginConfigManager;
 
         this.dataManager = new DataManager(this);
-        this.dataListener = new PlayerDataListener(dataManager);
+        this.dataListener = new PlayerDataListener(this, dataManager);
         getServer().getPluginManager().registerEvents(dataListener, this);
 
         this.loginMessages = new LoginMessages(dataListener, this);
