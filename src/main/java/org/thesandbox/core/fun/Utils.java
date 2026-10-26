@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import io.papermc.paper.datacomponent.item.consumable.ConsumeEffect;
 import net.dv8tion.jda.api.JDA;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -41,6 +43,13 @@ public class Utils {
         Pattern.CASE_INSENSITIVE
     );
 
+
+
+    public static void Feedback(Player player, String message, TextColor color , Sound sound) {
+        Utils.SendMessage(player, message, color);
+        Utils.playSound(player, player.getLocation(), sound);
+    }
+
     public static void setPlugin(TheSandboxCore plugin) {
         Utils.plugin = plugin;
     }
@@ -64,6 +73,7 @@ public class Utils {
         logger.severe("StackTrace " + msg + " : " + Arrays.stream(stackTrace));
     }
 
+    // someone please clean these up
     public static void log(String msg) {
         if (plugin != null) {
             plugin.getLogger().info(msg);
@@ -75,6 +85,13 @@ public class Utils {
     public static void mlog(String... messages) {
         if (messages == null || messages.length == 0) return;
         log(String.join("\n", messages));
+    }
+
+    public static void blog(String... messages) {
+        if (messages == null) return;
+        for (String msg : messages) {
+            log(String.join("\n", msg));
+        }
     }
 
     public static Component legacyserializer(String text) {

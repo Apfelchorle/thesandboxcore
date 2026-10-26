@@ -1,23 +1,11 @@
 package org.thesandbox.core;
 
-import static org.thesandbox.core.services.EntityWiper.AUTO_WIPE_INTERVAL_DEFAULT;
-
 import com.github.retrooper.packetevents.PacketEvents;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
-import io.papermc.paper.event.player.AsyncChatEvent;
 import java.io.File;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
+import java.util.Map;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.Admin.UpdateLocalCommand;
 import org.thesandbox.core.commands.CommandCenter;
@@ -34,9 +22,9 @@ import org.thesandbox.core.managers.*;
 import org.thesandbox.core.services.*;
 import org.thesandbox.core.tags.TagService;
 import org.thesandbox.core.util.*;
+import org.thesandbox.core.util.Internals.FunctionsHolder;
 
-@SuppressWarnings({ "SqlNoDataSourceInspection", "SqlResolve" }) // to stop gay errors
-public class TheSandboxCore extends JavaPlugin implements Listener {
+public class TheSandboxCore extends JavaPlugin {
 
     private static TheSandboxCore instance;
 
@@ -50,15 +38,14 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     private LoginMessages loginMessages;
     private EntityWiper entityWiper;
 
-    // sql
+    // SQL
     private LegacySqlStore legacySqlStore;
 
-    // Services
+    // Services & Managers
     private CommandBlockManager commandBlockManager;
     private RankScoreboardManager rankScoreboardManager;
     private StaffChatManager staffChatManager;
     private CommandSpyManager commandSpyManager;
-
     private DiscordBridge discord;
     private CommandManager commandManager;
     private LoginService loginService;
@@ -67,18 +54,26 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
     private LiteBansWarningListener liteBansWarningListener;
     private UpdateTarget updateTarget;
     private UpdateLocalCommand updateLocalCommand;
-
     private GenericListener genericListener;
-
     private ChatFilterEngine chatFilterEngine;
     private PotionSpyService potionSpyService;
     private ShushService shushService;
     private List<Item> registeredItems = new ArrayList<>();
-
     private PluginConfigManager pluginConfigManager;
+    private BalanceManager balanceManager;
+    private FunctionsHolder functionsHolder;
     private CommandCenter commandCenter;
+    private AutoClearService autoClearService;
+    private AutoTpService autoTpService;
+    private ManageChatService manageChatService;
+    private ItemKeys itemKeys;
 
-    // getters
+    // ==================== Getters ====================
+
+    public BalanceManager getBalanceManager() {
+        return balanceManager;
+    }
+
     public DiscordBridge getDiscord() {
         return this.discord;
     }
@@ -159,10 +154,25 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         return commandSpyManager;
     }
 
+    public FunctionsHolder getFunctionsHolder() {
+        return functionsHolder;
+    }
+
+    // ==================== Lifecycle Hooks ====================
+
     @Override
     public void onLoad() {
-        load();
-        getLogger().info("The SandboxCore has been loaded!");
+        instance = this;
+        Utils.sendASCII("Loading TheSandboxCore ...");
+        getLogger().info("loading.. :)");
+
+        try {
+            PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this));
+            PacketEvents.getAPI().load();
+        } catch (Throwable t) {
+            Utils.dump(t, " ): PacketEvents Failed to load!");
+        }
+        getLogger().info("loaded! ;)");
     }
 
     @Override
@@ -177,177 +187,165 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
         getLogger().info("TheSandboxCore disabled!");
     }
 
-    private void load() {
-        instance = this;
-        Utils.sendASCII("Loading TheSandboxCore ...");
-        getLogger().info("loading.. :)");
-        // packet events
-        try {
-            PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this));
-            PacketEvents.getAPI().load();
-        } catch (Throwable t) {
-            Utils.dump(t, " ): PacketEvents Failed to load!");
-        }
-        getLogger().info("loaded! ;)");
-    }
+    // ==================== Startup Orchestration ====================
 
-    /* ================== startup / cleanup =================== */
     private void startup() {
         Utils.sendASCII("Starting TheSandboxCore ...");
         getLogger().info("starting up :)");
+
+        Utils.setPlugin(this);
+        saveDefaultConfig();
+
+        initPacketEvents();
+        initDatabase();
+        initServices();
+        registerListeners();
+        registerCommands();
+        verifyInstances();
+
+        rankScoreboardManager.setupRankScoreboardTeams();
+        rankScoreboardManager.refreshAllRankScoreboardTeams();
+
+        getLogger().info("Discord Chat Bridge : " + DiscordChatBridgeStatus());
+        getLogger().info("startup complete! ;)");
+    }
+
+    private void initPacketEvents() {
         try {
             PacketEvents.getAPI().init();
             getLogger().info("PacketEvents initialized successfully");
         } catch (Throwable t) {
             Utils.dump(t, "PacketEvents failed to initialize");
         }
-        Utils.setPlugin(this);
-        saveDefaultConfig();
+    }
 
-        // entity wiper
-        //        this.entityWiper = new EntityWiper(this);
-        //        this.entityWiper.start(20L * 60 * AUTO_WIPE_INTERVAL_DEFAULT);
-        //        getServer().getPluginManager().registerEvents(entityWiper, this);
-        //        getLogger().info("EntityWiper has been initialized successfully" + " - Interval: " + AUTO_WIPE_INTERVAL_DEFAULT);
+    private void initDatabase() {
+        this.legacySqlStore = new LegacySqlStore(this);
+        this.legacySqlStore.setup();
+    }
 
-        legacySqlStore = new LegacySqlStore(this);
-        legacySqlStore.setup();
-
+    private void initServices() {
         this.pluginConfigManager = new PluginConfigManager(this);
-        PluginConfigManager configManager = this.pluginConfigManager;
 
         this.dataManager = new DataManager(this);
         this.dataListener = new PlayerDataListener(this, dataManager);
-        getServer().getPluginManager().registerEvents(dataListener, this);
-
         this.loginMessages = new LoginMessages(dataListener, this);
-        getServer().getPluginManager().registerEvents(this.loginMessages, this);
 
-        ItemKeys itemKeys = new ItemKeys(this);
+        this.balanceManager = new BalanceManager();
+        this.balanceManager.init();
+
+        this.functionsHolder = new FunctionsHolder();
+
+        this.itemKeys = new ItemKeys(this);
         this.registeredItems = ItemAutoRegistrar.registerAll(
             this,
             itemKeys,
             dataListener,
             loginMessages,
-            configManager
+            pluginConfigManager
         );
 
-        loginService = new LoginService(this);
-        loginService.init();
+        this.loginService = new LoginService(this);
+        this.loginService.init();
 
-        rankScoreboardManager = new RankScoreboardManager(loginService);
-        commandBlockManager = new CommandBlockManager();
-        commandSpyManager = new CommandSpyManager(this, () ->
+        this.rankScoreboardManager = new RankScoreboardManager(loginService);
+        this.commandBlockManager = new CommandBlockManager();
+        this.commandSpyManager = new CommandSpyManager(this, () ->
             legacySqlStore.getDataSource()
         );
-        staffChatManager = new StaffChatManager(
+        this.staffChatManager = new StaffChatManager(
             this,
             () -> legacySqlStore.getDataSource(),
             () -> shushService,
             () -> discord
         );
 
-        ManageChatService manageChatService = new ManageChatService(this);
-
+        this.manageChatService = new ManageChatService(this);
         this.guildManager = new GuildManager(this);
-
-        this.chatFilterEngine = new ChatFilterEngine(configManager, this);
-
-        getServer()
-            .getPluginManager()
-            .registerEvents(
-                new ChatMentionFormatListener(this, chatFilterEngine),
-                this
-            );
-        getServer()
-            .getPluginManager()
-            .registerEvents(new ManageChatListener(manageChatService), this);
-
-        AutoTpService autoTpService = new AutoTpService(this);
-        getServer()
-            .getPluginManager()
-            .registerEvents(new AutoTpListener(this, autoTpService), this);
+        this.chatFilterEngine = new ChatFilterEngine(pluginConfigManager, this);
 
         this.tagService = new TagService(this);
         this.tagService.init();
+
+        this.discord = new DiscordBridge(
+            this,
+            this.chatFilterEngine,
+            this.dataListener
+        );
+        this.discord.start();
+
+        this.updateLocalCommand = new UpdateLocalCommand(this, discord);
+        this.autoClearService = new AutoClearService();
+        this.autoTpService = new AutoTpService(this);
+        this.potionSpyService = new PotionSpyService(
+            this,
+            legacySqlStore.getDataSource()
+        );
+        this.shushService = new ShushService(
+            this,
+            legacySqlStore.getDataSource()
+        );
+        this.genericListener = new GenericListener(pluginConfigManager);
+    }
+
+    private void registerListeners() {
+        var pm = getServer().getPluginManager();
+
+        pm.registerEvents(dataListener, this);
+        pm.registerEvents(loginMessages, this);
+        pm.registerEvents(
+            new ChatMentionFormatListener(this, chatFilterEngine),
+            this
+        );
+        pm.registerEvents(new ManageChatListener(manageChatService), this);
+        pm.registerEvents(new AutoTpListener(this, autoTpService), this);
         new org.thesandbox.core.tags.TagCleanupListener(
             this,
             tagService,
             guildManager
         ).register();
 
-        Bukkit.getPluginManager().registerEvents(this, this);
-        discord = new DiscordBridge(
-            this,
-            this.chatFilterEngine,
-            this.dataListener
-        );
-        discord.start();
-
-        this.updateLocalCommand = new UpdateLocalCommand(this, discord);
-
-        AutoClearService autoClearService = new AutoClearService();
-        getServer()
-            .getPluginManager()
-            .registerEvents(new AutoClearListener(autoClearService), this);
-
-        this.potionSpyService = new PotionSpyService(
-            this,
-            legacySqlStore.getDataSource()
-        );
-        getServer()
-            .getPluginManager()
-            .registerEvents(this.potionSpyService, this);
-
-        this.shushService = new ShushService(
-            this,
-            legacySqlStore.getDataSource()
-        );
-        getServer()
-            .getPluginManager()
-            .registerEvents(new ShushListener(this), this);
+        pm.registerEvents(new AutoClearListener(autoClearService), this);
+        pm.registerEvents(potionSpyService, this);
+        pm.registerEvents(new ShushListener(this), this);
 
         this.liteBansWarningListener = new LiteBansWarningListener(this);
         this.liteBansWarningListener.register();
 
-        // chat filter
-        getServer()
-            .getPluginManager()
-            .registerEvents(new ChatFilterListener(chatFilterEngine), this);
+        pm.registerEvents(new ChatFilterListener(chatFilterEngine), this);
+        pm.registerEvents(genericListener, this);
+        pm.registerEvents(
+            new JoinLeaveListener(
+                this,
+                dataListener,
+                loginMessages,
+                rankScoreboardManager,
+                shushService
+            ),
+            this
+        );
+        pm.registerEvents(
+            new CommandPreListener(
+                this,
+                commandBlockManager,
+                commandSpyManager,
+                () -> shushService,
+                () -> discord
+            ),
+            this
+        );
+        pm.registerEvents(
+            new StaffChatListener(
+                this,
+                staffChatManager,
+                commandSpyManager,
+                legacySqlStore
+            ),
+            this
+        );
+    }
 
-        this.genericListener = new GenericListener(configManager);
-        getServer()
-            .getPluginManager()
-            .registerEvents(this.genericListener, this);
-
-        // Join/leave + vanish behavior (extracted)
-        getServer()
-            .getPluginManager()
-            .registerEvents(
-                new JoinLeaveListener(
-                    this,
-                    dataListener,
-                    loginMessages,
-                    rankScoreboardManager,
-                    shushService
-                ),
-                this
-            );
-
-        // Command-block / commandspy / tpo-archive on every command (extracted)
-        getServer()
-            .getPluginManager()
-            .registerEvents(
-                new CommandPreListener(
-                    this,
-                    commandBlockManager,
-                    commandSpyManager,
-                    () -> shushService,
-                    () -> discord
-                ),
-                this
-            );
-
+    private void registerCommands() {
         List<Object> commandServices = new ArrayList<>(
             List.of(
                 tagService,
@@ -362,7 +360,7 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
                 dataListener,
                 itemKeys,
                 loginMessages,
-                configManager,
+                pluginConfigManager,
                 updateLocalCommand,
                 genericListener,
                 commandBlockManager,
@@ -374,30 +372,64 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
 
         commandServices.addAll(this.registeredItems);
         CommandAutoRegistrar.registerAll(this, commandServices.toArray());
-
-        rankScoreboardManager.setupRankScoreboardTeams();
-        rankScoreboardManager.refreshAllRankScoreboardTeams();
-
-        getLogger().info("Discord Chat Bridge : " + DiscordChatBridgeStatus());
-
-        getLogger().info("startup complete! ;)");
     }
+
+    private void verifyInstances() {
+        Map<String, Object> criticalServices = Map.of(
+            "PluginConfigManager",
+            this.pluginConfigManager,
+            "DataManager",
+            this.dataManager,
+            "PlayerDataListener",
+            this.dataListener,
+            "LegacySqlStore",
+            this.legacySqlStore,
+            "LoginService",
+            this.loginService
+        );
+
+        for (Map.Entry<String, Object> entry : criticalServices.entrySet()) {
+            if (entry.getValue() == null) {
+                getLogger().severe(
+                    "CRITICAL ERROR: " +
+                        entry.getKey() +
+                        " is NULL after startup!"
+                );
+                getServer().getPluginManager().disablePlugin(this);
+                return;
+            }
+        }
+    }
+
+    // ==================== Teardown / Cleanup ====================
 
     private void cleanup() {
         getLogger().info("[cleaning up :)]");
 
+        // 1. Stop tasks & integrations
         if (entityWiper != null) entityWiper.stop();
-        if (dataListener != null) dataListener.saveAll();
         if (
             liteBansWarningListener != null
         ) liteBansWarningListener.unregister();
         if (discord != null) discord.stop();
+
+        // 2. Save active data to disk / database
+        if (dataListener != null) dataListener.saveAll();
         if (guildManager != null) {
             guildManager.save();
             guildManager.shutdown();
         }
         if (loginService != null) loginService.shutdown();
 
+        // 3. Clean up items
+        registeredItems
+            .stream()
+            .filter(item -> item instanceof FloatBoatItem)
+            .map(item -> (FloatBoatItem) item)
+            .findFirst()
+            .ifPresent(FloatBoatItem::cleanup);
+
+        // 4. Terminate PacketEvents
         try {
             PacketEvents.getAPI().terminate();
         } catch (Throwable t) {
@@ -406,19 +438,13 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
             );
         }
 
+        // 5. Close database connections last
         if (legacySqlStore != null) legacySqlStore.close();
-
-        registeredItems
-            .stream()
-            .filter(item -> item instanceof FloatBoatItem)
-            .map(item -> (FloatBoatItem) item)
-            .findFirst()
-            .ifPresent(FloatBoatItem::cleanup);
 
         getLogger().info("clean up complete! have a nice day! ;)");
     }
 
-    /* =================== Reload ==================== */
+    // ==================== Discord / Config Helpers ====================
 
     public void reloadAndReconnect() {
         reloadConfig();
@@ -428,93 +454,6 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
             discord.start();
         }
     }
-
-    /* =================== Load/Save (legacy commandspy/staffchat) ==================== */
-
-    private void loadPlayer(Player player) {
-        Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
-            javax.sql.DataSource dataSource = legacySqlStore.getDataSource();
-            if (dataSource == null) return;
-
-            try (Connection conn = dataSource.getConnection()) {
-                // CommandSpy
-                try (
-                    PreparedStatement ps = conn.prepareStatement(
-                        "SELECT enabled FROM commandspy WHERE uuid=?"
-                    )
-                ) {
-                    ps.setString(1, player.getUniqueId().toString());
-                    ResultSet rs = ps.executeQuery();
-                    if (rs.next()) {
-                        commandSpyManager.applyLoadedState(
-                            player.getUniqueId(),
-                            rs.getBoolean("enabled")
-                        );
-                    } else {
-                        try (
-                            PreparedStatement ins = conn.prepareStatement(
-                                "INSERT INTO commandspy (uuid, enabled) VALUES (?, ?)"
-                            )
-                        ) {
-                            ins.setString(1, player.getUniqueId().toString());
-                            ins.setBoolean(2, true);
-                            ins.executeUpdate();
-                        }
-                    }
-                }
-
-                // StaffChat (speak + hidden)
-                try (
-                    PreparedStatement ps = conn.prepareStatement(
-                        "SELECT enabled, hidden FROM staffchat WHERE uuid=?"
-                    )
-                ) {
-                    ps.setString(1, player.getUniqueId().toString());
-                    ResultSet rs = ps.executeQuery();
-                    if (rs.next()) {
-                        boolean enabled = rs.getBoolean("enabled");
-                        boolean hidden = false;
-                        try {
-                            hidden = rs.getBoolean("hidden");
-                        } catch (SQLException ignore) {}
-                        staffChatManager.applyLoadedState(
-                            player.getUniqueId(),
-                            enabled,
-                            hidden
-                        );
-                    } else {
-                        try (
-                            PreparedStatement ins = conn.prepareStatement(
-                                "INSERT INTO staffchat (uuid, enabled, hidden) VALUES (?, ?, ?)"
-                            )
-                        ) {
-                            ins.setString(1, player.getUniqueId().toString());
-                            ins.setBoolean(2, false);
-                            ins.setBoolean(3, false);
-                            ins.executeUpdate();
-                        } catch (SQLException fallback) {
-                            try (
-                                PreparedStatement ins2 = conn.prepareStatement(
-                                    "INSERT INTO staffchat (uuid, enabled) VALUES (?, ?)"
-                                )
-                            ) {
-                                ins2.setString(
-                                    1,
-                                    player.getUniqueId().toString()
-                                );
-                                ins2.setBoolean(2, false);
-                                ins2.executeUpdate();
-                            }
-                        }
-                    }
-                }
-            } catch (SQLException e) {
-                Utils.dump(e, "SQLException");
-            }
-        });
-    }
-
-    /* =================== Remaining direct events ==================== */
 
     public boolean DiscordChatBridgeStatus() {
         return setDiscordChatBridgeEnabled(true);
@@ -529,43 +468,5 @@ public class TheSandboxCore extends JavaPlugin implements Listener {
             discord.applyChatBridgePermissionState();
         }
         return true;
-    }
-
-    @org.bukkit.event.EventHandler
-    public void onJoinLoadLegacyData(
-        org.bukkit.event.player.PlayerJoinEvent event
-    ) {
-        loadPlayer(event.getPlayer());
-    }
-
-    @EventHandler
-    public void onAsyncChat(AsyncChatEvent event) {
-        Player p = event.getPlayer();
-        if (staffChatManager.isStaffChatEnabled(p.getUniqueId())) {
-            event.setCancelled(true);
-
-            if (staffChatManager.isStaffChatHidden(p.getUniqueId())) {
-                p.sendMessage(
-                    Component.text(
-                        "You cannot talk in staff chat while it is hidden. Use /staffchat hide off.",
-                        NamedTextColor.DARK_RED
-                    )
-                );
-                return;
-            }
-
-            String name = p.getName();
-            String msg = Utils.plainText(event.message());
-
-            Bukkit.getScheduler().runTask(this, () ->
-                staffChatManager.broadcastStaffChat(
-                    name,
-                    msg,
-                    "",
-                    "",
-                    StaffChatManager.Source.MINECRAFT
-                )
-            );
-        }
     }
 }
