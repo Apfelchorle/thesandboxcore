@@ -5,8 +5,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
-import org.bukkit.Color;
-import org.bukkit.GameMode;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
@@ -56,12 +54,16 @@ public class BalanceManager {
 
         TransactionMessage(
             recieve,
-            "You've Recieved " + amount + "From " + source.getName(),
+            "You've Recieved " +
+                amount +
+                " Coins From " +
+                source.getName() +
+                "!",
             NamedTextColor.DARK_GREEN
         );
         TransactionMessage(
             source,
-            "You've Sent " + amount + "To " + recieve.getName(),
+            "You've Sent " + amount + " Coins To " + recieve.getName(),
             NamedTextColor.GOLD
         );
         TransactionMessage(

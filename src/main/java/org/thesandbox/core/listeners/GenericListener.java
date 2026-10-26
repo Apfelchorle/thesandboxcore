@@ -2,8 +2,10 @@ package org.thesandbox.core.listeners;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent.Payload.Custom;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -13,6 +15,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.fun.Utils;
 import org.thesandbox.core.util.Configinator;
+import org.thesandbox.core.util.CustomPlayer;
 import org.thesandbox.core.util.GenericDataKeys;
 import org.thesandbox.core.util.PlayerDataKeys;
 import org.thesandbox.core.util.PlayerDataListener;
@@ -48,7 +51,8 @@ public class GenericListener implements Listener {
             true
         );
         if (join_state) {
-            Configinator.wellcomeParty(join_state);
+            pdl.set(p.getUniqueId(), PlayerDataKeys.FIRST_TIME_JOINING, false);
+            Configinator.startWelcomeParty();
         }
     }
 
@@ -62,19 +66,22 @@ public class GenericListener implements Listener {
         );
         if (join_state) {
             pdl.set(p.getUniqueId(), PlayerDataKeys.FIRST_TIME_JOINING, false);
-            Configinator.wellcomeParty(join_state);
+            Configinator.endWelcomeParty();
         }
     }
 
     @EventHandler
     public void onChat(AsyncChatEvent event) {
         Player p = event.getPlayer();
-        if (Configinator.getWellcomePartyState()) {
+        CustomPlayer cPlayer = new CustomPlayer(p);
+
+        if (Configinator.tryRewardPlayer(p.getUniqueId())) {
             pdl.addCoins(p.getUniqueId(), 15);
-            Utils.SendMessage(
+            Utils.Feedback(
                 p,
                 "You've Recieved 15 Coins!",
-                NamedTextColor.GOLD
+                NamedTextColor.GOLD,
+                Sound.ENTITY_FIREWORK_ROCKET_LAUNCH
             );
         }
     }
