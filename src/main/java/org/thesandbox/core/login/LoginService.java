@@ -1,12 +1,11 @@
 package org.thesandbox.core.login;
 
+import java.util.Locale;
+import java.util.UUID;
 import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import java.util.Locale;
-import java.util.UUID;
 
 public class LoginService {
 
@@ -20,8 +19,8 @@ public class LoginService {
         OPERATOR("Operator", "&4");
 
         /** Pretty display name (e.g., "Master Builder"). */
-        public final String display;      // kept for backward compat
-        public final String displayName;  // primary field used elsewhere
+        public final String display; // kept for backward compat
+        public final String displayName; // primary field used elsewhere
         /** Legacy color using '&' codes (e.g., "&c"). */
         public final String color;
 
@@ -54,10 +53,10 @@ public class LoginService {
     public Rank getRank(Player p) {
         if (p == null) return Rank.DEFAULT;
         if (p.hasPermission("sandbox.operator")) return Rank.OPERATOR;
-        if (p.hasPermission("sandbox.admin"))    return Rank.ADMIN;
-        if (p.hasPermission("sandbox.staff"))    return Rank.STAFF;
-        if (p.hasPermission("sandbox.mb"))       return Rank.MB;
-        if (p.hasPermission("sandbox.vip"))      return Rank.VIP;
+        if (p.hasPermission("sandbox.admin")) return Rank.ADMIN;
+        if (p.hasPermission("sandbox.staff")) return Rank.STAFF;
+        if (p.hasPermission("sandbox.mb")) return Rank.MB;
+        if (p.hasPermission("sandbox.vip")) return Rank.VIP;
         return Rank.DEFAULT;
     }
 
@@ -72,12 +71,22 @@ public class LoginService {
         return getRank(op);
     }
 
-    public String getDisplayNameFor(Player p) { return getRank(p).displayName; }
-    public String getColorFor(Player p)       { return getRank(p).color; }
+    public String getDisplayNameFor(Player p) {
+        return getRank(p).displayName;
+    }
+
+    public String getColorFor(Player p) {
+        return getRank(p).color;
+    }
 
     /** Restored helpers used elsewhere in your codebase. */
-    public boolean isDefault(Player p)          { return getRank(p) == Rank.DEFAULT; }
-    public boolean isDefault(OfflinePlayer p)   { return getRank(p) == Rank.DEFAULT; }
+    public boolean isDefault(Player p) {
+        return getRank(p) == Rank.DEFAULT;
+    }
+
+    public boolean isDefault(OfflinePlayer p) {
+        return getRank(p) == Rank.DEFAULT;
+    }
 
     /** Already stored pretty-case; return as-is for display. */
     public static String displayRankTitleCase(Rank rank) {
@@ -88,13 +97,18 @@ public class LoginService {
     public static String articleFor(String nextWord) {
         if (nextWord == null || nextWord.isEmpty()) return "a";
         char c = Character.toLowerCase(nextWord.trim().charAt(0));
-        return (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u') ? "an" : "a";
+        return c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u'
+            ? "an"
+            : "a";
     }
 
     /** Title-case + underscores→spaces; kept for legacy callers. */
     public static String toTitleCaseWords(String s) {
         if (s == null || s.isEmpty()) return s;
-        String[] parts = s.replace('_', ' ').toLowerCase(Locale.ENGLISH).split("\\s+");
+        String[] parts = s
+            .replace('_', ' ')
+            .toLowerCase(Locale.ENGLISH)
+            .split("\\s+");
         StringBuilder sb = new StringBuilder();
         for (String part : parts) {
             if (part.isEmpty()) continue;
@@ -107,6 +121,8 @@ public class LoginService {
 
     /** Colorize legacy '&' codes to section sign. */
     public static String colorize(String s) {
-        return s == null ? null : ChatColor.translateAlternateColorCodes('&', s);
+        return s == null
+            ? null
+            : ChatColor.translateAlternateColorCodes('&', s);
     }
 }

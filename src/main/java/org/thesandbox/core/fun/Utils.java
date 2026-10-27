@@ -1,13 +1,12 @@
 package org.thesandbox.core.fun;
 
+import io.papermc.paper.datacomponent.item.consumable.ConsumeEffect;
 import java.awt.Color;
 import java.util.*;
 import java.util.List;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import io.papermc.paper.datacomponent.item.consumable.ConsumeEffect;
 import net.dv8tion.jda.api.JDA;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -43,9 +42,12 @@ public class Utils {
         Pattern.CASE_INSENSITIVE
     );
 
-
-
-    public static void Feedback(Player player, String message, TextColor color , Sound sound) {
+    public static void Feedback(
+        Player player,
+        String message,
+        TextColor color,
+        Sound sound
+    ) {
         Utils.SendMessage(player, message, color);
         Utils.playSound(player, player.getLocation(), sound);
     }
