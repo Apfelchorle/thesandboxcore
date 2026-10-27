@@ -1,9 +1,5 @@
 package org.thesandbox.core.util;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-
-import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -13,6 +9,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.thesandbox.core.TheSandboxCore;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class PlayerDataListener implements Listener {
 

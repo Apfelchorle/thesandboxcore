@@ -1,12 +1,5 @@
 package org.thesandbox.core.fun;
 
-import io.papermc.paper.datacomponent.item.consumable.ConsumeEffect;
-import java.awt.Color;
-import java.util.*;
-import java.util.List;
-import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import net.dv8tion.jda.api.JDA;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -25,6 +18,13 @@ import org.thesandbox.core.login.LoginService;
 import org.thesandbox.core.util.HexColorUtil;
 import org.thesandbox.core.util.PlayerDataListener;
 
+import java.awt.Color;
+import java.util.*;
+import java.util.List;
+import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 // Built to reduce redundancy
 public class Utils {
 
@@ -33,7 +33,7 @@ public class Utils {
     private static TheSandboxCore plugin;
 
     public Utils(TheSandboxCore plugin, PlayerDataListener playerDataListener) {
-        this.plugin = plugin;
+        Utils.plugin = plugin;
         this.playerDataListener = playerDataListener;
     }
 
