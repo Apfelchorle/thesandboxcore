@@ -1,6 +1,5 @@
 package org.thesandbox.core.commands;
 
-import com.github.retrooper.packetevents.protocol.packettype.PacketType.Play;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Sound;
@@ -66,7 +65,8 @@ public class CommandCenter {
         Player player,
         LoginService.Rank rank
     ) {
-        if (player.hasPermission(rank.name())) {
+        String perm_name = "sandbox." + rank.name();
+        if (player.hasPermission(perm_name)) {
             Utils.Feedback(
                 player,
                 GenericDataKeys.CMD_SUCCESS,
