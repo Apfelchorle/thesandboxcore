@@ -1,13 +1,8 @@
 package org.thesandbox.core.commands.utility;
 
-import io.netty.util.concurrent.CompleteFuture;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -16,11 +11,14 @@ import org.thesandbox.core.commands.CommandCenter;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.fun.Utils;
 import org.thesandbox.core.login.LoginService;
-import org.thesandbox.core.util.GenericDataKeys;
+
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 public class SlowRestartCommand implements ISubCommand {
 
-    private TheSandboxCore plugin = TheSandboxCore.getInstance();
+    private final TheSandboxCore plugin = TheSandboxCore.getInstance();
 
     @Override
     public boolean execute(
@@ -30,7 +28,7 @@ public class SlowRestartCommand implements ISubCommand {
         String[] args
     ) {
         Player player = Bukkit.getPlayer(sender.getName());
-        if (args.length > 1) {
+        if (args.length > 1 && player != null) {
             Utils.SendMessage(
                 player,
                 "Too Many Arguments!",
@@ -51,9 +49,7 @@ public class SlowRestartCommand implements ISubCommand {
             CompletableFuture.delayedExecutor(10, TimeUnit.SECONDS).execute(
                 // please dont put code here.
                 () -> {
-                    Bukkit.getScheduler().runTask(plugin, () -> {
-                        Bukkit.restart();
-                    });
+                    Bukkit.getScheduler().runTask(plugin, Bukkit::restart);
                 }
             );
         }

@@ -1,10 +1,5 @@
 package org.thesandbox.core.commands.Admin;
 
-import java.awt.*;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -16,9 +11,14 @@ import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.CommandCenter;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.login.LoginService;
-import org.thesandbox.core.login.LoginService.Rank;
 import org.thesandbox.core.util.GitHubReleaseUpdater;
 import org.thesandbox.core.util.UpdateTarget;
+
+import java.awt.*;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class UpdateLocalCommand implements ISubCommand {
 
@@ -48,9 +48,7 @@ public class UpdateLocalCommand implements ISubCommand {
             return true;
         }
         // part of Commands Rewrite [Testing Phase]
-        if (
-            CommandCenter.request(command, sender, LoginService.Rank.OPERATOR)
-        ) {
+        if (!(CommandCenter.request(command, sender, LoginService.Rank.OPERATOR))) {
             return true;
         }
 

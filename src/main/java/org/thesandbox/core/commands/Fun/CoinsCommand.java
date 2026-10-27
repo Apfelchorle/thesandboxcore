@@ -155,7 +155,7 @@ public class CoinsCommand implements ISubCommand {
             return true;
         }
 
-        if (CommandCenter.request(command, sender, LoginService.Rank.DEFAULT)) {
+        if (!(CommandCenter.request(command, sender, LoginService.Rank.DEFAULT))) {
             return false;
         }
         Player senderPlayer = (Player) sender;

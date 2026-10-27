@@ -1,6 +1,5 @@
 package org.thesandbox.core.commands.trustedplayer;
 
-import java.util.List;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -11,7 +10,8 @@ import org.thesandbox.core.commands.CommandCenter;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.fun.Utils;
 import org.thesandbox.core.login.LoginService;
-import org.thesandbox.core.login.LoginService.Rank;
+
+import java.util.List;
 
 public class DevTestCommand implements ISubCommand {
 
@@ -23,7 +23,7 @@ public class DevTestCommand implements ISubCommand {
         String[] args
     ) {
         if (
-            CommandCenter.request(command, sender, LoginService.Rank.OPERATOR)
+                (CommandCenter.request(command, sender, LoginService.Rank.OPERATOR))
         ) {
             Utils.mlog("Bleep Bloop Command Worked!");
             passedTest(sender);
