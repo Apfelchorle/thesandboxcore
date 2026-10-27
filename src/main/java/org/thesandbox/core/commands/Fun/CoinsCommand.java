@@ -1,5 +1,8 @@
 package org.thesandbox.core.commands.Fun;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -13,10 +16,6 @@ import org.thesandbox.core.login.LoginService;
 import org.thesandbox.core.managers.BalanceManager;
 import org.thesandbox.core.util.Internals.FunctionsHolder;
 import org.thesandbox.core.util.PlayerDataListener;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class CoinsCommand implements ISubCommand {
 
