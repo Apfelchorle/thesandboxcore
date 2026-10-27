@@ -7,7 +7,7 @@ import org.bukkit.entity.Player;
 import java.util.Comparator;
 
 public class FunctionsHolder {
-    public Player resolveTarget(CommandSender sender, String input) {
+    public static Player resolveTarget(CommandSender sender, String input) {
         if (input.equalsIgnoreCase("@s")) {
             return (sender instanceof Player) ? (Player) sender : null;
         }
@@ -22,7 +22,7 @@ public class FunctionsHolder {
         return Bukkit.getPlayer(input);
     }
 
-    public int parseint(String input) {
+    public static int parseint(String input) {
         try {
             return Integer.parseInt(input);
         } catch (NumberFormatException e) {

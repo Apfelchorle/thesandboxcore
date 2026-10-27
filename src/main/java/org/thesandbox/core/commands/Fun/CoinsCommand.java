@@ -12,6 +12,7 @@ import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.login.LoginService;
 import org.thesandbox.core.managers.BalanceManager;
 import org.thesandbox.core.util.CustomPlayer;
+import org.thesandbox.core.util.Internals.FunctionsHolder;
 import org.thesandbox.core.util.PlayerDataListener;
 
 import java.util.ArrayList;
@@ -30,7 +31,7 @@ public class CoinsCommand implements ISubCommand {
     }
 
     private Player resolveTarget(CommandSender sender, String input) {
-        return core.getFunctionsHolder().resolveTarget(sender, input);
+        return FunctionsHolder.resolveTarget(sender, input);
     }
 
     @Override
@@ -206,7 +207,7 @@ public class CoinsCommand implements ISubCommand {
     }
 
     private int parseint(String input) {
-        return core.getFunctionsHolder().parseint(input);
+        return FunctionsHolder.parseint(input);
     }
 
     @Override

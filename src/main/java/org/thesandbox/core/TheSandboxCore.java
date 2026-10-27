@@ -2,10 +2,6 @@ package org.thesandbox.core;
 
 import com.github.retrooper.packetevents.PacketEvents;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.Admin.UpdateLocalCommand;
 import org.thesandbox.core.commands.CommandCenter;
@@ -23,6 +19,11 @@ import org.thesandbox.core.services.*;
 import org.thesandbox.core.tags.TagService;
 import org.thesandbox.core.util.*;
 import org.thesandbox.core.util.Internals.FunctionsHolder;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class TheSandboxCore extends JavaPlugin {
 
@@ -225,6 +226,7 @@ public class TheSandboxCore extends JavaPlugin {
     }
 
     private void initServices() {
+        this.functionsHolder = new FunctionsHolder();
         this.pluginConfigManager = new PluginConfigManager(this);
 
         this.dataManager = new DataManager(this);
@@ -233,8 +235,6 @@ public class TheSandboxCore extends JavaPlugin {
 
         this.balanceManager = new BalanceManager();
         this.balanceManager.init();
-
-        this.functionsHolder = new FunctionsHolder();
 
         this.itemKeys = new ItemKeys(this);
         this.registeredItems = ItemAutoRegistrar.registerAll(
@@ -376,16 +376,18 @@ public class TheSandboxCore extends JavaPlugin {
 
     private void verifyInstances() {
         Map<String, Object> criticalServices = Map.of(
-            "PluginConfigManager",
-            this.pluginConfigManager,
-            "DataManager",
-            this.dataManager,
-            "PlayerDataListener",
-            this.dataListener,
-            "LegacySqlStore",
-            this.legacySqlStore,
-            "LoginService",
-            this.loginService
+                "PluginConfigManager",
+                this.pluginConfigManager,
+                "DataManager",
+                this.dataManager,
+                "PlayerDataListener",
+                this.dataListener,
+                "LegacySqlStore",
+                this.legacySqlStore,
+                "LoginService",
+                this.loginService,
+                "FunctionsHolder",
+                this.functionsHolder
         );
 
         for (Map.Entry<String, Object> entry : criticalServices.entrySet()) {
