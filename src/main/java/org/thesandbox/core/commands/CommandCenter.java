@@ -15,7 +15,6 @@ import org.thesandbox.core.util.GenericDataKeys;
 public class CommandCenter {
 
     private static final TheSandboxCore plugin = TheSandboxCore.getInstance();
-    private final LoginService loginService = plugin.getLoginService();
 
     // constructer ;p bleh
     public CommandCenter() {

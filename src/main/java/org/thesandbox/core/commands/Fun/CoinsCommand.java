@@ -2,7 +2,6 @@ package org.thesandbox.core.commands.Fun;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -11,18 +10,19 @@ import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.CommandCenter;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.login.LoginService;
+import org.thesandbox.core.managers.BalanceManager;
 import org.thesandbox.core.util.CustomPlayer;
 import org.thesandbox.core.util.PlayerDataListener;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class CoinsCommand implements ISubCommand {
 
-    private final TheSandboxCore core = TheSandboxCore.getInstance();
 
+    private final TheSandboxCore core = TheSandboxCore.getInstance();
+    private final BalanceManager balanceManager = core.getBalanceManager();
     private final PlayerDataListener playerDataListener;
 
     public CoinsCommand(PlayerDataListener playerDataListener) {
@@ -41,7 +41,6 @@ public class CoinsCommand implements ISubCommand {
             String[] args
     ) {
         // CONSOLE CAN RUN THESE
-
         if (args.length == 3 && args[0].equalsIgnoreCase("set")) {
             if (!sender.hasPermission("sandbox.staff")) {
                 sender.sendMessage(
@@ -107,62 +106,10 @@ public class CoinsCommand implements ISubCommand {
             String target = args[1];
             Player targetPlayer = resolveTarget(sender, target);
             Player player = Bukkit.getPlayer(target);
+            int amount = parseint(args[2]);
 
-            UUID targetUUID = targetPlayer.getUniqueId();
-            UUID playerUUID = player.getUniqueId();
 
-            int targetBalance = playerDataListener.getCoins(targetUUID);
-            int amount;
-            try {
-                amount = Integer.parseInt(args[2]);
-            } catch (NumberFormatException e) {
-                sender.sendMessage(
-                        Component.text(
-                                "[Error]: " + args[2] + " is not a number.",
-                                NamedTextColor.RED
-                        )
-                );
-                return true;
-            }
-            if (!targetPlayer.isOnline()) {
-                sender.sendMessage(
-                        Component.text(
-                                target + " is offline!",
-                                NamedTextColor.DARK_GRAY
-                        )
-                );
-                return true;
-            }
-
-            Bukkit.broadcast(
-                    Component.text(
-                            sender.getName() +
-                                    " Has Taken " +
-                                    amount +
-                                    " Coins From " +
-                                    targetPlayer.getName(),
-                            NamedTextColor.GOLD
-                    )
-            );
-            sender.sendMessage(
-                    Component.text(
-                            "You've Taken " +
-                                    amount +
-                                    " Coins From " +
-                                    targetPlayer.getName(),
-                            NamedTextColor.DARK_GREEN
-                    )
-            );
-            targetPlayer.sendMessage(
-                    Component.text(
-                            "You've Been Beanzz'd by hehe",
-                            NamedTextColor.DARK_PURPLE,
-                            TextDecoration.BOLD,
-                            TextDecoration.ITALIC
-                    )
-            );
-            playerDataListener.addCoins(playerUUID, amount);
-            playerDataListener.removeCoins(targetUUID, amount);
+            balanceManager.TakeCoins(sender, targetPlayer, amount, args);
         }
 
         if (args.length == 3 && args[0].equalsIgnoreCase("add")) {
@@ -178,65 +125,8 @@ public class CoinsCommand implements ISubCommand {
             }
             String target = args[1];
             Player targetPlayer = resolveTarget(sender, target);
-            int amount;
-            try {
-                amount = Integer.parseInt(args[2]);
-            } catch (NumberFormatException e) {
-                sender.sendMessage(
-                        Component.text(
-                                "[Error]: " + args[2] + " is not a number.",
-                                NamedTextColor.RED
-                        )
-                );
-                return true;
-            }
-
-            if (targetPlayer == null) {
-                sender.sendMessage(
-                        Component.text(
-                                target + " is offline!",
-                                NamedTextColor.DARK_GRAY
-                        )
-                );
-                return true;
-            }
-
-            playerDataListener.addCoins(targetPlayer.getUniqueId(), amount);
-
-            if (sender instanceof Player) {
-                Bukkit.broadcast(
-                        Component.text(
-                                sender.getName() +
-                                        " has given " +
-                                        targetPlayer.getName() +
-                                        " " +
-                                        amount +
-                                        " coins!",
-                                NamedTextColor.GOLD
-                        )
-                );
-            }
-
-            sender.sendMessage(
-                    Component.text(
-                            targetPlayer.getName() +
-                                    " has " +
-                                    playerDataListener.getCoins(
-                                            targetPlayer.getUniqueId()
-                                    ) +
-                                    " Coins!",
-                            NamedTextColor.GREEN
-                    )
-            );
-            targetPlayer.sendMessage(
-                    Component.text(
-                            "You've Recieved " +
-                                    amount +
-                                    " Coins From " +
-                                    sender.getName(),
-                            NamedTextColor.GREEN
-                    )
-            );
+            int amount = parseint(args[2]);
+            balanceManager.AddCoins(sender, target, amount, args);
 
             return true;
         }
@@ -313,6 +203,10 @@ public class CoinsCommand implements ISubCommand {
         // 1 = player target
         // 2 = given coins
         return true;
+    }
+
+    private int parseint(String input) {
+        return core.getFunctionsHolder().parseint(input);
     }
 
     @Override

@@ -21,4 +21,12 @@ public class FunctionsHolder {
         }
         return Bukkit.getPlayer(input);
     }
+
+    public int parseint(String input) {
+        try {
+            return Integer.parseInt(input);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
 }
