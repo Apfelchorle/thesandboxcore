@@ -155,15 +155,13 @@ public class CoinsCommand implements ISubCommand {
             return true;
         }
 
-        if (!(CommandCenter.request(command, sender, LoginService.Rank.DEFAULT))) {
+        if (!(CommandCenter.request(command, sender, LoginService.Rank.DEFAULT)) || !(sender instanceof Player senderPlayer)) {
             return false;
         }
-        Player senderPlayer = (Player) sender;
 
         // CONSOLE CANT RUN THESE
 
         int coins = playerDataListener.getCoins(senderPlayer.getUniqueId());
-
         if (args.length < 2) {
             // Shows Current Coins
             sender.sendMessage(

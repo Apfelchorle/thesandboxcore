@@ -1,6 +1,5 @@
 package org.thesandbox.core.managers;
 
-import java.util.UUID;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -14,6 +13,8 @@ import org.thesandbox.core.fun.Utils;
 import org.thesandbox.core.util.Internals.FunctionsHolder;
 import org.thesandbox.core.util.PlayerDataKeys;
 import org.thesandbox.core.util.PlayerDataListener;
+
+import java.util.UUID;
 
 public class BalanceManager {
 
@@ -66,58 +67,24 @@ public class BalanceManager {
         String[] args
     ) {
         // check
-
         if (!isAllowed(source, recieve, amount, args)) return;
 
         // Passed
         transferCoins(source, recieve, amount);
 
         // transaction messages
-
-        // BROADCAST
-        Bukkit.broadcast(
-            Component.text(
-                source.getName() +
-                    " has given " +
-                    recieve.getName() +
-                    " " +
-                    amount +
-                    " coins!",
-                NamedTextColor.GOLD
-            )
-        );
-        //
-
-        TransactionMessage(
-            recieve,
-            "You've Recieved " +
-                amount +
-                " Coins From " +
-                source.getName() +
-                "!",
-            NamedTextColor.DARK_GREEN
-        );
-        TransactionMessage(
-            source,
-            "You've Sent " + amount + " Coins To " + recieve.getName(),
-            NamedTextColor.GOLD
-        );
-        TransactionMessage(
-            source,
-            recieve.getName() +
-                " has " +
-                getCoins(recieve.getUniqueId()) +
-                " Coins!",
-            NamedTextColor.GREEN
-        );
-        TransactionMessage(
-            source,
-            "Current Balance: " + getCoins(source.getUniqueId()) + " Coins!",
-            NamedTextColor.YELLOW
-        );
+        transfer_messages(source, recieve, amount);
     }
 
     // Feedback
+
+    private void transfer_messages(Player source, Player recieve, int amount) {
+        Bukkit.broadcast(Component.text(source.getName() + " has given " + recieve.getName() + " " + amount + " coins!", NamedTextColor.GOLD));
+        TransactionMessage(recieve, "You've Received " + amount + " Coins From " + source.getName() + "!", NamedTextColor.DARK_GREEN);
+        TransactionMessage(source, "You've Sent " + amount + " Coins To " + recieve.getName(), NamedTextColor.GOLD);
+        Utils.SendMessage(source, recieve.getName() + " has " + getCoins(recieve.getUniqueId()) + " Coins!", NamedTextColor.GREEN);
+        Utils.SendMessage(source, "Current Balance: " + getCoins(source.getUniqueId()) + " Coins!", NamedTextColor.YELLOW);
+    }
     private void TransactionMessage(
         Player player,
         String message,
@@ -290,12 +257,12 @@ public class BalanceManager {
         if (
             !Malformation_Check(
                 sender,
-                functionsHolder.resolveTarget(sender, target),
+                    FunctionsHolder.resolveTarget(sender, target),
                 amount,
                 Args
             )
         ) {
-            Player targetPlayer = functionsHolder.resolveTarget(sender, target);
+            Player targetPlayer = FunctionsHolder.resolveTarget(sender, target);
             addCoins(targetPlayer.getUniqueId(), amount);
             Bukkit.broadcast(
                 Component.text(
