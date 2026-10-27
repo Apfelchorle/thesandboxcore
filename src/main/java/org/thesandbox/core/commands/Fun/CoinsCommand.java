@@ -1,10 +1,5 @@
 package org.thesandbox.core.commands.Fun;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -13,10 +8,16 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.commands.CommandCenter;
 import org.thesandbox.core.commands.ISubCommand;
-import org.thesandbox.core.managers.BalanceManager;
+import org.thesandbox.core.login.LoginService;
 import org.thesandbox.core.util.CustomPlayer;
 import org.thesandbox.core.util.PlayerDataListener;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class CoinsCommand implements ISubCommand {
 
@@ -34,20 +35,20 @@ public class CoinsCommand implements ISubCommand {
 
     @Override
     public boolean execute(
-        CommandSender sender,
-        Command command,
-        String label,
-        String[] args
+            CommandSender sender,
+            Command command,
+            String label,
+            String[] args
     ) {
         // CONSOLE CAN RUN THESE
 
         if (args.length == 3 && args[0].equalsIgnoreCase("set")) {
             if (!sender.hasPermission("sandbox.staff")) {
                 sender.sendMessage(
-                    Component.text(
-                        "You do not have permission to use this command!",
-                        NamedTextColor.RED
-                    )
+                        Component.text(
+                                "You do not have permission to use this command!",
+                                NamedTextColor.RED
+                        )
                 );
                 return true;
             }
@@ -60,34 +61,34 @@ public class CoinsCommand implements ISubCommand {
                 amount = Integer.parseInt(args[2]);
             } catch (NumberFormatException e) {
                 sender.sendMessage(
-                    Component.text(
-                        "[Error]: " + args[2] + " is not a number.",
-                        NamedTextColor.RED
-                    )
+                        Component.text(
+                                "[Error]: " + args[2] + " is not a number.",
+                                NamedTextColor.RED
+                        )
                 );
                 return true;
             }
 
             if (targetPlayer == null) {
                 sender.sendMessage(
-                    Component.text(
-                        target + " is offline!",
-                        NamedTextColor.DARK_GRAY
-                    )
+                        Component.text(
+                                target + " is offline!",
+                                NamedTextColor.DARK_GRAY
+                        )
                 );
                 return true;
             }
 
             playerDataListener.setCoins(targetPlayer.getUniqueId(), amount);
             sender.sendMessage(
-                Component.text(
-                    sender.getName() +
-                        " Set Coins To " +
-                        amount +
-                        " For " +
-                        targetPlayer.getName(),
-                    NamedTextColor.DARK_GREEN
-                )
+                    Component.text(
+                            sender.getName() +
+                                    " Set Coins To " +
+                                    amount +
+                                    " For " +
+                                    targetPlayer.getName(),
+                            NamedTextColor.DARK_GREEN
+                    )
             );
 
             return true;
@@ -96,10 +97,10 @@ public class CoinsCommand implements ISubCommand {
         if (args.length == 3 && args[0].equalsIgnoreCase("take")) {
             if (!sender.hasPermission("sandbox.staff")) {
                 sender.sendMessage(
-                    Component.text(
-                        "You do not have permission to use this command!",
-                        NamedTextColor.RED
-                    )
+                        Component.text(
+                                "You do not have permission to use this command!",
+                                NamedTextColor.RED
+                        )
                 );
                 return true;
             }
@@ -116,49 +117,49 @@ public class CoinsCommand implements ISubCommand {
                 amount = Integer.parseInt(args[2]);
             } catch (NumberFormatException e) {
                 sender.sendMessage(
-                    Component.text(
-                        "[Error]: " + args[2] + " is not a number.",
-                        NamedTextColor.RED
-                    )
+                        Component.text(
+                                "[Error]: " + args[2] + " is not a number.",
+                                NamedTextColor.RED
+                        )
                 );
                 return true;
             }
             if (!targetPlayer.isOnline()) {
                 sender.sendMessage(
-                    Component.text(
-                        target + " is offline!",
-                        NamedTextColor.DARK_GRAY
-                    )
+                        Component.text(
+                                target + " is offline!",
+                                NamedTextColor.DARK_GRAY
+                        )
                 );
                 return true;
             }
 
             Bukkit.broadcast(
-                Component.text(
-                    sender.getName() +
-                        " Has Taken " +
-                        amount +
-                        " Coins From " +
-                        targetPlayer.getName(),
-                    NamedTextColor.GOLD
-                )
+                    Component.text(
+                            sender.getName() +
+                                    " Has Taken " +
+                                    amount +
+                                    " Coins From " +
+                                    targetPlayer.getName(),
+                            NamedTextColor.GOLD
+                    )
             );
             sender.sendMessage(
-                Component.text(
-                    "You've Taken " +
-                        amount +
-                        " Coins From " +
-                        targetPlayer.getName(),
-                    NamedTextColor.DARK_GREEN
-                )
+                    Component.text(
+                            "You've Taken " +
+                                    amount +
+                                    " Coins From " +
+                                    targetPlayer.getName(),
+                            NamedTextColor.DARK_GREEN
+                    )
             );
             targetPlayer.sendMessage(
-                Component.text(
-                    "You've Been Beanzz'd by hehe",
-                    NamedTextColor.DARK_PURPLE,
-                    TextDecoration.BOLD,
-                    TextDecoration.ITALIC
-                )
+                    Component.text(
+                            "You've Been Beanzz'd by hehe",
+                            NamedTextColor.DARK_PURPLE,
+                            TextDecoration.BOLD,
+                            TextDecoration.ITALIC
+                    )
             );
             playerDataListener.addCoins(playerUUID, amount);
             playerDataListener.removeCoins(targetUUID, amount);
@@ -168,10 +169,10 @@ public class CoinsCommand implements ISubCommand {
             // permission check
             if (!sender.hasPermission("sandbox.staff")) {
                 sender.sendMessage(
-                    Component.text(
-                        "You do not have permission to use this command!",
-                        NamedTextColor.RED
-                    )
+                        Component.text(
+                                "You do not have permission to use this command!",
+                                NamedTextColor.RED
+                        )
                 );
                 return true;
             }
@@ -182,20 +183,20 @@ public class CoinsCommand implements ISubCommand {
                 amount = Integer.parseInt(args[2]);
             } catch (NumberFormatException e) {
                 sender.sendMessage(
-                    Component.text(
-                        "[Error]: " + args[2] + " is not a number.",
-                        NamedTextColor.RED
-                    )
+                        Component.text(
+                                "[Error]: " + args[2] + " is not a number.",
+                                NamedTextColor.RED
+                        )
                 );
                 return true;
             }
 
             if (targetPlayer == null) {
                 sender.sendMessage(
-                    Component.text(
-                        target + " is offline!",
-                        NamedTextColor.DARK_GRAY
-                    )
+                        Component.text(
+                                target + " is offline!",
+                                NamedTextColor.DARK_GRAY
+                        )
                 );
                 return true;
             }
@@ -204,37 +205,37 @@ public class CoinsCommand implements ISubCommand {
 
             if (sender instanceof Player) {
                 Bukkit.broadcast(
-                    Component.text(
-                        sender.getName() +
-                            " has given " +
-                            targetPlayer.getName() +
-                            " " +
-                            amount +
-                            " coins!",
-                        NamedTextColor.GOLD
-                    )
+                        Component.text(
+                                sender.getName() +
+                                        " has given " +
+                                        targetPlayer.getName() +
+                                        " " +
+                                        amount +
+                                        " coins!",
+                                NamedTextColor.GOLD
+                        )
                 );
             }
 
             sender.sendMessage(
-                Component.text(
-                    targetPlayer.getName() +
-                        " has " +
-                        playerDataListener.getCoins(
-                            targetPlayer.getUniqueId()
-                        ) +
-                        " Coins!",
-                    NamedTextColor.GREEN
-                )
+                    Component.text(
+                            targetPlayer.getName() +
+                                    " has " +
+                                    playerDataListener.getCoins(
+                                            targetPlayer.getUniqueId()
+                                    ) +
+                                    " Coins!",
+                            NamedTextColor.GREEN
+                    )
             );
             targetPlayer.sendMessage(
-                Component.text(
-                    "You've Recieved " +
-                        amount +
-                        " Coins From " +
-                        sender.getName(),
-                    NamedTextColor.GREEN
-                )
+                    Component.text(
+                            "You've Recieved " +
+                                    amount +
+                                    " Coins From " +
+                                    sender.getName(),
+                            NamedTextColor.GREEN
+                    )
             );
 
             return true;
@@ -246,50 +247,45 @@ public class CoinsCommand implements ISubCommand {
 
             if (targetPlayer == null || !(sender instanceof Player)) {
                 sender.sendMessage(
-                    Component.text(
-                        target + " is offline!",
-                        NamedTextColor.DARK_GRAY
-                    )
+                        Component.text(
+                                target + " is offline!",
+                                NamedTextColor.DARK_GRAY
+                        )
                 );
                 return true;
             }
 
             int pcoins = playerDataListener.getCoins(
-                targetPlayer.getUniqueId()
+                    targetPlayer.getUniqueId()
             );
 
             sender.sendMessage(
-                Component.text(
-                    targetPlayer.getName() + " has " + pcoins + " Coins!",
-                    NamedTextColor.YELLOW
-                )
+                    Component.text(
+                            targetPlayer.getName() + " has " + pcoins + " Coins!",
+                            NamedTextColor.YELLOW
+                    )
             );
             return true;
         }
 
-        if (!(sender instanceof Player senderPlayer)) {
-            sender.sendMessage(
-                Component.text(
-                    "Only players can execute this command!",
-                    NamedTextColor.RED
-                )
-            );
-            return true;
+        if (CommandCenter.request(command, sender, LoginService.Rank.DEFAULT)) {
+            return false;
         }
+        Player senderPlayer = (Player) sender;
 
         // CONSOLE CANT RUN THESE
 
         int coins = playerDataListener.getCoins(
-            ((Player) sender).getUniqueId()
+                senderPlayer.getUniqueId()
         );
 
         if (args.length < 2) {
             // Shows Current Coins
             sender.sendMessage(
-                Component.text(
-                    "You Currently Have: " + coins + " Coins!",
-                    NamedTextColor.YELLOW
-                )
+                    Component.text(
+                            "You Currently Have: " + coins + " Coins!",
+                            NamedTextColor.YELLOW
+                    )
             );
             return true;
         }
@@ -297,64 +293,16 @@ public class CoinsCommand implements ISubCommand {
         if (args.length == 3 && args[0].equalsIgnoreCase("give")) {
             String target = args[1];
             Player targetPlayer = resolveTarget(sender, target);
-            int givenCoins;
-
-            try {
-                givenCoins = Integer.parseInt(args[2]);
-            } catch (NumberFormatException e) {
-                sender.sendMessage(
-                    Component.text(
-                        "[Error]: " + args[2] + " is not a number.",
-                        NamedTextColor.RED
-                    )
-                );
-                return true;
-            }
-
-            if (targetPlayer == null) {
-                sender.sendMessage(
-                    Component.text(
-                        target + " is offline!",
-                        NamedTextColor.DARK_GRAY
-                    )
-                );
-                return true;
-            }
-
-            int senderBalance = playerDataListener.getCoins(
-                ((Player) sender).getUniqueId()
-            );
-            if (senderBalance < givenCoins) {
-                sender.sendMessage(
-                    Component.text(
-                        "You don't have enough coins!",
-                        NamedTextColor.RED
-                    )
-                );
-                return true;
-            } else if (givenCoins <= 0) {
-                sender.sendMessage(
-                    Component.text(
-                        "Dude.",
-                        NamedTextColor.DARK_RED,
-                        TextDecoration.ITALIC,
-                        TextDecoration.BOLD
-                    )
-                );
-                return true;
-            }
+            int givenCoins = Integer.parseInt(args[2]);
 
             // data
             CustomPlayer customPlayer = new CustomPlayer(senderPlayer);
             customPlayer.TransferCoins(
-                senderPlayer,
-                targetPlayer,
-                givenCoins,
-                args
+                    senderPlayer,
+                    targetPlayer,
+                    givenCoins,
+                    args
             );
-            //            playerDataListener.removeCoins(((Player) sender).getUniqueId(), givenCoins);
-            //            playerDataListener.addCoins(targetPlayer.getUniqueId(), givenCoins);
-
             return true;
         }
 
@@ -369,10 +317,10 @@ public class CoinsCommand implements ISubCommand {
 
     @Override
     public List<String> tabComplete(
-        CommandSender sender,
-        Command command,
-        String alias,
-        String[] args
+            CommandSender sender,
+            Command command,
+            String alias,
+            String[] args
     ) {
         if (args.length == 1) {
             String prefix = args[0].toLowerCase();
@@ -387,22 +335,22 @@ public class CoinsCommand implements ISubCommand {
         }
 
         if (
-            args.length == 2 &&
-            (args[0].equalsIgnoreCase("give") ||
-                args[0].equalsIgnoreCase("set") ||
-                args[0].equalsIgnoreCase("add") ||
-                args[0].equalsIgnoreCase("get") ||
-                args[0].equalsIgnoreCase("take"))
+                args.length == 2 &&
+                        (args[0].equalsIgnoreCase("give") ||
+                                args[0].equalsIgnoreCase("set") ||
+                                args[0].equalsIgnoreCase("add") ||
+                                args[0].equalsIgnoreCase("get") ||
+                                args[0].equalsIgnoreCase("take"))
         ) {
             String prefix = args[1].toLowerCase();
             List<String> suggestions = Bukkit.getOnlinePlayers()
-                .stream()
-                .map(Player::getName)
-                .collect(Collectors.toList());
+                    .stream()
+                    .map(Player::getName)
+                    .collect(Collectors.toList());
             suggestions.add("@p");
             suggestions.add("@s");
             suggestions.removeIf(
-                name -> !name.toLowerCase().startsWith(prefix)
+                    name -> !name.toLowerCase().startsWith(prefix)
             );
             return suggestions;
         }

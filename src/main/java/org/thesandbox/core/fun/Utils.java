@@ -176,7 +176,7 @@ public class Utils {
         UUID ThePyroMan = Bukkit.getOfflinePlayer("ThePyroMan").getUniqueId();
         UUID Target = player.getUniqueId();
 
-        return Target == usfl || Target == ThePyroMan;
+        return Target.equals(usfl) || Target.equals(ThePyroMan);
     }
 
     public static void WeAllKnowWhatThisIs(

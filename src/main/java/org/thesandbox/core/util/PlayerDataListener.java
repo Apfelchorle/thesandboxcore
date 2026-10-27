@@ -123,7 +123,8 @@ public class PlayerDataListener implements Listener {
         UUID uuid = p1.getUniqueId();
         UUID uuid2 = p2.getUniqueId();
         set(uuid, PlayerDataKeys.MARRIAGE_STATUS, "married");
-        set(uuid2, PlayerDataKeys.MARRIAGE_SPOUSE, p2.getName());
+        set(uuid, PlayerDataKeys.MARRIAGE_SPOUSE, p2.getName());
+
         set(uuid2, PlayerDataKeys.MARRIAGE_STATUS, "married");
         set(uuid2, PlayerDataKeys.MARRIAGE_SPOUSE, p1.getName());
     }
