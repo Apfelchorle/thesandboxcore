@@ -1,5 +1,6 @@
 package org.thesandbox.core.commands;
 
+import com.github.retrooper.packetevents.protocol.packettype.PacketType.Play;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Sound;
@@ -17,14 +18,19 @@ public class CommandCenter {
     private static final TheSandboxCore plugin = TheSandboxCore.getInstance();
 
     // constructer ;p bleh
-    public CommandCenter() {
-    }
+    public CommandCenter() {}
 
-
-    public static boolean request(Command command, CommandSender sender, LoginService.Rank requiredRank) {
+    public static boolean request(
+        Command command,
+        CommandSender sender,
+        LoginService.Rank requiredRank
+    ) {
         String command_name = command.getName();
-        Utils.blog("-command: " + command_name, "-CommandSender: " + sender, plugin.getName());
-
+        Utils.blog(
+            "-command: " + command_name,
+            "-CommandSender: " + sender,
+            plugin.getName()
+        );
 
         if (sender instanceof Player player) {
             String player_name = Utils.plainText(player.name());
@@ -32,8 +38,23 @@ public class CommandCenter {
             Utils.blog("Player: " + player_name, "Rank: " + player_rank);
             return isAllowed(player, requiredRank);
         }
-        sender.sendMessage(Component.text("This command can only be run by players!", NamedTextColor.RED));
-        Utils.blog("Refused Command : " + command_name, "Sender : " + sender, "RequiredRank : " + requiredRank);
+
+        // bypassed for now
+        if (!(sender instanceof Player)) {
+            return true;
+        }
+        sender.sendMessage(
+            Component.text(
+                "This command can only be run by players!",
+                NamedTextColor.RED
+            )
+        );
+        Utils.blog(
+            "Refused Command : " + command_name,
+            "Sender : " + sender,
+            "RequiredRank : " + requiredRank
+        );
+
         return false;
     }
 
@@ -41,13 +62,25 @@ public class CommandCenter {
         return hasPermission(player, rank);
     }
 
-
-    private static boolean hasPermission(Player player, LoginService.Rank rank) {
+    private static boolean hasPermission(
+        Player player,
+        LoginService.Rank rank
+    ) {
         if (player.hasPermission(rank.name())) {
-            Utils.Feedback(player, GenericDataKeys.CMD_SUCCESS, NamedTextColor.GREEN, Sound.ENTITY_ARROW_HIT_PLAYER);
+            Utils.Feedback(
+                player,
+                GenericDataKeys.CMD_SUCCESS,
+                NamedTextColor.GREEN,
+                Sound.ENTITY_ARROW_HIT_PLAYER
+            );
             return true;
         }
-        Utils.Feedback(player, GenericDataKeys.CMD_PERM_ERROR, NamedTextColor.DARK_RED, Sound.ENTITY_VILLAGER_NO);
+        Utils.Feedback(
+            player,
+            GenericDataKeys.CMD_PERM_ERROR,
+            NamedTextColor.DARK_RED,
+            Sound.ENTITY_VILLAGER_NO
+        );
         return false;
     }
 
