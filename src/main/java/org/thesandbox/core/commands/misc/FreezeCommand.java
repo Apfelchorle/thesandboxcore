@@ -17,6 +17,7 @@ import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class FreezeCommand implements ISubCommand, Listener
@@ -25,7 +26,7 @@ public class FreezeCommand implements ISubCommand, Listener
     private static boolean globalFreezeEnabled = false;
 
     // Frozen players (UUIDs)
-    private static final Set<UUID> FROZEN = new HashSet<>();
+    private static final Set<UUID> FROZEN = ConcurrentHashMap.newKeySet();
 
     private final JavaPlugin plugin;
 
@@ -52,7 +53,6 @@ public class FreezeCommand implements ISubCommand, Listener
                 {
                     if (isImmune(p)) continue;
                     freezePlayer(p, true);
-                    p.sendMessage(CommandMessages.command(ChatColor.GRAY + "You have been frozen by a staff member."));
                 }
             }
             else
@@ -64,7 +64,6 @@ public class FreezeCommand implements ISubCommand, Listener
                 {
                     if (isImmune(p)) continue;
                     p.sendMessage(CommandMessages.command(ChatColor.GRAY + "You are free to move."));
-                    
                 }
             }
             return true;
@@ -76,6 +75,10 @@ public class FreezeCommand implements ISubCommand, Listener
             FROZEN.clear();
             globalFreezeEnabled = false;
             Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + who + " - Purging all freezes"));
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                if (isImmune(p)) continue;
+                p.sendMessage(CommandMessages.command(ChatColor.GRAY + "You are free to move."));
+            }
             return true;
         }
 
@@ -106,7 +109,6 @@ public class FreezeCommand implements ISubCommand, Listener
             {
                 freezePlayer(target, true);
                 Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + who + " - Freezing " + target.getName()));
-                target.sendMessage(CommandMessages.command(ChatColor.GRAY + "You have been frozen by a staff member."));
             }
             return true;
         }
@@ -189,6 +191,10 @@ public class FreezeCommand implements ISubCommand, Listener
     /** Freeze and optionally notify the player one time in gray. */
     private void freezePlayer(Player p, boolean notify)
     {
+        if (p == null) return;
         FROZEN.add(p.getUniqueId());
+        if (notify) {
+            p.sendMessage(CommandMessages.command(ChatColor.GRAY + "You have been frozen by a staff member."));
+        }
     }
 }

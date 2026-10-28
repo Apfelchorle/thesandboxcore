@@ -98,6 +98,7 @@ public class ShopCommand implements Listener, ISubCommand {
         UUID puuid = player.getUniqueId();
         int balance = playerDataListener.getCoins(puuid);
         String item_status = playerDataListener.get(puuid,itemName, "not_owned");
+        if (item_status == null) item_status = "not_owned";
 
         if (owned_statuses.contains(item_status.toLowerCase())) {
             var leftover = player.getInventory().addItem(item.create());
@@ -127,12 +128,12 @@ public class ShopCommand implements Listener, ISubCommand {
         }
 
         playerDataListener.set(player.getUniqueId(),itemName, "owned");
-        playerDataListener.setCoins(player.getUniqueId(), playerDataListener.getCoins(player.getUniqueId()) - item.getPrice());
+        playerDataListener.removeCoins(player.getUniqueId(), item.getPrice());
 
         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1f, 1f);
         player.sendMessage(Component.text("You received a " + itemName + "!", NamedTextColor.YELLOW));
 
-        }
+    }
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getInventory().getHolder() instanceof ShopHolder)) {

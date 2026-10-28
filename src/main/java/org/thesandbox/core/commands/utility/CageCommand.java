@@ -20,6 +20,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.server.PluginDisableEvent;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.ISubCommand;
 
@@ -159,8 +160,6 @@ public class CageCommand implements ISubCommand, Listener
         return true;
         }
 
-        cages.put(tid, data);
-
         // Broadcast shows skull username exactly as typed; blocks stay ALL CAPS (Material.name()).
         String msg = "&c&lServer &8» &c" + sender.getName() + " has caged " + target.getName() + broadcastSuffix(mode, blockMat, skullUser) + ".";
         Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&', msg));
@@ -201,6 +200,19 @@ public class CageCommand implements ISubCommand, Listener
                     .collect(Collectors.toList());
         }
         return List.of();
+    }
+
+    @EventHandler
+    public void onPluginDisable(PluginDisableEvent event) {
+        if (event.getPlugin() != plugin) return;
+        for (UUID id : new HashSet<>(cages.keySet())) {
+            Player p = Bukkit.getPlayer(id);
+            if (p != null) uncage(p);
+            else {
+                CageData d = cages.remove(id);
+                if (d != null) restoreAndRemove(d);
+            }
+        }
     }
 
     /* ============================== Events ============================== */
@@ -315,7 +327,7 @@ public class CageCommand implements ISubCommand, Listener
         m = Material.matchMaterial(up);
         if (m != null && m.isBlock()) return m;
 
-        return Material.GLASS;
+        return null;
     }
 
     private boolean isInside(Location loc, CageData d)

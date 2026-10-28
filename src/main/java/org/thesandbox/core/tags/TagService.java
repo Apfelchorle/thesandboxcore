@@ -82,10 +82,10 @@ public class TagService {
 
     /** Returns the saved tag for this exact username (or null). */
     public String getSavedTag(String username) {
-        if (username == null) return null;
+        if (username == null || dataSource == null) return null;
         try (Connection c = dataSource.getConnection();
-             PreparedStatement ps = c.prepareStatement("SELECT tag FROM sandbox_tags WHERE username=?")) {
-            ps.setString(1, username);
+             PreparedStatement ps = c.prepareStatement("SELECT tag FROM sandbox_tags WHERE LOWER(username)=LOWER(?)")) {
+            ps.setString(1, username.trim());
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) return rs.getString(1);
             }
@@ -97,7 +97,7 @@ public class TagService {
 
     /** Upsert saved tag for username. */
     public void saveTag(String username, String tag) {
-        if (username == null) return;
+        if (username == null || dataSource == null) return;
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "INSERT INTO sandbox_tags(username, tag) VALUES (?, ?) " +
@@ -112,9 +112,9 @@ public class TagService {
 
     /** Remove saved tag for username. */
     public void deleteTag(String username) {
-        if (username == null) return;
+        if (username == null || dataSource == null) return;
         try (Connection c = dataSource.getConnection();
-             PreparedStatement ps = c.prepareStatement("DELETE FROM sandbox_tags WHERE username=?")) {
+             PreparedStatement ps = c.prepareStatement("DELETE FROM sandbox_tags WHERE LOWER(username)=LOWER(?)")) {
             ps.setString(1, username);
             ps.executeUpdate();
         } catch (SQLException e) {
@@ -124,6 +124,7 @@ public class TagService {
 
     /** Delete all saved tags. */
     public int clearAll() {
+        if (dataSource == null) return 0;
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement("DELETE FROM sandbox_tags")) {
             return ps.executeUpdate();
@@ -136,6 +137,7 @@ public class TagService {
     /** For moderators: list up to 'limit' rows ordered by newest first. */
     public Map<String, String> listAll(int limit) {
         Map<String, String> out = new LinkedHashMap<>();
+        if (dataSource == null) return out;
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      "SELECT username, tag FROM sandbox_tags ORDER BY updated_at DESC LIMIT ?")) {
@@ -152,6 +154,7 @@ public class TagService {
     /** For clearall: list only usernames. */
     public List<String> listUsernames() {
         List<String> out = new ArrayList<>();
+        if (dataSource == null) return out;
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement("SELECT username FROM sandbox_tags")) {
             try (ResultSet rs = ps.executeQuery()) {

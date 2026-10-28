@@ -385,7 +385,7 @@ public final class GuildCommand implements ISubCommand {
                 return true;
             }
             boolean ok = guilds.setWarp(p.getUniqueId(), args[1], p.getLocation());
-            p.sendMessage(Text.c(ok ? CommandMessages.command("&aSet guild warp &f" + args[1] + "&a.") : CommandMessages.error("&cYou must be in a guild to set a guild warp.")));
+            p.sendMessage(Text.c(ok ? CommandMessages.command("&aSet guild warp &f" + args[1] + "&a.") : CommandMessages.error("&cYou must be in a guild and have setwarp permission.")));
             return true;
         }
 

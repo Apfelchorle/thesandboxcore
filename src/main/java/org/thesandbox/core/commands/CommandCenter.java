@@ -1,6 +1,5 @@
 package org.thesandbox.core.commands;
 
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
@@ -14,82 +13,32 @@ import org.thesandbox.core.util.GenericDataKeys;
 
 public class CommandCenter {
 
-    private static final TheSandboxCore plugin = TheSandboxCore.getInstance();
-
-    // constructer ;p bleh
-    public CommandCenter() {}
-
-    public static boolean request(
-        Command command,
-        CommandSender sender,
-        LoginService.Rank requiredRank
-    ) {
-        String command_name = command.getName();
-        Utils.blog(
-            "-command: " + command_name,
-            "-CommandSender: " + sender,
-            plugin.getName()
-        );
-
-        if (sender instanceof Player player) {
-            String player_name = Utils.plainText(player.name());
-            String player_rank = getRank(player);
-            Utils.blog("Player: " + player_name, "Rank: " + player_rank);
-            return isAllowed(player, requiredRank);
-        }
-
-        // bypassed for now
-        if (!(sender instanceof Player)) {
+    public static boolean request(Command command, CommandSender sender, LoginService.Rank requiredRank) {
+        if (!(sender instanceof Player player)) {
             return true;
         }
-        sender.sendMessage(
-            Component.text(
-                "This command can only be run by players!",
-                NamedTextColor.RED
-            )
-        );
-        Utils.blog(
-            "Refused Command : " + command_name,
-            "Sender : " + sender,
-            "RequiredRank : " + requiredRank
-        );
 
-        return false;
-    }
-
-    private static boolean isAllowed(Player player, LoginService.Rank rank) {
-        return hasPermission(player, rank);
-    }
-
-    private static boolean hasPermission(
-        Player player,
-        LoginService.Rank rank
-    ) {
-        String perm_name = "sandbox." + rank.name();
-        if (player.hasPermission(perm_name)) {
-            Utils.Feedback(
-                player,
-                GenericDataKeys.CMD_SUCCESS,
-                NamedTextColor.GREEN,
-                Sound.ENTITY_ARROW_HIT_PLAYER
-            );
+        String permName = "sandbox." + requiredRank.name().toLowerCase();
+        if (player.hasPermission(permName)) {
             return true;
         }
-        Utils.Feedback(
-            player,
-            GenericDataKeys.CMD_PERM_ERROR,
-            NamedTextColor.DARK_RED,
-            Sound.ENTITY_VILLAGER_NO
+
+        Utils.Feedback(player, GenericDataKeys.CMD_PERM_ERROR, NamedTextColor.DARK_RED, Sound.ENTITY_VILLAGER_NO);
+        Utils.blog(
+                "Refused Command : " + command.getName(),
+                "Sender : " + sender.getName(),
+                "RequiredRank : " + requiredRank
         );
         return false;
     }
 
-    private static String getRank(Player player) {
+    public static String getRank(Player player) {
         TheSandboxCore core = TheSandboxCore.getInstance();
         if (core != null && core.getLoginService() != null) {
-            LoginService ls = plugin.getLoginService();
-            LoginService.Rank rank = ls.getRank(player.getUniqueId());
-            if (rank != null) return rank.name();
+            Rank rank = core.getLoginService().getRank(player);
+            if (rank != null) {
+                return rank.name();
+            }
         }
         return Rank.DEFAULT.name();
     }

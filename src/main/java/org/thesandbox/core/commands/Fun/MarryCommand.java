@@ -16,7 +16,10 @@ import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.fun.Utils;
 import org.thesandbox.core.util.PlayerDataListener;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MarryCommand implements ISubCommand {
@@ -43,12 +46,19 @@ public class MarryCommand implements ISubCommand {
             return true;
         }
 
-        if (args.length < 2) {
-            sender.sendMessage(Component.text("Usage: /" + label + " <request|divorce|offline-divorce|accept|deny|gender> <args>", NamedTextColor.RED));
+        String subCommand = args[0].toLowerCase();
+        if (subCommand.equals("status") && args.length < 2) {
+            handleStatus(issuerPlayer, issuerPlayer.getName());
             return true;
         }
-
-        String subCommand = args[0].toLowerCase();
+        if (subCommand.equals("gender") && args.length >= 2) {
+            handleGender(issuerPlayer, args);
+            return true;
+        }
+        if (args.length < 2) {
+            sender.sendMessage(Component.text("Usage: /" + label + " <request|divorce|offline-divorce|accept|deny|gender|status> <args>", NamedTextColor.RED));
+            return true;
+        }
 
         switch (subCommand) {
             case "accept" -> handleOnlineAction(issuerPlayer, args[1], this::handleAccept);
@@ -56,9 +66,9 @@ public class MarryCommand implements ISubCommand {
             case "request" -> handleOnlineAction(issuerPlayer, args[1], this::request);
             case "divorce" -> handleOnlineAction(issuerPlayer, args[1], this::divorce);
             case "offline-divorce" -> offlineDivorce(issuerPlayer, args[1]);
-            case "gender" -> handleGender(issuerPlayer,args);
             case "status" -> handleStatus(issuerPlayer, args[1]);
-            default -> sender.sendMessage(Component.text("Unknown action! Use request, divorce, offline-divorce, accept, deny, or gender.", NamedTextColor.RED));
+            default ->
+                    sender.sendMessage(Component.text("Unknown action! Use request, divorce, offline-divorce, accept, deny, gender, or status.", NamedTextColor.RED));
         }
 
         return true;
@@ -71,18 +81,17 @@ public class MarryCommand implements ISubCommand {
     }
 
     // Handlers
-	
-	private void handleStatus(Player sender, String playerName) {
+
+    private void handleStatus(Player sender, String playerName) {
         OfflinePlayer player = Bukkit.getOfflinePlayer(playerName);
-		String status = playerDataListener.getMarriageStatus(player.getUniqueId());
+        String status = playerDataListener.getMarriageStatus(player.getUniqueId());
         String spouse =  playerDataListener.getMarriageSpouse(player.getUniqueId());
-        // Changed This From Livi's Single And Divorced
-		if (status.equalsIgnoreCase("Married")) {
-			sender.sendMessage(Component.text(playerName + " married to " + spouse + ".", TextColor.color(255, 0, 75)));
-		} else {
-			sender.sendMessage(Component.text(playerName + " isn't married to anyone.", NamedTextColor.RED));
-		}
-	}
+        if (status != null && status.equalsIgnoreCase("Married")) {
+            sender.sendMessage(Component.text(playerName + " married to " + spouse + ".", TextColor.color(255, 0, 75)));
+        } else {
+            sender.sendMessage(Component.text(playerName + " isn't married to anyone.", NamedTextColor.RED));
+        }
+    }
 
     private void handleOnlineAction(Player issuer, String targetName, PlayerBiConsumer action) {
         Player targetPlayer = Bukkit.getPlayer(targetName);
@@ -147,12 +156,16 @@ public class MarryCommand implements ISubCommand {
     }
 
     private void handleDeny(Player recipient, Player requester) {
-        UUID activeRequesterId = marriageRequests.remove(recipient.getUniqueId());
+        UUID activeRequesterId = marriageRequests.get(recipient.getUniqueId());
+        if (activeRequesterId == null || requester == null || !activeRequesterId.equals(requester.getUniqueId())) {
+            recipient.sendMessage(Component.text("You do not have an active proposal from this player!", NamedTextColor.RED));
+            return;
+        }
 
-        if (activeRequesterId != null && requester != null && requester.isOnline()) {
-            recipient.sendMessage(Component.text("You rejected the proposal.", NamedTextColor.GRAY));
+        marriageRequests.remove(recipient.getUniqueId());
+        recipient.sendMessage(Component.text("You rejected the proposal.", NamedTextColor.GRAY));
+        if (requester.isOnline()) {
             requester.sendMessage(Component.text(recipient.getName() + " has turned down your marriage proposal💔.", NamedTextColor.RED));
-            // FAKE MESSAGE PYRO
             requester.sendMessage(Utils.fakePlayerMessage("ThePyroMan","Sux 2 be you, m8!", "OP", NamedTextColor.DARK_RED));
         }
     }
@@ -251,7 +264,10 @@ public class MarryCommand implements ISubCommand {
             return;
         }
 
-        OfflinePlayer p2 = Bukkit.getOfflinePlayer(p2name);
+        OfflinePlayer p2 = Bukkit.getPlayerExact(p2name);
+        if (p2 == null) {
+            p2 = Bukkit.getOfflinePlayer(p2name);
+        }
 
         if (!p2.hasPlayedBefore() && !p2.isOnline()) {
             p1.sendMessage(Component.text("Player '" + p2name + "' could not be found.", NamedTextColor.RED));

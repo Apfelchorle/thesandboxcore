@@ -1,9 +1,7 @@
 package org.thesandbox.core.commands.utility;
 
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
-import org.bukkit.WorldCreator;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -11,7 +9,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -55,23 +52,7 @@ public class WorldCommand implements ISubCommand
             return true;
         }
 
-        World world = Bukkit.getWorld(requested);
-        if (world == null)
-        {
-            // Try to load the world if a folder exists (avoid generating accidental new worlds)
-            File worldFolder = new File(Bukkit.getWorldContainer(), requested);
-            if (worldFolder.exists() && worldFolder.isDirectory())
-            {
-                try
-                {
-                    world = WorldCreator.name(requested).createWorld();
-                }
-                catch (Throwable t)
-                {
-                    world = null;
-                }
-            }
-        }
+        World world = WorldTeleportHelper.resolveWorld(requested);
 
         if (world == null)
         {

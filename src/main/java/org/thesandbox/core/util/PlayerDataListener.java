@@ -81,10 +81,26 @@ public class PlayerDataListener implements Listener {
         }
     }
 
+    public void addCoins(UUID uuid, int amount) {
+        long next = (long) getCoins(uuid) + amount;
+        setCoins(uuid, (int) Math.min(Integer.MAX_VALUE, Math.max(0, next)));
+    }
+
+    public int getCoins(UUID uuid) {
+        return get(uuid, PlayerDataKeys.COINS, 0);
+    }
+
+    public void setCoins(UUID uuid, int coins) {
+        set(uuid, PlayerDataKeys.COINS, Math.max(0, coins));
+    }
+
     @SuppressWarnings("unchecked")
     public <T> T get(UUID uuid, String key, T defaultValue) {
         Map<String, Object> data = playerCache.get(uuid);
-        if (data == null || !data.containsKey(key)) return defaultValue;
+        if (data == null) {
+            data = dataManager.loadAllData(uuid, DEFAULTS);
+        }
+        if (!data.containsKey(key)) return defaultValue;
         try {
             return (T) data.get(key);
         } catch (ClassCastException e) {
@@ -93,27 +109,22 @@ public class PlayerDataListener implements Listener {
     }
 
     public void set(UUID uuid, String key, Object value) {
-        playerCache
-            .computeIfAbsent(uuid, k -> new ConcurrentHashMap<>())
-            .put(key, value);
+        ensureLoaded(uuid).put(key, value);
     }
 
+    private Map<String, Object> ensureLoaded(UUID uuid) {
+        return playerCache.computeIfAbsent(uuid, id ->
+                new ConcurrentHashMap<>(dataManager.loadAllData(id, DEFAULTS))
+        );
+    }
 
-    public int getCoins(UUID uuid) {
-        return get(uuid, PlayerDataKeys.COINS, 0);
-    }
-    public void setCoins(UUID uuid, int coins) {
-        set(uuid, PlayerDataKeys.COINS, coins);
-    }
-    public void addCoins(UUID uuid, int amount) {
-        set(uuid, PlayerDataKeys.COINS, getCoins(uuid) + amount);
-    }
     public void removeCoins(UUID uuid, int amount) {
-        set(uuid, PlayerDataKeys.COINS, getCoins(uuid) - amount);
+        long next = (long) getCoins(uuid) - amount;
+        setCoins(uuid, (int) Math.max(0, next));
     }
 
     public String getMarriageStatus(UUID uuid) {
-        return get(uuid, PlayerDataKeys.MARRIAGE_STATUS, "divorced");
+        return get(uuid, PlayerDataKeys.MARRIAGE_STATUS, "Single");
     }
     public String getMarriageSpouse(UUID uuid) {
         return get(uuid, PlayerDataKeys.MARRIAGE_SPOUSE, "");

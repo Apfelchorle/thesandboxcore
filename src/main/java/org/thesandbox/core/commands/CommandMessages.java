@@ -127,7 +127,8 @@ public final class CommandMessages
     private static boolean isFormattingOrColor(char code) {
         return (code >= '0' && code <= '9')
                 || (code >= 'a' && code <= 'f')
-                || (code >= 'k' && code <= 'o');
+                || (code >= 'k' && code <= 'o')
+                || code == 'r';
     }
 
     public static boolean isHex(char c)

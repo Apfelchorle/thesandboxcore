@@ -1,17 +1,10 @@
 package org.thesandbox.core.guilds;
 
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.OfflinePlayer;
-import org.bukkit.entity.Player;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.ChatColor;
-import org.bukkit.plugin.Plugin;
-import java.lang.reflect.Method;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.luckperms.api.LuckPermsProvider;
 import net.luckperms.api.model.data.DataMutateResult;
 import net.luckperms.api.model.data.NodeMap;
@@ -19,17 +12,24 @@ import net.luckperms.api.model.user.User;
 import net.luckperms.api.model.user.UserManager;
 import net.luckperms.api.node.Node;
 import net.luckperms.api.node.types.PrefixNode;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.thesandbox.core.util.HexColorUtil;
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 
 import java.io.File;
+import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.*;
 
 public final class GuildManager {
     public static final List<String> RANK_PERMISSIONS = List.of(
-            "invite", "tag", "kick", "delwarp", "sethome",
+            "invite", "tag", "kick", "setwarp", "delwarp", "sethome",
             "rank.set", "rank.delete", "rank.create", "rank.allow", "rank.deny", "toggle"
     );
 
@@ -1191,7 +1191,8 @@ public final class GuildManager {
 
     public boolean setWarp(UUID actor, String warpName, Location location) {
         Guild g = guildOf(actor);
-        if (g == null || warpName == null || warpName.isBlank() || location == null || location.getWorld() == null) return false;
+        if (g == null || !hasGuildPermission(actor, "setwarp") || warpName == null || warpName.isBlank() || location == null || location.getWorld() == null)
+            return false;
         if (mysqlGuildsAvailable && !upsertWarpMysql(g.name(), warpName, location)) return false;
         g.setWarp(warpName, location.clone());
         if (!mysqlGuildsAvailable) save();

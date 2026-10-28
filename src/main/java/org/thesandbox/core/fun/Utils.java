@@ -61,18 +61,19 @@ public class Utils {
     }
 
     public static void dump(Throwable t, String msg) {
+        if (plugin == null) {
+            t.printStackTrace();
+            return;
+        }
         Logger logger = plugin.getLogger();
-        StackTraceElement[] stackTrace = t.getStackTrace();
-        plugin.getLogger().severe("Throwable" + msg + " : " + t);
-        logger.warning(
-            "Important" +
-                msg +
-                " : " +
-                t.getMessage() +
-                "\n" +
-                t.getCause().getMessage()
-        );
-        logger.severe("StackTrace " + msg + " : " + Arrays.stream(stackTrace));
+        logger.severe(msg + " : " + t);
+        if (t.getMessage() != null) {
+            logger.warning(msg + " : " + t.getMessage());
+        }
+        if (t.getCause() != null && t.getCause().getMessage() != null) {
+            logger.warning(msg + " cause : " + t.getCause().getMessage());
+        }
+        logger.severe("StackTrace " + msg + " : " + Arrays.toString(t.getStackTrace()));
     }
 
     // someone please clean these up
