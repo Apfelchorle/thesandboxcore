@@ -31,6 +31,7 @@ public class TheSandboxCoreCommand implements ISubCommand {
         // /thesandboxcore -> info
         if (args.length == 0) {
             sender.sendMessage(color("&6&lTheSandboxCore &7v" + plugin.getPluginMeta().getVersion()));
+            sender.sendMessage(color("&6&lCurrent Version: &7") + plugin.getConfig().getString("update.tag-state.core"));
             sender.sendMessage(color("&7Author: &f" + String.join(", ", plugin.getPluginMeta().getAuthors())));
             boolean discord = plugin.getConfig().getBoolean("discord.enabled", false);
             sender.sendMessage(color("&7Discord Bridge: &f" + (discord ? "&aEnabled" : "&cDisabled")));
