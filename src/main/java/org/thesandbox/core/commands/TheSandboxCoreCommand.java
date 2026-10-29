@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class TheSandboxCoreCommand implements ISubCommand {
+public class TheSandboxCoreCommand extends BaseCommand {
 
     private final TheSandboxCore plugin;
     private final PlayerDataListener playerDataListener;
@@ -31,7 +31,7 @@ public class TheSandboxCoreCommand implements ISubCommand {
         // /thesandboxcore -> info
         if (args.length == 0) {
             sender.sendMessage(color("&6&lTheSandboxCore &7v" + plugin.getPluginMeta().getVersion()));
-            sender.sendMessage(color("&6&lCurrent Version: &7") + plugin.getConfig().getString("update.tag-state.core"));
+            sender.sendMessage(color("&6&lCurrent Version: &7" + plugin.getConfig().getString("update.tag-state.core", "Unknown")));
             sender.sendMessage(color("&7Author: &f" + String.join(", ", plugin.getPluginMeta().getAuthors())));
             boolean discord = plugin.getConfig().getBoolean("discord.enabled", false);
             sender.sendMessage(color("&7Discord Bridge: &f" + (discord ? "&aEnabled" : "&cDisabled")));
@@ -40,8 +40,7 @@ public class TheSandboxCoreCommand implements ISubCommand {
 
         // /thesandboxcore config get [key with spaces...] [player]
         if (args.length >= 4 && args[0].equalsIgnoreCase("config")) {
-            if (!sender.hasPermission("sandbox.admin")) {
-                sender.sendMessage(Component.text("You don’t have permission.", NamedTextColor.RED));
+            if (!hasAdminPermission(sender)) {
                 return true;
             }
 
@@ -74,8 +73,7 @@ public class TheSandboxCoreCommand implements ISubCommand {
 
         // /thesandboxcore reload
         if (args.length == 1 && args[0].equalsIgnoreCase("reload")) {
-            if (!sender.hasPermission("sandbox.admin")) {
-                sender.sendMessage(Component.text("You don’t have permission.", NamedTextColor.RED));
+            if (!hasAdminPermission(sender)) {
                 return true;
             }
             long t0 = System.currentTimeMillis();

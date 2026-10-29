@@ -110,6 +110,19 @@ public class PlayerDataListener implements Listener {
 
     public void set(UUID uuid, String key, Object value) {
         ensureLoaded(uuid).put(key, value);
+        saveIfOffline(uuid);
+    }
+
+    public void saveIfOffline(UUID uuid) {
+        if (uuid != null && Bukkit.getPlayer(uuid) == null) {
+            Map<String, Object> data = playerCache.get(uuid);
+            if (data != null) {
+                Map<String, Object> snapshot = new HashMap<>(data);
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                    dataManager.saveAllData(uuid, snapshot);
+                });
+            }
+        }
     }
 
     private Map<String, Object> ensureLoaded(UUID uuid) {

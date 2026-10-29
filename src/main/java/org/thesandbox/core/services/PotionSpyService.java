@@ -7,9 +7,9 @@ import org.bukkit.entity.ThrownPotion;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.entity.LingeringPotionSplashEvent;
 import org.bukkit.event.entity.PotionSplashEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -42,7 +42,7 @@ public class PotionSpyService implements Listener
         if (p.hasPermission("sandbox.superuser")) return Tier.SUPERUSER;
         if (p.hasPermission("sandbox.admin"))   return Tier.SRADMIN;
         if (p.hasPermission("sandbox.staff"))     return Tier.ADMIN;
-        if (p.hasPermission("sandbox.staff"))       return Tier.MOD;
+        if (p.hasPermission("sandbox.mod")) return Tier.MOD;
         return Tier.DEFAULT;
     }
 

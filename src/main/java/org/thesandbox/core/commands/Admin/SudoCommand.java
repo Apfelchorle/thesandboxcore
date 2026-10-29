@@ -131,7 +131,7 @@ public class SudoCommand implements ISubCommand
         if (p.hasPermission("sandbox.superuser")) return 4;
         if (p.hasPermission("sandbox.admin"))   return 3;
         if (p.hasPermission("sandbox.staff"))     return 2;
-        if (p.hasPermission("sandbox.staff"))       return 1;
+        if (p.hasPermission("sandbox.mod")) return 1;
         return 0;
     }
 }

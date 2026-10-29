@@ -84,8 +84,6 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
     }
 
 
-    // fuck performance and optimization
-    // this is all you're getting you greedy jews
     public void simpleFlightTask() {
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             for (Player player : Bukkit.getOnlinePlayers()) {
@@ -93,7 +91,8 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
                     continue;
                 }
 
-                if (boat.getPassengers().getFirst() != player) continue;
+                List<Entity> passengers = boat.getPassengers();
+                if (passengers.isEmpty() || passengers.get(0) != player) continue;
 
                 BoatInputState input = playerInputs.get(player.getUniqueId());
                 if (input == null) continue;

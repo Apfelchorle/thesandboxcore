@@ -8,13 +8,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.DiscordBridge;
 import org.thesandbox.core.TheSandboxCore;
-import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.util.PterodactylBridge;
 
 import java.awt.*;
 import java.util.List;
 
-public class UpdateAllProxiesCommand implements ISubCommand {
+public class UpdateAllProxiesCommand extends BaseCommand {
 
     private final TheSandboxCore plugin;
     private final DiscordBridge discord;
@@ -28,13 +28,9 @@ public class UpdateAllProxiesCommand implements ISubCommand {
 
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.hasPermission("sandbox.superuser")) {
-            Bukkit.getLogger().warning(sender.name() + " does not have permission to use this command.");
-            sender.sendMessage(Component.text("You do not have permission to use this command!", NamedTextColor.RED));
+        if (!hasSuperuserPermission(sender)) {
             return true;
         }
-
-        Bukkit.getLogger().warning(sender.name() + " ran up to here");
 
         localUpdateCommand.execute(sender, command, label, args);
 

@@ -35,7 +35,9 @@ commands:
   waterflow:
     permission: sandbox.staff
 
-  jew:
+  goldwipe:
+    description: Remove all dropped gold ingots from all worlds
+    usage: /goldwipe
     permission: sandbox.staff
   updateallproxies:
     permission: sandbox.superuser
@@ -224,7 +226,7 @@ commands:
   loginmessage:
     description: Set Your Login Message!
     permission: sandbox.default
-    alias: [lmsg]
+    aliases: [ lmsg ]
 
   update:
     description: Update TheSandBoxCore Plugin

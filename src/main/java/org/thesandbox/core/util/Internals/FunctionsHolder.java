@@ -22,11 +22,29 @@ public class FunctionsHolder {
         return Bukkit.getPlayer(input);
     }
 
+    /**
+     * @deprecated Use {@link #parseIntSafe(String)} instead, which returns null on error
+     * instead of silently returning 0.
+     */
+    @Deprecated
     public static int parseint(String input) {
+        Integer result = parseIntSafe(input);
+        return result != null ? result : 0;
+    }
+
+    /**
+     * Parse an integer from a string.
+     *
+     * @return the parsed integer, or null if invalid
+     */
+    public static Integer parseIntSafe(String input) {
+        if (input == null || input.isBlank()) {
+            return null;
+        }
         try {
             return Integer.parseInt(input);
         } catch (NumberFormatException e) {
-            return 0;
+            return null;
         }
     }
 }

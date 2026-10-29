@@ -14,7 +14,6 @@ import org.thesandbox.core.util.HexColorUtil;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -25,8 +24,8 @@ public class StaffChatManager {
     private final Supplier<javax.sql.DataSource> dataSourceSupplier;
     private final Supplier<ShushService> shushServiceSupplier;
     private final Supplier<DiscordBridge> discordSupplier;
-    private final Set<UUID> staffChatEnabled = new HashSet<>();
-    private final Set<UUID> staffChatHidden = new HashSet<>();
+    private final Set<UUID> staffChatEnabled = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final Set<UUID> staffChatHidden = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
     private final LegacyComponentSerializer legacySection = LegacyComponentSerializer.legacySection();
 

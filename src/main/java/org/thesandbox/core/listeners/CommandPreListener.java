@@ -55,10 +55,8 @@ public class CommandPreListener implements Listener {
         final String rawMessage = event.getMessage();
 
         final String spyCommand = commandSpyManager.spyDisplayCommand(rawMessage);
-        String fmt = plugin.getConfig()
-                .getString("commandspy.format",
-                        sender.getServer().getPluginManager().getPlugin("TheSandboxCore").getConfig()
-                                .getString("commandspy-format", "&7%player%: %command%"));
+        String fmt = plugin.getConfig().getString("commandspy.format",
+                plugin.getConfig().getString("commandspy-format", "&7%player%: %command%"));
         String formatted = ChatColor.translateAlternateColorCodes('&', fmt)
                 .replace("%player%", sender.getName())
                 .replace("%command%", spyCommand);

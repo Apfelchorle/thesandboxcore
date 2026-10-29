@@ -11,8 +11,6 @@ import org.thesandbox.core.fun.items.itemUTILS.ItemListener;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.net.URL;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
 import java.security.CodeSource;
 import java.util.*;
 import java.util.jar.JarEntry;
@@ -85,10 +83,8 @@ public final class ItemAutoRegistrar {
         List<Class<?>> list = new ArrayList<>();
         try {
             CodeSource src = plugin.getClass().getProtectionDomain().getCodeSource();
-            if (src == null) return list;
-            String path = URLDecoder.decode(src.getLocation().getPath(), StandardCharsets.UTF_8);
-
-            try (JarInputStream jis = new JarInputStream(new URL("file", null, path).openStream())) {
+            URL jarUrl = src.getLocation();
+            try (java.io.InputStream is = jarUrl.openStream(); JarInputStream jis = new JarInputStream(is)) {
                 JarEntry e;
                 String pkgPath = ITEMS_PKG.replace('.', '/') + "/";
                 while ((e = jis.getNextJarEntry()) != null) {

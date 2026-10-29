@@ -253,12 +253,6 @@ public class TheSandboxCore extends JavaPlugin {
         this.commandSpyManager = new CommandSpyManager(this, () ->
             legacySqlStore.getDataSource()
         );
-        this.staffChatManager = new StaffChatManager(
-            this,
-            () -> legacySqlStore.getDataSource(),
-            () -> shushService,
-            () -> discord
-        );
 
         this.manageChatService = new ManageChatService(this);
         this.guildManager = new GuildManager(this);
@@ -267,6 +261,7 @@ public class TheSandboxCore extends JavaPlugin {
         this.tagService = new TagService(this);
         this.tagService.init();
 
+        // Discord must be initialized before staffChatManager references it
         this.discord = new DiscordBridge(
             this,
             this.chatFilterEngine,
@@ -274,9 +269,7 @@ public class TheSandboxCore extends JavaPlugin {
         );
         this.discord.start();
 
-        this.updateLocalCommand = new UpdateLocalCommand(this, discord);
-        this.autoClearService = new AutoClearService();
-        this.autoTpService = new AutoTpService(this);
+        // Services that depend on discord or shushService
         this.potionSpyService = new PotionSpyService(
             this,
             legacySqlStore.getDataSource()
@@ -286,6 +279,18 @@ public class TheSandboxCore extends JavaPlugin {
             legacySqlStore.getDataSource()
         );
         this.genericListener = new GenericListener(pluginConfigManager);
+
+        // Now safe to initialize staffChatManager (discord and shushService are ready)
+        this.staffChatManager = new StaffChatManager(
+                this,
+                () -> legacySqlStore.getDataSource(),
+                () -> shushService,
+                () -> discord
+        );
+
+        this.updateLocalCommand = new UpdateLocalCommand(this, discord);
+        this.autoClearService = new AutoClearService();
+        this.autoTpService = new AutoTpService(this);
     }
 
     private void registerListeners() {
@@ -358,6 +363,7 @@ public class TheSandboxCore extends JavaPlugin {
                 this.shushService,
                 this.discord,
                 dataListener,
+                    balanceManager,
                 itemKeys,
                 loginMessages,
                 pluginConfigManager,
@@ -458,7 +464,7 @@ public class TheSandboxCore extends JavaPlugin {
     }
 
     public boolean DiscordChatBridgeStatus() {
-        return setDiscordChatBridgeEnabled(true);
+        return isDiscordChatBridgeEnabled();
     }
 
     public boolean setDiscordChatBridgeEnabled(boolean enabled) {

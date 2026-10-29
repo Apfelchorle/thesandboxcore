@@ -9,14 +9,13 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class HealCommand implements ISubCommand
+public class HealCommand extends BaseCommand
 {
     private final JavaPlugin plugin;
 
@@ -31,7 +30,7 @@ public class HealCommand implements ISubCommand
         // Console must specify a target
         if (!(sender instanceof Player) && args.length < 1)
         {
-            sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " <player>"));
+            sendUsage(sender, "Usage: /" + label + " <player>");
             return true;
         }
 
@@ -47,15 +46,14 @@ public class HealCommand implements ISubCommand
         Player target = Bukkit.getPlayerExact(args[0]);
         if (target == null)
         {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "Player not found: " + args[0]));
+            sendError(sender, "Player not found: " + args[0]);
             return true;
         }
 
         if (sender instanceof Player actor)
         {
-            if (!actor.hasPermission("sandbox.staff") && !actor.isOp())
+            if (!hasStaffPermission(actor) && !actor.isOp())
             {
-                sender.sendMessage(CommandMessages.error(ChatColor.RED + "You must be a staff member to heal other players!"));
                 return true;
             }
         }
@@ -63,7 +61,7 @@ public class HealCommand implements ISubCommand
         boolean ok = healOne(sender, target, /*tellTarget=*/true, /*tellSender=*/true);
         if (ok && !(sender instanceof Player && sender.equals(target)))
         {
-            sender.sendMessage(CommandMessages.command(ChatColor.GRAY + "Healed " + target.getName() + "."));
+            sendCommand(sender, "Healed " + target.getName() + ".");
         }
         return true;
     }
@@ -73,17 +71,7 @@ public class HealCommand implements ISubCommand
     {
         if (args.length == 1)
         {
-            String prefix = args[0].toLowerCase();
-            List<String> out = new ArrayList<>();
-            for (Player p : Bukkit.getOnlinePlayers())
-            {
-                if (p.getName().toLowerCase().startsWith(prefix))
-                {
-                    out.add(p.getName());
-                }
-            }
-            Collections.sort(out);
-            return out;
+            return playerCompletions(args[0]);
         }
         return Collections.emptyList();
     }

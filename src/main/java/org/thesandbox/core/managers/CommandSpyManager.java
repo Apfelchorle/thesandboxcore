@@ -15,7 +15,7 @@ public class CommandSpyManager {
 
     private final JavaPlugin plugin;
     private final Supplier<javax.sql.DataSource> dataSourceSupplier;
-    private final Set<UUID> cmdSpyDisabled = new HashSet<>();
+    private final Set<UUID> cmdSpyDisabled = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     public CommandSpyManager(JavaPlugin plugin, Supplier<javax.sql.DataSource> dataSourceSupplier) {
         this.plugin = plugin;

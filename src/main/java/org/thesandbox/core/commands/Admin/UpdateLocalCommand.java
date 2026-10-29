@@ -8,9 +8,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.DiscordBridge;
 import org.thesandbox.core.TheSandboxCore;
-import org.thesandbox.core.commands.CommandCenter;
-import org.thesandbox.core.commands.ISubCommand;
-import org.thesandbox.core.login.LoginService;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.util.GitHubReleaseUpdater;
 import org.thesandbox.core.util.UpdateTarget;
 
@@ -20,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class UpdateLocalCommand implements ISubCommand {
+public class UpdateLocalCommand extends BaseCommand {
 
     private final TheSandboxCore plugin;
     private final DiscordBridge discord;
@@ -38,17 +36,7 @@ public class UpdateLocalCommand implements ISubCommand {
         String label,
         String[] args
     ) {
-        if (!sender.hasPermission("sandbox.superuser")) {
-            sender.sendMessage(
-                Component.text(
-                    "You do not have permission to use this command!",
-                    NamedTextColor.RED
-                )
-            );
-            return true;
-        }
-        // part of Commands Rewrite [Testing Phase]
-        if (!(CommandCenter.request(command, sender, LoginService.Rank.OPERATOR))) {
+        if (!hasSuperuserPermission(sender)) {
             return true;
         }
 

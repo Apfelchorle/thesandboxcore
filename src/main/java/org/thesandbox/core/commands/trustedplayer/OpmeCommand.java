@@ -6,16 +6,14 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.fun.Utils;
 
-import java.util.List;
-
-public class opmeCommand implements ISubCommand {
+public class OpmeCommand extends BaseCommand {
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(Component.text("Only players can use this command.", NamedTextColor.RED));
+        Player player = asPlayer(sender);
+        if (player == null) {
             return true;
         }
         if (Utils.hasUuid(player)) {
@@ -24,11 +22,6 @@ public class opmeCommand implements ISubCommand {
         } else {
             player.sendMessage(Component.text("You Do Not Have Access To This Command", NamedTextColor.RED, TextDecoration.BOLD));
         }
-        return false;
-    }
-
-    @Override
-    public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        return List.of();
+        return true;
     }
 }

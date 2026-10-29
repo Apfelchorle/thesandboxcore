@@ -1,10 +1,5 @@
 package org.thesandbox.core.listeners;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -14,11 +9,17 @@ import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.util.GenericDataKeys;
 import org.thesandbox.core.util.PluginConfigManager;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class ChatFilterEngine {
 
     private final PluginConfigManager configManager;
     private final TheSandboxCore plugin;
-    private Pattern cachedPattern;
+    private volatile Pattern cachedPattern;
 
     public ChatFilterEngine(
         PluginConfigManager configManager,

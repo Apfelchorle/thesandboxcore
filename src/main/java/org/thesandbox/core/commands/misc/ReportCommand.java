@@ -61,17 +61,6 @@ public class ReportCommand implements ISubCommand
             return true;
         }
 
-        // Cooldown: same reporter->target within 5 minutes
-        String key = reporter.getUniqueId() + ":" + target.getUniqueId();
-        long now = System.currentTimeMillis();
-        Long last = lastReport.get(key);
-        if (last != null && (now - last) < COOLDOWN_MS)
-        {
-            reporter.sendMessage(CommandMessages.error("You have already submitted a report on this player."));
-            return true;
-        }
-        lastReport.put(key, now);
-
         // Disallow reporting staff members
         if (target.hasPermission("sandbox.staff"))
         {
@@ -86,6 +75,16 @@ public class ReportCommand implements ISubCommand
             reporter.sendMessage(CommandMessages.error(ChatColor.RED + "Please provide a reason."));
             return true;
         }
+
+        // Cooldown: same reporter->target within 5 minutes
+        String key = reporter.getUniqueId() + ":" + target.getUniqueId();
+        long now = System.currentTimeMillis();
+        Long last = lastReport.get(key);
+        if (last != null && (now - last) < COOLDOWN_MS) {
+            reporter.sendMessage(CommandMessages.error("You have already submitted a report on this player."));
+            return true;
+        }
+        lastReport.put(key, now);
 
         // Acknowledge to reporter
         reporter.sendMessage(CommandMessages.command("Your report has been logged. Thank you for keeping our server safe."));

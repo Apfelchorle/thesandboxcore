@@ -83,7 +83,7 @@ public class BlockCmdCommand implements ISubCommand {
         if (wasBlocked) {
             plugin.getCommandBlockManager().unblockPlayerCommandsByName(targetName);
             Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&',
-            "&c&lServer &8» &c" + sender.getName() + " has unblocked " + target.getName() + "'s commands."));
+                    "&c&lServer &8» &c" + sender.getName() + " has unblocked " + targetName + "'s commands."));
         } else {
             // do not allow blocking staff even if they come online later and have perms
             if (target == null) {
@@ -93,7 +93,7 @@ public class BlockCmdCommand implements ISubCommand {
                 plugin.getCommandBlockManager().blockPlayerCommands(target.getUniqueId(), System.currentTimeMillis() + BLOCK_DURATION_MS);
             }
             Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&',
-            "&c&lServer &8» &c" + sender.getName() + " has blocked " + target.getName() + "'s commands."));
+                    "&c&lServer &8» &c" + sender.getName() + " has blocked " + targetName + "'s commands."));
         }
 
         return true;
