@@ -48,11 +48,11 @@ public class TagService {
     private void setupPool() {
         if (this.dataSource != null && !this.dataSource.isClosed()) return;
 
-        String host = plugin.getConfig().getString("mysql.host");
-        int    port = plugin.getConfig().getInt("mysql.port");
-        String db   = plugin.getConfig().getString("mysql.database");
-        String user = plugin.getConfig().getString("mysql.user");
-        String pass = plugin.getConfig().getString("mysql.password");
+        String host = plugin.getConfig().getString("mysql.sandbox.host");
+        int    port = plugin.getConfig().getInt("mysql.sandbox.port");
+        String db   = plugin.getConfig().getString("mysql.sandbox.database");
+        String user = plugin.getConfig().getString("mysql.sandbox.user");
+        String pass = plugin.getConfig().getString("mysql.sandbox.password");
 
         String jdbcUrl = "jdbc:mysql://" + host + ":" + port + "/" + db + "?useSSL=false&autoReconnect=true";
         HikariConfig cfg = new HikariConfig();

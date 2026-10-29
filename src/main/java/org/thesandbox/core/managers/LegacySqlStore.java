@@ -28,15 +28,15 @@ public class LegacySqlStore {
     public void setup() {
         close();
 
-        String host = plugin.getConfig().getString("mysql.host");
-        String database = plugin.getConfig().getString("mysql.database");
+        String host = plugin.getConfig().getString("mysql.sandbox.host");
+        String database = plugin.getConfig().getString("mysql.sandbox.database");
         if (host == null || host.isBlank() || database == null || database.isBlank()) {
             plugin.getLogger().warning("[SQL] mysql.host / mysql.database not configured - database features are disabled.");
             return;
         }
-        int port = plugin.getConfig().getInt("mysql.port", 3306);
-        String user = plugin.getConfig().getString("mysql.user");
-        String password = plugin.getConfig().getString("mysql.password");
+        int port = plugin.getConfig().getInt("mysql.sandbox.port", 3306);
+        String user = plugin.getConfig().getString("mysql.sandbox.user");
+        String password = plugin.getConfig().getString("mysql.sandbox.password");
 
         String jdbcUrl = "jdbc:mysql://" + host + ":" + port + "/" + database + "?useSSL=false&autoReconnect=true";
         HikariConfig config = new HikariConfig();

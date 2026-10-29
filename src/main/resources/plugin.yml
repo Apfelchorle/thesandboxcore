@@ -81,7 +81,7 @@ commands:
   coins:
     description: Displays Your Balance
     permission: sandbox.default
-    usage: /coins
+    usage: /coins [get|give|top|set|add|take]
 
   shop:
     description: Opens The Shop

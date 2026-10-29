@@ -40,6 +40,7 @@ public class TheSandboxCore extends JavaPlugin {
 
     // SQL
     private LegacySqlStore legacySqlStore;
+    private BalanceSqlStore balanceSqlStore;
 
     // Services & Managers
     private CommandBlockManager commandBlockManager;
@@ -235,6 +236,10 @@ public class TheSandboxCore extends JavaPlugin {
     private void initDatabase() {
         this.legacySqlStore = new LegacySqlStore(this);
         this.legacySqlStore.setup();
+
+        // Coin balances live in their own database (mysql.balances) when configured.
+        this.balanceSqlStore = new BalanceSqlStore(this);
+        this.balanceSqlStore.setup();
     }
 
     private void initServices() {
@@ -245,7 +250,7 @@ public class TheSandboxCore extends JavaPlugin {
         this.dataListener = new PlayerDataListener(this, dataManager);
         this.loginMessages = new LoginMessages(dataListener, this);
 
-        this.balanceManager = new BalanceManager();
+        this.balanceManager = new BalanceManager(this, balanceSqlStore.getDelegatingDataSource());
         this.balanceManager.init();
 
         this.itemKeys = new ItemKeys(this);
@@ -407,7 +412,9 @@ public class TheSandboxCore extends JavaPlugin {
         criticalServices.put("PluginConfigManager", pluginConfigManager);
         criticalServices.put("DataManager", dataManager);
         criticalServices.put("PlayerDataListener", dataListener);
+        criticalServices.put("BalanceManager", balanceManager);
         criticalServices.put("LegacySqlStore", legacySqlStore);
+        criticalServices.put("BalanceSqlStore", balanceSqlStore);
         criticalServices.put("LoginService", loginService);
         criticalServices.put("FunctionsHolder", functionsHolder);
         criticalServices.put("EntityWiper", entityWiper);
@@ -432,6 +439,9 @@ public class TheSandboxCore extends JavaPlugin {
         // Persist data FIRST: stopping Discord can block for a long time and must not risk losing saves.
         safely("save player data", () -> {
             if (dataListener != null) dataListener.saveAll();
+        });
+        safely("save balances", () -> {
+            if (balanceManager != null) balanceManager.flush();
         });
         safely("save guilds", () -> {
             if (guildManager != null) {
@@ -467,6 +477,9 @@ public class TheSandboxCore extends JavaPlugin {
         });
 
         // Close database connections last
+        safely("close balances database", () -> {
+            if (balanceSqlStore != null) balanceSqlStore.close();
+        });
         safely("close database", () -> {
             if (legacySqlStore != null) legacySqlStore.close();
         });
@@ -488,6 +501,7 @@ public class TheSandboxCore extends JavaPlugin {
     public void reloadAndReconnect() {
         reloadConfig();
         legacySqlStore.setup(); // closes the old pool first; services use the delegating DataSource
+        balanceSqlStore.setup(); // same: BalanceManager holds the delegating DataSource
         if (entityWiper != null) {
             entityWiper.startFromConfig();
         }

@@ -214,11 +214,11 @@ public final class GuildManager {
 
     private void setupMysqlGuilds() {
         try {
-            String host = plugin.getConfig().getString("mysql.host", "127.0.0.1");
-            int port = plugin.getConfig().getInt("mysql.port", 3306);
-            String db = plugin.getConfig().getString("mysql.database", "sandbox");
-            String user = plugin.getConfig().getString("mysql.user", "sandbox");
-            String pass = plugin.getConfig().getString("mysql.password", "");
+            String host = plugin.getConfig().getString("mysql.sandbox.host", "127.0.0.1");
+            int port = plugin.getConfig().getInt("mysql.sandbox.port", 3306);
+            String db = plugin.getConfig().getString("mysql.sandbox.database", "sandbox");
+            String user = plugin.getConfig().getString("mysql.sandbox.user", "sandbox");
+            String pass = plugin.getConfig().getString("mysql.sandbox.password", "");
 
             HikariConfig cfg = new HikariConfig();
             cfg.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + db + "?useSSL=false&useUnicode=true&characterEncoding=utf8&allowPublicKeyRetrieval=true");

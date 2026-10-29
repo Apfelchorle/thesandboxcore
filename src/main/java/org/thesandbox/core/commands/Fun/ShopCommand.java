@@ -19,14 +19,17 @@ import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.fun.items.*;
 import org.thesandbox.core.fun.items.itemUTILS.Item;
+import org.thesandbox.core.managers.BalanceManager;
 import org.thesandbox.core.util.PlayerDataListener;
 
 import java.util.*;
 
 public class ShopCommand implements Listener, ISubCommand {
 
-    private final LightningRodItem lightningRodItem;
+    private final TheSandboxCore plugin;
     private final PlayerDataListener playerDataListener;
+    private final BalanceManager balanceManager;
+    private final LightningRodItem lightningRodItem;
     private final LoginMessagesItem loginMessagesItem;
     private final ClownFishItem clownFishItem;
     private final Rideable_Ender_Pearl_Item rideableEnderPearlItem;
@@ -67,7 +70,9 @@ public class ShopCommand implements Listener, ISubCommand {
 
 
     public ShopCommand(TheSandboxCore plugin, PlayerDataListener playerDataListener, LightningRodItem lightningRodItem, LoginMessagesItem loginMessagesItem, ClownFishItem clownFishItem, Rideable_Ender_Pearl_Item rideableEnderPearlItem, GrapplingHookItem grapplingHookItem, StackingPotatoItem stackingPotatoItem, FloatBoatItem floatBoatItem, WindRodItem windRodItem) {
+        this.plugin = plugin;
         this.playerDataListener = playerDataListener;
+        this.balanceManager = plugin.getBalanceManager();
         this.lightningRodItem = lightningRodItem;
         this.loginMessagesItem = loginMessagesItem;
         this.clownFishItem = clownFishItem;
@@ -96,7 +101,7 @@ public class ShopCommand implements Listener, ISubCommand {
         List<String> owned_statuses = Arrays.asList("owned", "bought", "enabled", "disabled");
         int price = item.getPrice();
         UUID puuid = player.getUniqueId();
-        int balance = playerDataListener.getCoins(puuid);
+        int balance = balanceManager.getCoins(puuid);
         String item_status = playerDataListener.get(puuid,itemName, "not_owned");
         if (item_status == null) item_status = "not_owned";
 
@@ -128,7 +133,7 @@ public class ShopCommand implements Listener, ISubCommand {
         }
 
         playerDataListener.set(player.getUniqueId(),itemName, "owned");
-        playerDataListener.removeCoins(player.getUniqueId(), item.getPrice());
+        balanceManager.removeCoins(player.getUniqueId(), item.getPrice());
 
         player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 1f, 1f);
         player.sendMessage(Component.text("You received a " + itemName + "!", NamedTextColor.YELLOW));

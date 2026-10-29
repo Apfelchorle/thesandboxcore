@@ -81,17 +81,9 @@ public class PlayerDataListener implements Listener {
         }
     }
 
-    public void addCoins(UUID uuid, int amount) {
-        long next = (long) getCoins(uuid) + amount;
-        setCoins(uuid, (int) Math.min(Integer.MAX_VALUE, Math.max(0, next)));
-    }
-
+    /** Legacy YAML balance; used only to migrate old data into SQL and as an outage fallback. */
     public int getCoins(UUID uuid) {
         return get(uuid, PlayerDataKeys.COINS, 0);
-    }
-
-    public void setCoins(UUID uuid, int coins) {
-        set(uuid, PlayerDataKeys.COINS, Math.max(0, coins));
     }
 
     @SuppressWarnings("unchecked")
@@ -131,9 +123,14 @@ public class PlayerDataListener implements Listener {
         );
     }
 
-    public void removeCoins(UUID uuid, int amount) {
-        long next = (long) getCoins(uuid) - amount;
-        setCoins(uuid, (int) Math.max(0, next));
+    /**
+     * Every player UUID we know about, including online players whose data has not been
+     * flushed to disk yet. Safe to call from an async thread.
+     */
+    public Set<UUID> knownPlayerIds() {
+        Set<UUID> ids = new HashSet<>(dataManager.listPlayerIds());
+        ids.addAll(playerCache.keySet());
+        return ids;
     }
 
     public String getMarriageStatus(UUID uuid) {

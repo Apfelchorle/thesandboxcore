@@ -1,5 +1,7 @@
 package org.thesandbox.core.commands.Fun;
 
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -9,6 +11,7 @@ import org.thesandbox.core.managers.BalanceManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class CoinsCommand extends BaseCommand {
 
@@ -28,7 +31,7 @@ public class CoinsCommand extends BaseCommand {
             if (sender instanceof Player player) {
                 sendCommand(sender, "You currently have: " + balance().getCoins(player.getUniqueId()) + " Coins!");
             } else {
-                sendUsage(sender, "Usage: /" + label + " <get|give|set|add|take> [args]");
+                sendUsage(sender, "Usage: /" + label + " <get|give|top|set|add|take> [args]");
             }
             return true;
         }
@@ -121,11 +124,59 @@ public class CoinsCommand extends BaseCommand {
                 balance().AddCoins(sender, args[1], amount, args);
                 return true;
             }
+            case "top" -> {
+                int limit = 10;
+                if (args.length >= 2) {
+                    Integer parsed = parseInt(sender, args[1]);
+                    if (parsed == null) {
+                        return true;
+                    }
+                    limit = Math.clamp(parsed, 1, 100);
+                }
+                showTop(sender, limit);
+                return true;
+            }
             default -> {
-                sendUsage(sender, "Usage: /" + label + " <get|give" + (sender.hasPermission("sandbox.staff") ? "|set|add|take" : "") + "> [args]");
+                sendUsage(sender, "Usage: /" + label + " <get|give|top" + (sender.hasPermission("sandbox.staff") ? "|set|add|take" : "") + "> [args]");
                 return true;
             }
         }
+    }
+
+    private void showTop(CommandSender sender, int limit) {
+        TheSandboxCore plugin = TheSandboxCore.getInstance();
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            List<BalanceManager.CoinBalance> top = balance().getTopCoins(limit);
+            Bukkit.getScheduler().runTask(plugin, () -> renderTop(sender, top));
+        });
+    }
+
+    private void renderTop(CommandSender sender, List<BalanceManager.CoinBalance> top) {
+        sender.sendMessage(color("&8&m--------&r &6&lCoins Top &7(" + top.size() + ") &8&m--------"));
+        if (top.isEmpty()) {
+            sender.sendMessage(color("&7No coin balances found."));
+        } else {
+            int rank = 1;
+            for (BalanceManager.CoinBalance entry : top) {
+                sender.sendMessage(color("&6" + rank + ". &e" + playerName(entry.uuid())
+                        + " &8- &6" + entry.coins() + " Coins"));
+                rank++;
+            }
+        }
+        sender.sendMessage(color("&8&m--------------------------------"));
+    }
+
+    private String playerName(UUID uuid) {
+        Player online = Bukkit.getPlayer(uuid);
+        if (online != null) {
+            return online.getName();
+        }
+        String name = Bukkit.getOfflinePlayer(uuid).getName();
+        return name != null ? name : uuid.toString();
+    }
+
+    private static String color(String message) {
+        return ChatColor.translateAlternateColorCodes('&', message);
     }
 
     private BalanceManager balance() {
@@ -139,6 +190,7 @@ public class CoinsCommand extends BaseCommand {
             List<String> list = new ArrayList<>();
             list.add("get");
             list.add("give");
+            list.add("top");
             if (sender.hasPermission("sandbox.staff")) {
                 list.add("set");
                 list.add("add");

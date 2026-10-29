@@ -3,7 +3,9 @@ package org.thesandbox.core.util;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -24,6 +26,26 @@ public class DataManager {
 
     private File fileFor(UUID uuid) {
         return new File(playerFolder, uuid.toString() + ".yml");
+    }
+
+    /**
+     * All UUIDs that have a persisted player data file.
+     * Used by leaderboards; this only lists the folder and does not parse any files.
+     */
+    public Set<UUID> listPlayerIds() {
+        Set<UUID> ids = new HashSet<>();
+        File[] files = playerFolder.listFiles((dir, name) -> name.endsWith(".yml"));
+        if (files == null) return ids;
+
+        for (File file : files) {
+            String name = file.getName();
+            try {
+                ids.add(UUID.fromString(name.substring(0, name.length() - 4)));
+            } catch (IllegalArgumentException ignored) {
+                // Not a UUID-based player file; skip it.
+            }
+        }
+        return ids;
     }
 
     public <T> T loadData(UUID uuid, String key, T defaultValue) {

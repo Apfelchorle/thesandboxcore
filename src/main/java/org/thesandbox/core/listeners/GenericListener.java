@@ -93,7 +93,7 @@ public class GenericListener implements Listener {
         Bukkit.getScheduler().runTask(core, () -> {
             if (!p.isOnline()) return;
             if (Configinator.tryRewardPlayer(p.getUniqueId())) {
-                pdl.addCoins(p.getUniqueId(), 15);
+                core.getBalanceManager().addCoins(p.getUniqueId(), 15);
                 Utils.Feedback(
                     p,
                     "You've Recieved 15 Coins!",

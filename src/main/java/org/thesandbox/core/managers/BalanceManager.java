@@ -9,20 +9,87 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.fun.Utils;
+import org.thesandbox.core.util.BalanceRepository;
 import org.thesandbox.core.util.PlayerDataKeys;
 import org.thesandbox.core.util.PlayerDataListener;
 
+import javax.sql.DataSource;
+import java.sql.SQLException;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.IntUnaryOperator;
 
 public class BalanceManager {
 
+    /** A single row in the coin leaderboard. */
+    public record CoinBalance(UUID uuid, int coins) {}
+
+    private final TheSandboxCore plugin;
+    private final BalanceRepository repository;
+
+    /** Hot path cache; the database is the source of truth. */
+    private final Map<UUID, Integer> cache = new ConcurrentHashMap<>();
+
+    /** UUIDs with a cache value that has not been confirmed written to SQL yet. */
+    private final Set<UUID> dirty = ConcurrentHashMap.newKeySet();
+
+    /** UUIDs whose writes are currently being drained, so updates stay ordered. */
+    private final Set<UUID> saving = ConcurrentHashMap.newKeySet();
+
+    public BalanceManager(TheSandboxCore plugin, DataSource dataSource) {
+        this.plugin = plugin;
+        this.repository = new BalanceRepository(dataSource);
+    }
+
     private PlayerDataListener playerData() {
-        return TheSandboxCore.getInstance().getDataListener();
+        return plugin.getDataListener();
     }
 
     public void init() {
-        Utils.log("Initialized BalanceManager");
+        try {
+            repository.ensureSchema();
+
+            // First SQL deployment: import the old YAML balances before the cache is warmed.
+            if (repository.count() == 0) {
+                migrateYamlBalances();
+            } else {
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, this::migrateYamlBalances);
+            }
+
+            cache.putAll(repository.loadAll());
+        } catch (SQLException e) {
+            plugin.getLogger().severe("[Balances] Could not initialize SQL storage: " + e.getMessage());
+        }
+
+        Utils.log("Initialized BalanceManager (SQL)");
     }
+
+    /** Copies coins from the legacy player_data/*.yml files into SQL, never overwriting existing rows. */
+    private void migrateYamlBalances() {
+        int imported = 0;
+        for (UUID uuid : playerData().knownPlayerIds()) {
+            int coins = playerData().getCoins(uuid);
+            if (coins <= 0) continue;
+
+            try {
+                if (repository.importIfMissing(uuid, coins)) imported++;
+            } catch (SQLException e) {
+                plugin.getLogger().warning("[Balances] YAML migration failed for " + uuid + ": " + e.getMessage());
+            }
+        }
+
+        if (imported > 0) {
+            plugin.getLogger().info("[Balances] Imported " + imported + " balances from player_data into SQL.");
+        }
+    }
+
+
 
     public void TakeCoins(CommandSender sender, Player target, int amount, String[] args) {
         Integer parsed = parsePositiveAmount(sender, amount, args);
@@ -138,20 +205,133 @@ public class BalanceManager {
     }
 
     public int getCoins(UUID uuid) {
-        return playerData().get(uuid, PlayerDataKeys.COINS, 0);
+        Integer cached = cache.get(uuid);
+        if (cached != null) return cached;
+
+        Integer stored = queryCoins(uuid);
+        if (stored == null) {
+            // Database outage: read the legacy YAML value without caching it so the
+            // next call retries SQL once the database comes back.
+            return playerData().get(uuid, PlayerDataKeys.COINS, 0);
+        }
+
+        cache.put(uuid, stored);
+        return stored;
     }
 
     public void setCoins(UUID uuid, int coins) {
-        playerData().set(uuid, PlayerDataKeys.COINS, Math.max(0, coins));
+        cache.put(uuid, Math.max(0, coins));
+        persist(uuid);
     }
 
     public void addCoins(UUID uuid, int amount) {
-        long next = (long) getCoins(uuid) + amount;
-        setCoins(uuid, (int) Math.min(Integer.MAX_VALUE, Math.max(0, next)));
+        updateCoins(uuid, current -> (int) Math.clamp((long) current + amount, 0, Integer.MAX_VALUE));
     }
 
     public void removeCoins(UUID uuid, int amount) {
-        long next = (long) getCoins(uuid) - amount;
-        setCoins(uuid, (int) Math.max(0, next));
+        updateCoins(uuid, current -> (int) Math.max(0L, (long) current - amount));
+    }
+
+    private void updateCoins(UUID uuid, IntUnaryOperator update) {
+        // compute() keeps read/modify/write atomic without recursively touching the cache.
+        cache.compute(uuid, (id, current) -> {
+            Integer base = current != null ? current : queryCoins(id);
+            if (base == null) base = playerData().get(id, PlayerDataKeys.COINS, 0);
+            return update.applyAsInt(base);
+        });
+        persist(uuid);
+    }
+
+    /** Returns null when SQL is unavailable, so callers can fall back to YAML. */
+    private Integer queryCoins(UUID uuid) {
+        try {
+            Integer stored = repository.getCoins(uuid);
+            return stored == null ? 0 : Math.max(0, stored);
+        } catch (SQLException e) {
+            plugin.getLogger().warning("[Balances] Could not load " + uuid + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    private void persist(UUID uuid) {
+        dirty.add(uuid);
+        if (!saving.add(uuid)) return; // an existing save loop will pick up the new value
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            boolean success = true;
+            try {
+                while (true) {
+                    Integer value = cache.get(uuid);
+                    if (value == null) break;
+
+                    repository.upsert(uuid, value);
+
+                    // A newer value arrived while this write was in flight; write that one too.
+                    if (Objects.equals(cache.get(uuid), value)) {
+                        dirty.remove(uuid);
+                        break;
+                    }
+                }
+            } catch (SQLException e) {
+                success = false;
+                plugin.getLogger().warning("[Balances] Could not save " + uuid + ": " + e.getMessage());
+            } finally {
+                saving.remove(uuid);
+                // Only retry automatically after a successful drain; on failure the next
+                // coin change will try again instead of hammering a dead database.
+                if (success && dirty.contains(uuid)) {
+                    persist(uuid);
+                }
+            }
+        });
+    }
+
+    /** Synchronously writes any pending coin changes. Called during plugin shutdown. */
+    public void flush() {
+        for (UUID uuid : Set.copyOf(dirty)) {
+            Integer value = cache.get(uuid);
+            if (value == null) continue;
+
+            try {
+                repository.upsert(uuid, value);
+                if (Objects.equals(cache.get(uuid), value)) {
+                    dirty.remove(uuid);
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().warning("[Balances] Could not flush " + uuid + ": " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * Highest coin balances, largest first. Reads SQL, so call this off the main thread.
+     * Values still waiting to be written are overlaid from the cache.
+     */
+    public List<CoinBalance> getTopCoins(int limit) {
+        int wanted = Math.max(1, limit);
+        Map<UUID, Integer> balances = new HashMap<>();
+        try {
+            // Ask for a few extra rows so pending (dirty) balances can move into the top.
+            balances.putAll(repository.top(wanted + dirty.size()));
+        } catch (SQLException e) {
+            plugin.getLogger().warning("[Balances] Could not load leaderboard: " + e.getMessage());
+            // Database outage: fall back to the legacy YAML values instead of showing an empty top.
+            for (UUID uuid : playerData().knownPlayerIds()) {
+                balances.put(uuid, playerData().getCoins(uuid));
+            }
+        }
+
+        // Overlay every pending balance, including ones the SQL top-N query did not return.
+        for (UUID uuid : dirty) {
+            Integer value = cache.get(uuid);
+            if (value != null) balances.put(uuid, value);
+        }
+
+        return balances.entrySet().stream()
+                .filter(entry -> entry.getValue() > 0)
+                .map(entry -> new CoinBalance(entry.getKey(), entry.getValue()))
+                .sorted(Comparator.comparingInt(CoinBalance::coins).reversed())
+                .limit(wanted)
+                .toList();
     }
 }
