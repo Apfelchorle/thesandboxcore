@@ -1,0 +1,10 @@
+.gradle/
+build/
+bin/main
+.idea/
+*.iml
+out/
+src/main/resources/config.yml
+bin/
+.zed/
+*.rar
