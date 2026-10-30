@@ -20,6 +20,11 @@ softdepend:
 loadbefore: [Essentials, EssentialsX, WorldGuard]
 
 commands:
+
+  birth:
+    description: "Experience Being birthed by livi"
+    usage: "/birth"
+
   slowrestart:
     description: "Schedule a server restart with a countdown"
     usage: "/slowrestart [time] [reason...] | cancel | status"

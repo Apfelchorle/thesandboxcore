@@ -25,7 +25,11 @@ public final class PlayerDataKeys {
     // marriage
 
     public static final String MARRIAGE_STATUS = "MarriageStatus";
-    public static final String MARRIAGE_SPOUSE = "MarriageSpouse";
+        public static final String MARRIAGE_SPOUSE = "MarriageSpouse";
+
+
+    // funny thing livi also gave birth 10e99999 times
+    public static final String BirthedByLivi = "BirthedByLivi";
     public static final String GENDER = "male";
 
     // STAFF

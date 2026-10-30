@@ -45,6 +45,7 @@ public class PlayerDataListener implements Listener {
         DEFAULTS.put(PlayerDataKeys.GENDER, "male");
         DEFAULTS.put(PlayerDataKeys.VANISHED, false);
         DEFAULTS.put(PlayerDataKeys.CHATFILTER, true);
+        DEFAULTS.put(PlayerDataKeys.BirthedByLivi, false);
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
