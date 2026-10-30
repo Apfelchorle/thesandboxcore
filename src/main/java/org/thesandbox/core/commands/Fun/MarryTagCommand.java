@@ -8,15 +8,13 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.util.PlayerDataListener;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
-public class MarryTagCommand implements ISubCommand {
+public class MarryTagCommand extends BaseCommand {
     private final JavaPlugin plugin;
     private final PlayerDataListener playerDataListener;
     private final Essentials essentials;
@@ -54,20 +52,45 @@ public class MarryTagCommand implements ISubCommand {
         }
 
         if (args.length == 0) {
-            player.sendMessage(Component.text("Usage: /" + label + " update", NamedTextColor.RED));
+            player.sendMessage(Component.text("Usage: /" + label + " clear | update", NamedTextColor.RED));
             return true;
         }
 
         String subCommand = args[0].toLowerCase();
 
-        //noinspection SwitchStatementWithTooFewBranches
         switch (subCommand) {
             case "update" -> handleUpdate(player);
-            default -> player.sendMessage(Component.text("Unknown subcommand. Usage: /" + label + " update", NamedTextColor.RED));
+            case "clear" -> handleClear(player);
+            default -> player.sendMessage(Component.text("Unknown subcommand. Usage: /" + label + " clear | update", NamedTextColor.RED));
         }
         return true;
     }
 
+    private void handleClear(Player player) {
+        try {
+            UUID playerUuid = player.getUniqueId();
+            User user = essentials.getUser(playerUuid);
+            if (user == null) return;
+
+            String currentNick = user.getNickname();
+            if (currentNick == null || currentNick.isEmpty()) {
+                currentNick = user.getName();
+            }
+
+            // strippers
+            for (String prefix : legacyPrefixes) {
+                if (currentNick.startsWith(prefix)) {
+                    currentNick = currentNick.substring(prefix.length());
+                    break;
+                }
+            }
+            user.setNickname(currentNick.equalsIgnoreCase(user.getName()) ? null : currentNick);
+            player.sendMessage(Component.text("Your marriage tags were removed.", NamedTextColor.YELLOW));
+
+        } catch (Exception e) {
+            player.sendMessage(Component.text("Failed to set nickname for: " + player.getName() + " ERROR: " + e.getMessage(), NamedTextColor.RED));
+        }
+    }
     private void handleUpdate(Player player) {
         try {
             UUID playerUuid = player.getUniqueId();
@@ -118,10 +141,11 @@ public class MarryTagCommand implements ISubCommand {
 
     @Override
     public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        List<String> completions = new ArrayList<>();
         if (args.length == 1) {
-            if ("update".startsWith(args[0].toLowerCase())) {
-                return List.of("update");
-            }
+            completions.add("update");
+            completions.add("clear");
+            return completions;
         }
         return Collections.emptyList();
     }
