@@ -12,7 +12,7 @@ import org.thesandbox.core.managers.BalanceManager;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import java.util.Locale;
 import java.util.UUID;
 
 public class CoinsCommand extends BaseCommand {
@@ -45,12 +45,12 @@ public class CoinsCommand extends BaseCommand {
                     sendUsage(sender, "Usage: /" + label + " get <player>");
                     return true;
                 }
-                Player target = resolveTarget(sender, args[1]);
+                OfflinePlayer target = resolveOfflineTarget(sender, args[1]);
                 if (target == null) {
-                    sendError(sender, args[1] + " is offline!");
+                    sendError(sender, args[1] + " has never played on this server.");
                     return true;
                 }
-                sendCommand(sender, target.getName() + " has " + balance().getCoins(target.getUniqueId()) + " Coins!");
+                sendCommand(sender, nameOf(target) + " has " + balance().getCoins(target.getUniqueId()) + " Coins!");
                 return true;
             }
             case "give" -> {
@@ -78,28 +78,21 @@ public class CoinsCommand extends BaseCommand {
                     sendUsage(sender, "Usage: /" + label + " set <player> <amount>");
                     return true;
                 }
-                String name = args[1];
-                Player target = resolveTarget(sender, name);
+                OfflinePlayer target = resolveOfflineTarget(sender, args[1]);
                 Integer amount = parseInt(sender, args[2]);
                 if (amount == null) {
                     return true;
                 }
                 if (target == null) {
-                    sendCommand(sender, name + " is offline!");
+                    sendError(sender, args[1] + " has never played on this server.");
+                    return true;
                 }
                 if (amount < 0) {
                     sendError(sender, "Amount cannot be negative.");
                     return true;
                 }
-                OfflinePlayer offline_target = Bukkit.getOfflinePlayer(name).hasPlayedBefore() ? Bukkit.getOfflinePlayer(name) : null;
-                if (offline_target == null) {
-                    sendCommand(sender, name + " is offline!");
-                    return true;
-                }
-                UUID offline_uuid = offline_target.getUniqueId();
-                UUID uuid = target == null ? offline_uuid : target.getUniqueId();
-                balance().setCoins(uuid, amount);
-                sendCommand(sender, sender.getName() + " set coins to " + amount + " for " + name);
+                balance().setCoins(target.getUniqueId(), amount);
+                sendCommand(sender, sender.getName() + " set coins to " + amount + " for " + nameOf(target));
                 return true;
             }
             case "take" -> {
@@ -191,10 +184,15 @@ public class CoinsCommand extends BaseCommand {
         return balanceManager != null ? balanceManager : TheSandboxCore.getInstance().getBalanceManager();
     }
 
+    private String nameOf(OfflinePlayer player) {
+        String name = player.getName();
+        return name != null ? name : player.getUniqueId().toString();
+    }
+
     @Override
     public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            String prefix = args[0].toLowerCase();
+            String prefix = args[0].toLowerCase(Locale.ROOT);
             List<String> list = new ArrayList<>();
             list.add("get");
             list.add("give");
@@ -204,15 +202,18 @@ public class CoinsCommand extends BaseCommand {
                 list.add("add");
                 list.add("take");
             }
-            list.removeIf(s -> !s.toLowerCase().startsWith(prefix));
+            list.removeIf(s -> !s.startsWith(prefix));
             return list;
         }
 
-        if (args.length == 2 && List.of("give", "set", "add", "get", "take").contains(args[0].toLowerCase())) {
-            return playerSelectorCompletions(args[1]);
-        }
-        if (args.length == 2 && Objects.equals("set", args[0].toLowerCase())) {
-            return offlinePlayerCompletions(args[1]);
+        if (args.length == 2) {
+            return switch (args[0].toLowerCase(Locale.ROOT)) {
+                // These need an online target, so only online players make sense here.
+                case "give", "take", "add" -> playerSelectorCompletions(args[1]);
+                // get/set work by UUID, so offline players are valid targets too.
+                case "get", "set" -> offlinePlayerSelectorCompletions(args[1]);
+                default -> List.of();
+            };
         }
 
         return List.of();

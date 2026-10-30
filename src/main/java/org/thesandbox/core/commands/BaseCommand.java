@@ -122,50 +122,76 @@ public abstract class BaseCommand implements ISubCommand {
     }
 
     /**
+     * Resolve a target that may be offline, by name, @s (self), or @p (nearest).
+     * Returns null if the name has never been seen on this server.
+     */
+    protected OfflinePlayer resolveOfflineTarget(CommandSender sender, String input) {
+        if (input == null || input.isBlank()) {
+            return null;
+        }
+
+        Player online = resolveTarget(sender, input);
+        if (online != null) {
+            return online;
+        }
+
+        OfflinePlayer cached = Bukkit.getOfflinePlayerIfCached(input);
+        return cached != null && cached.getName() != null ? cached : null;
+    }
+
+    /**
      * Tab complete with online player names.
      */
     protected List<String> playerCompletions(String prefix) {
-        String lower = prefix.toLowerCase(Locale.ROOT);
-        List<String> names = new ArrayList<>();
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            if (p.getName().toLowerCase(Locale.ROOT).startsWith(lower)) {
-                names.add(p.getName());
-            }
-        }
-        names.sort(String.CASE_INSENSITIVE_ORDER);
-        return names;
+        return playerCompletions(prefix, false, false);
     }
 
+    /**
+     * Tab complete with online and offline player names.
+     */
     protected List<String> offlinePlayerCompletions(String prefix) {
-        String lower = prefix.toLowerCase(Locale.ROOT);
-        List<String> names = new ArrayList<>();
-        for (OfflinePlayer p : Bukkit.getOfflinePlayers()) {
-            if (!(p.getName() == null && Bukkit.getOfflinePlayerIfCached(p.getName()) == null)) {
-                if (p.getName().toLowerCase(Locale.ROOT).startsWith(lower)) {
-                    names.add(p.getName());
-                }
-            }
-        }
-        names.sort(String.CASE_INSENSITIVE_ORDER);
-        return names;
+        return playerCompletions(prefix, true, false);
     }
 
     /**
      * Tab complete with online player names and @s/@p selectors.
      */
     protected List<String> playerSelectorCompletions(String prefix) {
+        return playerCompletions(prefix, false, true);
+    }
+
+    /**
+     * Tab complete with online and offline player names plus @s/@p selectors.
+     */
+    protected List<String> offlinePlayerSelectorCompletions(String prefix) {
+        return playerCompletions(prefix, true, true);
+    }
+
+    private List<String> playerCompletions(String prefix, boolean includeOffline, boolean includeSelectors) {
         String lower = prefix.toLowerCase(Locale.ROOT);
-        List<String> names = new ArrayList<>();
-        names.add("@s");
-        names.add("@p");
+
+        // Case-insensitive set keeps duplicate names out while sorting as we go.
+        Set<String> names = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        if (includeSelectors) {
+            addName(names, "@s", lower);
+            addName(names, "@p", lower);
+        }
+
         for (Player p : Bukkit.getOnlinePlayers()) {
-            if (p.getName().toLowerCase(Locale.ROOT).startsWith(lower)) {
-                names.add(p.getName());
+            addName(names, p.getName(), lower);
+        }
+        if (includeOffline) {
+            for (OfflinePlayer p : Bukkit.getOfflinePlayers()) {
+                addName(names, p.getName(), lower);
             }
         }
-        names.removeIf(s -> !s.toLowerCase(Locale.ROOT).startsWith(lower));
-        names.sort(String.CASE_INSENSITIVE_ORDER);
-        return names;
+        return new ArrayList<>(names);
+    }
+
+    private void addName(Set<String> names, String name, String lowerPrefix) {
+        if (name != null && name.toLowerCase(Locale.ROOT).startsWith(lowerPrefix)) {
+            names.add(name);
+        }
     }
 
     @Override
