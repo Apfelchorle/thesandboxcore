@@ -2,6 +2,7 @@ package org.thesandbox.core.commands.Fun;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -11,6 +12,7 @@ import org.thesandbox.core.managers.BalanceManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 public class CoinsCommand extends BaseCommand {
@@ -76,21 +78,28 @@ public class CoinsCommand extends BaseCommand {
                     sendUsage(sender, "Usage: /" + label + " set <player> <amount>");
                     return true;
                 }
-                Player target = resolveTarget(sender, args[1]);
+                String name = args[1];
+                Player target = resolveTarget(sender, name);
                 Integer amount = parseInt(sender, args[2]);
                 if (amount == null) {
                     return true;
                 }
                 if (target == null) {
-                    sendError(sender, args[1] + " is offline!");
-                    return true;
+                    sendCommand(sender, name + " is offline!");
                 }
                 if (amount < 0) {
                     sendError(sender, "Amount cannot be negative.");
                     return true;
                 }
-                balance().setCoins(target.getUniqueId(), amount);
-                sendCommand(sender, sender.getName() + " set coins to " + amount + " for " + target.getName());
+                OfflinePlayer offline_target = Bukkit.getOfflinePlayer(name).hasPlayedBefore() ? Bukkit.getOfflinePlayer(name) : null;
+                if (offline_target == null) {
+                    sendCommand(sender, name + " is offline!");
+                    return true;
+                }
+                UUID offline_uuid = offline_target.getUniqueId();
+                UUID uuid = target == null ? offline_uuid : target.getUniqueId();
+                balance().setCoins(uuid, amount);
+                sendCommand(sender, sender.getName() + " set coins to " + amount + " for " + name);
                 return true;
             }
             case "take" -> {
@@ -174,7 +183,6 @@ public class CoinsCommand extends BaseCommand {
         String name = Bukkit.getOfflinePlayer(uuid).getName();
         return name != null ? name : uuid.toString();
     }
-
     private static String color(String message) {
         return ChatColor.translateAlternateColorCodes('&', message);
     }
@@ -202,6 +210,9 @@ public class CoinsCommand extends BaseCommand {
 
         if (args.length == 2 && List.of("give", "set", "add", "get", "take").contains(args[0].toLowerCase())) {
             return playerSelectorCompletions(args[1]);
+        }
+        if (args.length == 2 && Objects.equals("set", args[0].toLowerCase())) {
+            return offlinePlayerCompletions(args[1]);
         }
 
         return List.of();

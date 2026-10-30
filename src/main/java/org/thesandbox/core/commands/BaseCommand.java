@@ -1,6 +1,7 @@
 package org.thesandbox.core.commands;
 
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -129,6 +130,20 @@ public abstract class BaseCommand implements ISubCommand {
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (p.getName().toLowerCase(Locale.ROOT).startsWith(lower)) {
                 names.add(p.getName());
+            }
+        }
+        names.sort(String.CASE_INSENSITIVE_ORDER);
+        return names;
+    }
+
+    protected List<String> offlinePlayerCompletions(String prefix) {
+        String lower = prefix.toLowerCase(Locale.ROOT);
+        List<String> names = new ArrayList<>();
+        for (OfflinePlayer p : Bukkit.getOfflinePlayers()) {
+            if (!(p.getName() == null && Bukkit.getOfflinePlayerIfCached(p.getName()) == null)) {
+                if (p.getName().toLowerCase(Locale.ROOT).startsWith(lower)) {
+                    names.add(p.getName());
+                }
             }
         }
         names.sort(String.CASE_INSENSITIVE_ORDER);
