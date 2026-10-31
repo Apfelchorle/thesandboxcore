@@ -8,7 +8,7 @@ import org.bukkit.entity.AreaEffectCloud;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.ISubCommand;
-import org.thesandbox.core.util.Colors;
+import org.thesandbox.core.util.colors.Colors;
 
 import java.util.List;
 

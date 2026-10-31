@@ -5,7 +5,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.ISubCommand;
-import org.thesandbox.core.fun.Utils;
+import org.thesandbox.core.util.Utils;
 
 import java.util.List;
 import java.util.Locale;

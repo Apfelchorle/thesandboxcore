@@ -6,7 +6,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.ISubCommand;
-import org.thesandbox.core.util.Colors;
+import org.thesandbox.core.util.colors.Colors;
 
 import javax.sql.DataSource;
 import java.lang.reflect.Field;

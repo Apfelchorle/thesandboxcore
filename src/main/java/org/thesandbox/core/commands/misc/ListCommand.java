@@ -7,8 +7,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.ISubCommand;
-import org.thesandbox.core.login.LoginService;
-import org.thesandbox.core.util.Colors;
+import org.thesandbox.core.services.login.LoginService;
+import org.thesandbox.core.util.colors.Colors;
 
 import java.util.ArrayList;
 import java.util.EnumSet;

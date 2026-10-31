@@ -6,8 +6,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.util.PlayerDataKeys;
-import org.thesandbox.core.util.PlayerDataListener;
+import org.thesandbox.core.data.PlayerDataKeys;
+import org.thesandbox.core.data.PlayerDataListener;
 
 public class ChatFilterCommand extends BaseCommand {
 

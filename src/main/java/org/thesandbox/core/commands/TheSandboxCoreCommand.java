@@ -8,7 +8,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.thesandbox.core.TheSandboxCore;
-import org.thesandbox.core.util.PlayerDataListener;
+import org.thesandbox.core.data.PlayerDataListener;
 
 import java.util.ArrayList;
 import java.util.Arrays;

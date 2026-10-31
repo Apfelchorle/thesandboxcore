@@ -7,7 +7,7 @@ import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.commands.meta.CommandName;
-import org.thesandbox.core.util.Colors;
+import org.thesandbox.core.util.colors.Colors;
 
 import java.util.ArrayList;
 import java.util.List;

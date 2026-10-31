@@ -10,7 +10,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.util.Colors;
+import org.thesandbox.core.util.colors.Colors;
 
 import java.util.Collections;
 import java.util.List;

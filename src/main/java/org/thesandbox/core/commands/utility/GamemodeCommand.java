@@ -8,7 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
-import org.thesandbox.core.util.Colors;
+import org.thesandbox.core.util.colors.Colors;
 
 import java.util.ArrayList;
 import java.util.Collections;

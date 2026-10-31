@@ -8,8 +8,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
-import org.thesandbox.core.fun.Utils;
-import org.thesandbox.core.util.Colors;
+import org.thesandbox.core.util.Utils;
+import org.thesandbox.core.util.colors.Colors;
 
 import java.util.*;
 import java.util.regex.Matcher;

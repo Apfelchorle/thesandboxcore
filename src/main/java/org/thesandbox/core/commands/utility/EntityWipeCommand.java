@@ -9,8 +9,8 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandCenter;
-import org.thesandbox.core.login.LoginService;
-import org.thesandbox.core.services.EntityWiper;
+import org.thesandbox.core.services.login.LoginService;
+import org.thesandbox.core.services.world.EntityWiper;
 
 import java.util.ArrayList;
 import java.util.Collections;

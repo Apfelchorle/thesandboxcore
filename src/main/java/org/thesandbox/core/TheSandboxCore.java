@@ -3,20 +3,27 @@ package org.thesandbox.core;
 import com.github.retrooper.packetevents.PacketEvents;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.thesandbox.core.commands.Admin.UpdateLocalCommand;
-import org.thesandbox.core.fun.LoginMessages;
-import org.thesandbox.core.fun.Utils;
-import org.thesandbox.core.fun.items.FloatBoatItem;
-import org.thesandbox.core.fun.items.itemUTILS.Item;
-import org.thesandbox.core.fun.items.itemUTILS.ItemKeys;
-import org.thesandbox.core.guilds.GuildManager;
-import org.thesandbox.core.listeners.*;
-import org.thesandbox.core.login.LoginService;
-import org.thesandbox.core.managers.*;
-import org.thesandbox.core.services.*;
-import org.thesandbox.core.tags.TagService;
+import org.thesandbox.core.commands.staff.UpdateLocalCommand;
+import org.thesandbox.core.data.*;
+import org.thesandbox.core.data.database.*;
+import org.thesandbox.core.services.listeners.*;
+import org.thesandbox.core.services.chat.*;
+import org.thesandbox.core.services.discord.DiscordBridge;
+import org.thesandbox.core.services.display.*;
+import org.thesandbox.core.services.economy.*;
+import org.thesandbox.core.services.guilds.GuildManager;
+import org.thesandbox.core.services.items.FloatBoatItem;
+import org.thesandbox.core.services.items.util.Item;
+import org.thesandbox.core.services.items.util.ItemKeys;
+import org.thesandbox.core.services.login.LoginMessages;
+import org.thesandbox.core.services.login.LoginService;
+import org.thesandbox.core.services.moderation.*;
+import org.thesandbox.core.services.tags.TagService;
+import org.thesandbox.core.services.update.*;
+import org.thesandbox.core.services.world.*;
 import org.thesandbox.core.util.*;
-import org.thesandbox.core.util.Internals.FunctionsHolder;
+import org.thesandbox.core.util.config.*;
+import org.thesandbox.core.util.registry.*;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -330,7 +337,7 @@ public class TheSandboxCore extends JavaPlugin {
         );
         pm.registerEvents(new ManageChatListener(manageChatService), this);
         pm.registerEvents(new AutoTpListener(this, autoTpService), this);
-        new org.thesandbox.core.tags.TagCleanupListener(
+        new org.thesandbox.core.services.tags.TagCleanupListener(
             this,
             tagService,
             guildManager

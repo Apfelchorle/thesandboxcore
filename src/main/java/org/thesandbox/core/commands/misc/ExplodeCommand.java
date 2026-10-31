@@ -1,6 +1,6 @@
 package org.thesandbox.core.commands.misc;
 
-import org.thesandbox.core.util.Colors;
+import org.thesandbox.core.util.colors.Colors;
 import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;

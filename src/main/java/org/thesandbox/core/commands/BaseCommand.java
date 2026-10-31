@@ -5,7 +5,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.thesandbox.core.util.GenericDataKeys;
+import org.thesandbox.core.data.GenericDataKeys;
 
 import java.util.*;
 

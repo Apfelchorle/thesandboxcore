@@ -6,10 +6,10 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
-import org.thesandbox.core.fun.Utils;
-import org.thesandbox.core.login.LoginService;
-import org.thesandbox.core.login.LoginService.Rank;
-import org.thesandbox.core.util.GenericDataKeys;
+import org.thesandbox.core.util.Utils;
+import org.thesandbox.core.services.login.LoginService;
+import org.thesandbox.core.services.login.LoginService.Rank;
+import org.thesandbox.core.data.GenericDataKeys;
 
 import java.util.Locale;
 

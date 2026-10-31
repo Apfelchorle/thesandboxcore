@@ -11,8 +11,8 @@ import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandCenter;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.fun.Utils;
-import org.thesandbox.core.login.LoginService;
+import org.thesandbox.core.util.Utils;
+import org.thesandbox.core.services.login.LoginService;
 
 import java.util.ArrayList;
 import java.util.Arrays;

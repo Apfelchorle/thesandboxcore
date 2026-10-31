@@ -2,7 +2,7 @@ package org.thesandbox.core.commands;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import org.thesandbox.core.util.GenericDataKeys;
+import org.thesandbox.core.data.GenericDataKeys;
 
 public final class CommandMessages
 {

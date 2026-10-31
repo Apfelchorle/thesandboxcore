@@ -4,7 +4,7 @@ import org.bukkit.GameMode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.thesandbox.core.commands.GameModeChangeHelper;
+import org.thesandbox.core.commands.utility.GameModeChangeHelper;
 import org.thesandbox.core.commands.ISubCommand;
 
 import java.util.List;
