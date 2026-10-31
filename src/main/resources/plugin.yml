@@ -244,7 +244,7 @@ commands:
     description: Set Your Login Message!
     permission: sandbox.default
     aliases: [ lmsg ]
-    usage: "/loginmessage <message>"
+    usage: "/loginmessage <message> | get | clear | set <message>"
 
   gtfo:
     description: "Temporarily ban a player (default 24h)"

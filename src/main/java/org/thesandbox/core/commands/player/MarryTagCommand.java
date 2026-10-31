@@ -20,11 +20,11 @@ public class MarryTagCommand extends BaseCommand {
 
     // old and new prefixes
     private final List<String> legacyPrefixes = Arrays.asList(
-            "&1 ❤ &r", "§1 ❤ §r", // Old Male
-            "&c ❤ &r", "§c ❤ §r", // Old Female
-            "&a ❤ &r", "§a ❤ §r", // Old Default aka ZOINKLEBIRDS
-            "&#6dd0f7 ❤ &r", "§x§6§d§d§0§f§7 ❤ §r", // New Hex Male
-            "&#ff98cb ❤ &r", "§x§f§f§9§8§c§b ❤ §r"  // New Hex Female
+            "&1❤ &r", "§1❤ §r", // Old Male
+            "&c❤ &r", "§c❤ §r", // Old Female
+            "&a❤ &r", "§a❤ §r", // Old Default aka ZOINKLEBIRDS
+            "&#6dd0f7❤ &r", "§x§6§d§d§0§f§7❤ §r", // New Hex Male
+            "&#ff98cb❤ &r", "§x§f§f§9§8§c§b❤ §r"  // New Hex Female
     );
 
     public MarryTagCommand(JavaPlugin plugin, PlayerDataListener playerDataListener) {
@@ -131,12 +131,12 @@ public class MarryTagCommand extends BaseCommand {
     // uses hex now!
     private String getGenderEmoji(UUID user) {
         String gender = playerDataListener.getGender(user);
-        if (gender == null) return "&a ❤ &r";
+        if (gender == null) return "&a❤ &r";
 
         return switch (gender.toLowerCase()) {
-            case "male" -> "&#6dd0f7 ❤ &r";   // malers!
-            case "female" -> "&#ff98cb ❤ &r"; // fremales
-            default -> "&a ❤ &r";            // zoinklebirds
+            case "male" -> "&#6dd0f7❤ &r";   // malers!
+            case "female" -> "&#ff98cb❤ &r"; // fremales
+            default -> "&a❤ &r";            // zoinklebirds
         };
     }
 

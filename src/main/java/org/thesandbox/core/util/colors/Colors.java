@@ -55,7 +55,7 @@ public final class Colors {
     private static final Pattern SECTION_HEX = Pattern.compile("(?i)\u00a7#([0-9a-f]{6})");
     private static final Pattern AMP_HEX = Pattern.compile("(?i)&?#([0-9a-f]{6})");
     private static final Pattern LEGACY_HEX =
-            Pattern.compile("(?i)(?:\u00a7x(?:\u00a7[0-9a-f]){6}|&x(?:&[0-9a-f]){6})");
+            Pattern.compile("(?i)(?:\u00a7x((?:\u00a7[0-9a-f]){6})|&x((?:&[0-9a-f]){6}))");
     private static final LegacyComponentSerializer SECTION_SERIALIZER =
             LegacyComponentSerializer.builder()
                     .character('\u00a7')
@@ -135,13 +135,15 @@ public final class Colors {
 
     /**
      * Converts {@code &}-codes and {@code #RRGGBB}/{@code &#RRGGBB}/{@code §#RRGGBB}
-     * into section-sign legacy Colors. This replaces
-     * {@code ChatColor.translateAlternateColorCodes('&', ...)}.
+     * into section-sign legacy Colors. The repeated legacy hex form
+     * ({@code &x&R&R&G&G&B&B} / {@code §x§R§R§G§G§B§B}) is normalised as well.
+     * This replaces {@code ChatColor.translateAlternateColorCodes('&', ...)}.
      */
     public static String color(String input) {
         if (input == null || input.isEmpty()) return input;
 
-        String out = replaceHex(input, SECTION_HEX);
+        String out = replaceLegacyHex(input);
+        out = replaceHex(out, SECTION_HEX);
         out = replaceHex(out, AMP_HEX);
 
         StringBuilder sb = new StringBuilder(out.length());
@@ -154,6 +156,24 @@ public final class Colors {
                 sb.append(c);
             }
         }
+        return sb.toString();
+    }
+
+    /**
+     * Rewrites the repeated legacy hex format to the canonical {@code §x§R§R§G§G§B§B} form.
+     */
+    private static String replaceLegacyHex(String input) {
+        Matcher matcher = LEGACY_HEX.matcher(input);
+        StringBuffer sb = new StringBuffer();
+        while (matcher.find()) {
+            String sequence = matcher.group(1) != null ? matcher.group(1) : matcher.group(2);
+            StringBuilder hex = new StringBuilder(6);
+            for (int i = 1; i < sequence.length(); i += 2) {
+                hex.append(sequence.charAt(i));
+            }
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(toLegacyHex(hex.toString())));
+        }
+        matcher.appendTail(sb);
         return sb.toString();
     }
 
