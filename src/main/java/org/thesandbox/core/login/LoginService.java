@@ -1,11 +1,12 @@
 package org.thesandbox.core.login;
 
-import java.util.Locale;
-import java.util.UUID;
-import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.util.Colors;
+
+import java.util.Locale;
+import java.util.UUID;
 
 public class LoginService {
 
@@ -123,6 +124,6 @@ public class LoginService {
     public static String colorize(String s) {
         return s == null
             ? null
-            : ChatColor.translateAlternateColorCodes('&', s);
+                : Colors.color(s);
     }
 }

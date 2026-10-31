@@ -1,7 +1,6 @@
 package org.thesandbox.core.commands.utility;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -9,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -28,14 +28,14 @@ public class GamemodeCommand implements ISubCommand
     {
         if (args.length < 1)
         {
-            sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " <gamemode> [player]"));
+            sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <gamemode> [player]"));
             return true;
         }
 
         GameMode mode = parseGamemode(args[0]);
         if (mode == null)
         {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED +
+            sender.sendMessage(CommandMessages.error(Colors.RED +
                     "Unknown gamemode. Use: survival/s, creative/c, adventure/a, spectator/sp"));
             return true;
         }
@@ -45,19 +45,19 @@ public class GamemodeCommand implements ISubCommand
         {
             if (!(sender instanceof Player player))
             {
-                sender.sendMessage(CommandMessages.error(ChatColor.RED + "CONSOLE must specify a target player."));
+                sender.sendMessage(CommandMessages.error(Colors.RED + "CONSOLE must specify a target player."));
                 return true;
             }
 
             player.setGameMode(mode);
-            player.sendMessage(CommandMessages.command(ChatColor.GRAY + "Your gamemode has been set to " + mode.name() + "."));
+            player.sendMessage(CommandMessages.command(Colors.GRAY + "Your gamemode has been set to " + mode.name() + "."));
             return true;
         }
 
         // Targeted change: /gamemode <mode> <player>
         if (!sender.hasPermission("sandbox.staff"))
         {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED +
+            sender.sendMessage(CommandMessages.error(Colors.RED +
                     "You do not have permission to change other players' gamemodes."));
             return true;
         }
@@ -65,7 +65,7 @@ public class GamemodeCommand implements ISubCommand
         Player target = Bukkit.getPlayer(args[1]);
         if (target == null)
         {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "Player not found."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "Player not found."));
             return true;
         }
 
@@ -80,21 +80,21 @@ public class GamemodeCommand implements ISubCommand
         {
             // This case shouldn't normally happen here (self-change uses args.length == 1),
             // but handle gracefully anyway.
-            target.sendMessage(CommandMessages.command(ChatColor.GRAY + "Your gamemode has been set to " + modeName + "."));
+            target.sendMessage(CommandMessages.command(Colors.GRAY + "Your gamemode has been set to " + modeName + "."));
         }
         else
         {
-            target.sendMessage(CommandMessages.command(ChatColor.GRAY + "Your gamemode has been set to " +
+            target.sendMessage(CommandMessages.command(Colors.GRAY + "Your gamemode has been set to " +
                     modeName + " by " + senderName + "."));
         }
 
         // Sender feedback
         if (sender instanceof Player && !((Player) sender).getUniqueId().equals(target.getUniqueId()))
         {
-            sender.sendMessage(CommandMessages.command(ChatColor.GRAY + "Set " + targetName + " to " + modeName + " mode."));
+            sender.sendMessage(CommandMessages.command(Colors.GRAY + "Set " + targetName + " to " + modeName + " mode."));
 
             // Broadcast only when a *player* changes another user's gamemode
-            Bukkit.broadcastMessage(CommandMessages.server(ChatColor.AQUA + senderName +
+            Colors.broadcast(CommandMessages.server(Colors.AQUA + senderName +
                     " -  Changing " + targetName + "'s gamemode to " + modeName));
         }
         else
@@ -103,7 +103,7 @@ public class GamemodeCommand implements ISubCommand
             // but still a message back to console.
             if (!(sender instanceof Player))
             {
-                sender.sendMessage(CommandMessages.command(ChatColor.GRAY + "Set " + targetName + " to " + modeName + " mode."));
+                sender.sendMessage(CommandMessages.command(Colors.GRAY + "Set " + targetName + " to " + modeName + " mode."));
             }
         }
 

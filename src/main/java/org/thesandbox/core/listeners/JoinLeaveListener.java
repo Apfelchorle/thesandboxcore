@@ -4,7 +4,6 @@ import de.myzelyam.api.vanish.PlayerHideEvent;
 import de.myzelyam.api.vanish.PlayerShowEvent;
 import de.myzelyam.api.vanish.VanishAPI;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -14,6 +13,7 @@ import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.fun.LoginMessages;
 import org.thesandbox.core.managers.RankScoreboardManager;
 import org.thesandbox.core.services.ShushService;
+import org.thesandbox.core.util.Colors;
 import org.thesandbox.core.util.PlayerDataKeys;
 import org.thesandbox.core.util.PlayerDataListener;
 
@@ -48,7 +48,14 @@ public class JoinLeaveListener implements Listener {
         Player p = event.getPlayer();
         boolean vanished = dataListener.get(p.getUniqueId(), PlayerDataKeys.VANISHED, false);
 
-        event.setJoinMessage(vanished ? null : buildJoinMessageFor(p));
+        event.joinMessage(vanished ? null : Colors.component(buildJoinMessageFor(p)));
+    }
+
+    private String buildJoinMessageFor(Player p) {
+        if (VanishAPI.isInvisible(p)) {
+            return null;
+        }
+        return Colors.color("&a&lJoin &8» &7" + p.getName());
     }
 
     @EventHandler
@@ -56,7 +63,11 @@ public class JoinLeaveListener implements Listener {
         Player p = event.getPlayer();
         boolean vanished = dataListener.get(p.getUniqueId(), PlayerDataKeys.VANISHED, false);
 
-        event.setQuitMessage(vanished ? null : buildLeaveMessageFor(p));
+        event.quitMessage(vanished ? null : Colors.component(buildLeaveMessageFor(p)));
+    }
+
+    private String buildLeaveMessageFor(Player p) {
+        return Colors.color("&c&lLeave &8» &7" + p.getName());
     }
 
     @EventHandler
@@ -64,10 +75,9 @@ public class JoinLeaveListener implements Listener {
         final Player p = event.getPlayer();
         Bukkit.getScheduler().runTask(plugin, () -> {
             dataListener.set(p.getUniqueId(), PlayerDataKeys.VANISHED, true);
-            Bukkit.broadcastMessage(buildLeaveMessageFor(p));
+            Colors.broadcast(buildLeaveMessageFor(p));
 
-            String staffMsg = ChatColor.translateAlternateColorCodes(
-                    '&', "&8[&b&lSTAFF&8] &c" + p.getName() + " vanished.");
+            String staffMsg = Colors.color("&8[&b&lSTAFF&8] &c" + p.getName() + " vanished.");
             for (Player viewer : Bukkit.getOnlinePlayers()) {
                 if (viewer.hasPermission("sandbox.staff") && (shushService == null || !shushService.isEnabled(viewer.getUniqueId()))) {
                     viewer.sendMessage(staffMsg);
@@ -81,27 +91,15 @@ public class JoinLeaveListener implements Listener {
         final Player p = event.getPlayer();
         Bukkit.getScheduler().runTask(plugin, () -> {
             dataListener.set(p.getUniqueId(), PlayerDataKeys.VANISHED, false);
-            Bukkit.broadcastMessage(buildJoinMessageFor(p));
+            Colors.broadcast(buildJoinMessageFor(p));
             loginMessages.SendLoginMessage(p);
 
-            String staffMsg = ChatColor.translateAlternateColorCodes(
-                    '&', "&8[&b&lSTAFF&8] &c" + p.getName() + " unvanished.");
+            String staffMsg = Colors.color("&8[&b&lSTAFF&8] &c" + p.getName() + " unvanished.");
             for (Player viewer : Bukkit.getOnlinePlayers()) {
                 if (viewer.hasPermission("sandbox.staff") && (shushService == null || !shushService.isEnabled(viewer.getUniqueId()))) {
                     viewer.sendMessage(staffMsg);
                 }
             }
         });
-    }
-
-    private String buildJoinMessageFor(Player p) {
-        if (VanishAPI.isInvisible(p)) {
-            return null;
-        }
-        return ChatColor.translateAlternateColorCodes('&', "&a&lJoin &8» &7" + p.getName());
-    }
-
-    private String buildLeaveMessageFor(Player p) {
-        return ChatColor.translateAlternateColorCodes('&', "&c&lLeave &8» &7" + p.getName());
     }
 }

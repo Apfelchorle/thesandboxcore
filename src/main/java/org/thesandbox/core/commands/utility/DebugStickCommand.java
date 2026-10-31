@@ -2,7 +2,6 @@ package org.thesandbox.core.commands.utility;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -12,6 +11,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -32,7 +32,7 @@ public class DebugStickCommand implements ISubCommand
     {
         if (!(sender instanceof Player player))
         {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "This command can only be used in-game."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "This command can only be used in-game."));
             return true;
         }
 
@@ -40,27 +40,16 @@ public class DebugStickCommand implements ISubCommand
         Material mat = getDebugStickMaterial();
         ItemStack item = new ItemStack(mat, 1);
 
-        // Always apply meta, regardless of which material we used
+        // API 1.21 always exposes Adventure item meta methods.
         ItemMeta meta = item.getItemMeta();
         if (meta != null)
         {
-            if (hasAdventureMeta(meta)) {
-                // Paper / Adventure path
-                meta.displayName(Component.text("Debug Stick", NamedTextColor.LIGHT_PURPLE));
-                meta.lore(Arrays.asList(
+            meta.displayName(Component.text("Debug Stick", NamedTextColor.LIGHT_PURPLE));
+            meta.lore(Arrays.asList(
                     Component.text("Behold: The DEBUG STICK!", NamedTextColor.GOLD),
                     Component.text("Left click to select the block to change.", NamedTextColor.YELLOW),
                     Component.text("Right click to change its properties!", NamedTextColor.RED)
-                ));
-            } else {
-                // Spigot / legacy path
-                meta.setDisplayName(ChatColor.LIGHT_PURPLE + "Debug Stick");
-                meta.setLore(Arrays.asList(
-                    ChatColor.GOLD + "Behold, the DEBUG STICK!",
-                    ChatColor.YELLOW + "Left click to select the block to change.",
-                    ChatColor.RED + "Right click to change its properties!"
-                ));
-            }
+            ));
             item.setItemMeta(meta);
         }
 
@@ -69,11 +58,11 @@ public class DebugStickCommand implements ISubCommand
         if (!leftovers.isEmpty())
         {
             player.getWorld().dropItemNaturally(player.getLocation(), item);
-            player.sendMessage(CommandMessages.command(ChatColor.RED + "Your inventory is full; dropped the item at your feet."));
+            player.sendMessage(CommandMessages.command(Colors.RED + "Your inventory is full; dropped the item at your feet."));
         }
         else
         {
-            player.sendMessage(CommandMessages.command(ChatColor.GREEN + "You received a Debug Stick."));
+            player.sendMessage(CommandMessages.command(Colors.GREEN + "You received a Debug Stick."));
         }
 
         return true;
@@ -91,21 +80,6 @@ public class DebugStickCommand implements ISubCommand
             return Material.valueOf("DEBUG_STICK");
         } catch (IllegalArgumentException ex) {
             return Material.STICK; // fallback for older versions
-        }
-    }
-
-    /**
-     * Detect whether Paper/Adventure item meta methods are available at runtime.
-     * We check for the presence of the 'displayName(Component)' method.
-     */
-    private boolean hasAdventureMeta(ItemMeta meta)
-    {
-        try {
-            // If this method exists, we're on Paper (or an API that exposes it)
-            meta.getClass().getMethod("displayName", Component.class);
-            return true;
-        } catch (NoSuchMethodException ignored) {
-            return false;
         }
     }
 }

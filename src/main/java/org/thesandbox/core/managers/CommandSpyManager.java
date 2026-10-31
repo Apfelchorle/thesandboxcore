@@ -1,9 +1,9 @@
 package org.thesandbox.core.managers;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.util.Colors;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -74,10 +74,10 @@ public class CommandSpyManager {
         String msg = rawCommand.trim();
 
         if (!msg.startsWith("/")) {
-            return ChatColor.stripColor(msg);
+            return Colors.strip(msg);
         }
 
-        msg = ChatColor.stripColor(msg);
+        msg = Colors.strip(msg);
 
         String noSlash = msg.substring(1).trim();
         if (noSlash.isEmpty()) return msg;

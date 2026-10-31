@@ -1,8 +1,6 @@
 package org.thesandbox.core.listeners;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent.Payload.Custom;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -15,12 +13,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.fun.Utils;
-import org.thesandbox.core.util.Configinator;
-import org.thesandbox.core.util.CustomPlayer;
-import org.thesandbox.core.util.GenericDataKeys;
-import org.thesandbox.core.util.PlayerDataKeys;
-import org.thesandbox.core.util.PlayerDataListener;
-import org.thesandbox.core.util.PluginConfigManager;
+import org.thesandbox.core.util.*;
 
 public class GenericListener implements Listener {
 

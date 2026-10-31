@@ -39,6 +39,7 @@ public class TheSandboxCore extends JavaPlugin {
     private EntityWiper entityWiper;
 
     // SQL
+    private Database database;
     private LegacySqlStore legacySqlStore;
     private BalanceSqlStore balanceSqlStore;
 
@@ -234,11 +235,14 @@ public class TheSandboxCore extends JavaPlugin {
     }
 
     private void initDatabase() {
-        this.legacySqlStore = new LegacySqlStore(this);
+        // One pool for every SQL-backed feature: balances, guilds, tags, spy/staff chat.
+        this.database = new Database(this);
+        this.database.setup();
+
+        this.legacySqlStore = new LegacySqlStore(this, database);
         this.legacySqlStore.setup();
 
-        // Coin balances live in their own database (mysql.balances) when configured.
-        this.balanceSqlStore = new BalanceSqlStore(this);
+        this.balanceSqlStore = new BalanceSqlStore(this, database);
         this.balanceSqlStore.setup();
     }
 
@@ -272,10 +276,10 @@ public class TheSandboxCore extends JavaPlugin {
         );
 
         this.manageChatService = new ManageChatService(this);
-        this.guildManager = new GuildManager(this);
+        this.guildManager = new GuildManager(this, database.getDelegatingDataSource());
         this.chatFilterEngine = new ChatFilterEngine(pluginConfigManager, this);
 
-        this.tagService = new TagService(this);
+        this.tagService = new TagService(this, database.getDelegatingDataSource());
         this.tagService.init();
 
         // Discord must be initialized before staffChatManager references it
@@ -339,7 +343,6 @@ public class TheSandboxCore extends JavaPlugin {
         this.liteBansWarningListener = new LiteBansWarningListener(this);
         this.liteBansWarningListener.register();
 
-        pm.registerEvents(new ChatFilterListener(chatFilterEngine), this);
         pm.registerEvents(genericListener, this);
         pm.registerEvents(
             new JoinLeaveListener(
@@ -413,6 +416,7 @@ public class TheSandboxCore extends JavaPlugin {
         criticalServices.put("DataManager", dataManager);
         criticalServices.put("PlayerDataListener", dataListener);
         criticalServices.put("BalanceManager", balanceManager);
+        criticalServices.put("Database", database);
         criticalServices.put("LegacySqlStore", legacySqlStore);
         criticalServices.put("BalanceSqlStore", balanceSqlStore);
         criticalServices.put("LoginService", loginService);
@@ -445,7 +449,7 @@ public class TheSandboxCore extends JavaPlugin {
         });
         safely("save guilds", () -> {
             if (guildManager != null) {
-                guildManager.save();
+                guildManager.flush();
                 guildManager.shutdown();
             }
         });
@@ -483,6 +487,9 @@ public class TheSandboxCore extends JavaPlugin {
         safely("close database", () -> {
             if (legacySqlStore != null) legacySqlStore.close();
         });
+        safely("close shared database pool", () -> {
+            if (database != null) database.close();
+        });
 
         getLogger().info("clean up complete! have a nice day! ;)");
     }
@@ -500,8 +507,14 @@ public class TheSandboxCore extends JavaPlugin {
 
     public void reloadAndReconnect() {
         reloadConfig();
-        legacySqlStore.setup(); // closes the old pool first; services use the delegating DataSource
-        balanceSqlStore.setup(); // same: BalanceManager holds the delegating DataSource
+
+        // Persist pending async writes before the old pool is closed.
+        if (balanceManager != null) balanceManager.flush();
+        if (guildManager != null) guildManager.flush();
+
+        database.setup(); // swaps the shared pool; services hold the delegating DataSource
+        legacySqlStore.setup();
+        balanceSqlStore.setup();
         if (entityWiper != null) {
             entityWiper.startFromConfig();
         }

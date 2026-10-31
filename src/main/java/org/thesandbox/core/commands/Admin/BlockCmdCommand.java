@@ -1,7 +1,6 @@
 package org.thesandbox.core.commands.Admin;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -9,6 +8,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.managers.CommandBlockManager;
+import org.thesandbox.core.util.Colors;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,14 +31,12 @@ public class BlockCmdCommand implements ISubCommand {
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
         if (!sender.hasPermission("sandbox.staff")) {
-            sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&c&lError &8» &cNo permission."));
+            sender.sendMessage(Colors.color("&c&lError &8» &cNo permission."));
             return true;
         }
 
         if (args.length < 1) {
-            sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&c&lUsage &8» &c/" + label + " <player|all|purge>"));
+            sender.sendMessage(Colors.color("&c&lUsage &8» &c/" + label + " <player|all|purge>"));
             return true;
         }
 
@@ -48,21 +46,18 @@ public class BlockCmdCommand implements ISubCommand {
         // /blockcmd all  -> block everyone except staff
         if (sub.equals("all")) {
             if (plugin.getCommandBlockManager().isCmdBlockAll()) {
-                sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&c&lError &8» &cCommands are currently blocked for all players."));
+                sender.sendMessage(Colors.color("&c&lError &8» &cCommands are currently blocked for all players."));
                 return true;
             }
             plugin.getCommandBlockManager().enableCmdBlockAll();
-            Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&',
-            "&c&lServer &8» &c" + sender.getName() + " has blocked all online players' commands."));
+            Colors.broadcast(Colors.color("&c&lServer &8» &c" + sender.getName() + " has blocked all online players' commands."));
             return true;
         }
 
         // /blockcmd purge -> remove everyone’s block and disable global
         if (sub.equals("purge")) {
             plugin.getCommandBlockManager().purgeAllCmdBlocks();
-            Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&',
-            "&c&lServer &8» &c" + sender.getName() + " has unblocked all online players' commands."));
+            Colors.broadcast(Colors.color("&c&lServer &8» &c" + sender.getName() + " has unblocked all online players' commands."));
             return true;
         }
 
@@ -72,8 +67,7 @@ public class BlockCmdCommand implements ISubCommand {
 
         // Cannot block staff players
         if (target != null && target.hasPermission("sandbox.staff")) {
-            sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&c&lError &8» &cYou cannot block the commands of other staff members."));
+            sender.sendMessage(Colors.color("&c&lError &8» &cYou cannot block the commands of other staff members."));
             return true;
         }
 
@@ -82,8 +76,7 @@ public class BlockCmdCommand implements ISubCommand {
 
         if (wasBlocked) {
             plugin.getCommandBlockManager().unblockPlayerCommandsByName(targetName);
-            Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&',
-                    "&c&lServer &8» &c" + sender.getName() + " has unblocked " + targetName + "'s commands."));
+            Colors.broadcast(Colors.color("&c&lServer &8» &c" + sender.getName() + " has unblocked " + targetName + "'s commands."));
         } else {
             // do not allow blocking staff even if they come online later and have perms
             if (target == null) {
@@ -92,8 +85,7 @@ public class BlockCmdCommand implements ISubCommand {
             } else {
                 plugin.getCommandBlockManager().blockPlayerCommands(target.getUniqueId(), System.currentTimeMillis() + BLOCK_DURATION_MS);
             }
-            Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&',
-                    "&c&lServer &8» &c" + sender.getName() + " has blocked " + targetName + "'s commands."));
+            Colors.broadcast(Colors.color("&c&lServer &8» &c" + sender.getName() + " has blocked " + targetName + "'s commands."));
         }
 
         return true;

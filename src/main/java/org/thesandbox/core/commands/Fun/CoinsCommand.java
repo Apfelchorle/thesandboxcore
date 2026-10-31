@@ -1,7 +1,6 @@
 package org.thesandbox.core.commands.Fun;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -9,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.managers.BalanceManager;
+import org.thesandbox.core.util.Colors;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -177,7 +177,7 @@ public class CoinsCommand extends BaseCommand {
         return name != null ? name : uuid.toString();
     }
     private static String color(String message) {
-        return ChatColor.translateAlternateColorCodes('&', message);
+        return Colors.color(message);
     }
 
     private BalanceManager balance() {

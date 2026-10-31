@@ -7,7 +7,6 @@ import net.luckperms.api.model.user.UserManager;
 import net.luckperms.api.node.Node;
 import net.luckperms.api.node.types.InheritanceNode;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -15,6 +14,7 @@ import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.login.LoginService;
+import org.thesandbox.core.util.Colors;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -75,7 +75,7 @@ public class RankCommand implements ISubCommand {
             if (sender instanceof Player self) {
                 showRankOnlineOrOffline(sender, self.getName());
             } else {
-                sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " <player>|set <player> <rank>"));
+                sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <player>|set <player> <rank>"));
             }
             return true;
         }
@@ -89,7 +89,7 @@ public class RankCommand implements ISubCommand {
         // /rank set <player> <rank>  (supports offline via LP; errors if LP doesn't know them)
         if (args.length >= 3 && "set".equalsIgnoreCase(args[0])) {
             if (!canUseSet(sender)) {
-                sender.sendMessage(CommandMessages.error(ChatColor.RED + "You don't have permission to set ranks."));
+                sender.sendMessage(CommandMessages.error(Colors.RED + "You don't have permission to set ranks."));
                 return true;
             }
 
@@ -98,12 +98,12 @@ public class RankCommand implements ISubCommand {
             LoginService.Rank newRank = parseRank(rankArg);
 
             if (newRank == null) {
-                sender.sendMessage(CommandMessages.error(ChatColor.RED + "Unknown rank: " + rankArg));
-                sender.sendMessage(CommandMessages.command(ChatColor.GRAY + "Valid: " + String.join(", ", visibleRankKeysFor(sender))));
+                sender.sendMessage(CommandMessages.error(Colors.RED + "Unknown rank: " + rankArg));
+                sender.sendMessage(CommandMessages.command(Colors.GRAY + "Valid: " + String.join(", ", visibleRankKeysFor(sender))));
                 return true;
             }
             if (!isRankAllowedForSetter(sender, newRank)) {
-                sender.sendMessage(CommandMessages.error(ChatColor.RED + "You are not allowed to set rank: " + LoginService.displayRankTitleCase(newRank)));
+                sender.sendMessage(CommandMessages.error(Colors.RED + "You are not allowed to set rank: " + LoginService.displayRankTitleCase(newRank)));
                 return true;
             }
 
@@ -113,7 +113,7 @@ public class RankCommand implements ISubCommand {
                 try {
                     lp = LuckPermsProvider.get();
                 } catch (Exception e) {
-                    sender.sendMessage(CommandMessages.error(ChatColor.RED + "LuckPerms is required for rank changes."));
+                    sender.sendMessage(CommandMessages.error(Colors.RED + "LuckPerms is required for rank changes."));
                     return;
                 }
 
@@ -125,11 +125,11 @@ public class RankCommand implements ISubCommand {
                     CompletableFuture<UUID> f = um.lookupUniqueId(playerName);
                     uuid = f.get(5, TimeUnit.SECONDS);
                 } catch (Exception e) {
-                    sender.sendMessage(CommandMessages.error(ChatColor.RED + "LuckPerms lookup error: " + e.getMessage()));
+                    sender.sendMessage(CommandMessages.error(Colors.RED + "LuckPerms lookup error: " + e.getMessage()));
                     return;
                 }
                 if (uuid == null) {
-                    sender.sendMessage(CommandMessages.error(ChatColor.RED + "LuckPerms does not recognize the player '" + playerName + "'. They must have joined before."));
+                    sender.sendMessage(CommandMessages.error(Colors.RED + "LuckPerms does not recognize the player '" + playerName + "'. They must have joined before."));
                     return;
                 }
 
@@ -137,7 +137,7 @@ public class RankCommand implements ISubCommand {
                 try {
                     User user = um.loadUser(uuid).get(5, TimeUnit.SECONDS);
                     if (user == null) {
-                        sender.sendMessage(CommandMessages.error(ChatColor.RED + "Could not load LuckPerms data for '" + playerName + "'."));
+                        sender.sendMessage(CommandMessages.error(Colors.RED + "Could not load LuckPerms data for '" + playerName + "'."));
                         return;
                     }
 
@@ -171,7 +171,7 @@ public class RankCommand implements ISubCommand {
                     // --------------------------------------------------------------
 
                 } catch (Exception e) {
-                    sender.sendMessage(CommandMessages.error(ChatColor.RED + "LuckPerms save error: " + e.getMessage()));
+                    sender.sendMessage(CommandMessages.error(Colors.RED + "LuckPerms save error: " + e.getMessage()));
                     return;
                 }
 
@@ -180,27 +180,27 @@ public class RankCommand implements ISubCommand {
                 if (online != null) {
                     Bukkit.getScheduler().runTask(plugin, () -> {
                         String disp = LoginService.displayRankTitleCase(newRank);
-                        String colored = ChatColor.translateAlternateColorCodes('&', newRank.color) + disp + ChatColor.RESET;
-                        Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + sender.getName() + " - " + "Setting " + playerName + "'s rank to " + disp));
+                        String colored = Colors.color(newRank.color) + disp + Colors.RESET;
+                        Colors.broadcast(CommandMessages.server(Colors.RED + sender.getName() + " - " + "Setting " + playerName + "'s rank to " + disp));
                         plugin.getRankScoreboardManager().applyRankScoreboardTeam(online, newRank);
                         if (!sender.equals(online)) {
-                            online.sendMessage(CommandMessages.command(ChatColor.AQUA + "Your rank has been set to " + colored + ChatColor.AQUA + "."));
+                            online.sendMessage(CommandMessages.command(Colors.AQUA + "Your rank has been set to " + colored + Colors.AQUA + "."));
                         }
-                        sender.sendMessage(CommandMessages.command(ChatColor.GREEN + "Updated " + playerName + " to " + colored + ChatColor.GREEN + "."));
+                        sender.sendMessage(CommandMessages.command(Colors.GREEN + "Updated " + playerName + " to " + colored + Colors.GREEN + "."));
                     });
                 } else {
                     // offline confirmation to sender
                     String disp = LoginService.displayRankTitleCase(newRank);
-                    String colored = ChatColor.translateAlternateColorCodes('&', newRank.color) + disp + ChatColor.RESET;
-                    Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + sender.getName() + " - " + "Setting " + playerName + "'s rank to " + disp + " (offline)"));
-                    sender.sendMessage(CommandMessages.command(ChatColor.GREEN + "Updated " + playerName + " to " + colored + ChatColor.GREEN + " (offline)."));
+                    String colored = Colors.color(newRank.color) + disp + Colors.RESET;
+                    Colors.broadcast(CommandMessages.server(Colors.RED + sender.getName() + " - " + "Setting " + playerName + "'s rank to " + disp + " (offline)"));
+                    sender.sendMessage(CommandMessages.command(Colors.GREEN + "Updated " + playerName + " to " + colored + Colors.GREEN + " (offline)."));
                 }
             });
             return true;
         }
 
         // Fallback usage
-        sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " <player>|set <player> <rank>"));
+        sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <player>|set <player> <rank>"));
         return true;
     }
 
@@ -296,7 +296,7 @@ public class RankCommand implements ISubCommand {
         try {
             lp = LuckPermsProvider.get();
         } catch (Exception e) {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "LuckPerms is required to view offline player ranks."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "LuckPerms is required to view offline player ranks."));
             return;
         }
 
@@ -305,21 +305,21 @@ public class RankCommand implements ISubCommand {
                 UserManager um = lp.getUserManager();
                 UUID uuid = um.lookupUniqueId(name).get(5, TimeUnit.SECONDS);
                 if (uuid == null) {
-                    sender.sendMessage(CommandMessages.error(ChatColor.RED + "LuckPerms does not recognize the player '" + name + "'. They must have joined before."));
+                    sender.sendMessage(CommandMessages.error(Colors.RED + "LuckPerms does not recognize the player '" + name + "'. They must have joined before."));
                     return;
                 }
                 User user = um.loadUser(uuid).get(5, TimeUnit.SECONDS);
                 if (user == null) {
-                    sender.sendMessage(CommandMessages.error(ChatColor.RED + "Could not load LuckPerms data for '" + name + "'."));
+                    sender.sendMessage(CommandMessages.error(Colors.RED + "Could not load LuckPerms data for '" + name + "'."));
                     return;
                 }
                 String group = user.getPrimaryGroup();
                 LoginService.Rank r = rankFromGroup(group);
                 String display = LoginService.displayRankTitleCase(r);
-                String colorized = ChatColor.translateAlternateColorCodes('&', r.color) + display + ChatColor.RESET;
-                sender.sendMessage(CommandMessages.command(ChatColor.AQUA + name + " is " + colorized + ChatColor.AQUA + "."));
+                String colorized = Colors.color(r.color) + display + Colors.RESET;
+                sender.sendMessage(CommandMessages.command(Colors.AQUA + name + " is " + colorized + Colors.AQUA + "."));
             } catch (Exception ex) {
-                sender.sendMessage(CommandMessages.error(ChatColor.RED + "LuckPerms lookup error: " + ex.getMessage()));
+                sender.sendMessage(CommandMessages.error(Colors.RED + "LuckPerms lookup error: " + ex.getMessage()));
             }
         });
     }
@@ -327,11 +327,11 @@ public class RankCommand implements ISubCommand {
     private void showRank(CommandSender sender, Player target) {
         LoginService.Rank r = plugin.getLoginService().getRank(target);
         String display = LoginService.displayRankTitleCase(r);
-        String colorized = ChatColor.translateAlternateColorCodes('&', r.color) + display + ChatColor.RESET;
+        String colorized = Colors.color(r.color) + display + Colors.RESET;
         if (sender.equals(target)) {
-            sender.sendMessage(CommandMessages.command(ChatColor.AQUA + "You are " + colorized + ChatColor.AQUA + "."));
+            sender.sendMessage(CommandMessages.command(Colors.AQUA + "You are " + colorized + Colors.AQUA + "."));
         } else {
-            sender.sendMessage(CommandMessages.command(ChatColor.AQUA + target.getName() + " is " + colorized + ChatColor.AQUA + "."));
+            sender.sendMessage(CommandMessages.command(Colors.AQUA + target.getName() + " is " + colorized + Colors.AQUA + "."));
         }
     }
 

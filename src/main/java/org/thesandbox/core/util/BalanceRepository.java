@@ -1,11 +1,7 @@
 package org.thesandbox.core.util;
 
 import javax.sql.DataSource;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -14,8 +10,7 @@ import java.util.UUID;
 /**
  * SQL persistence for player coin balances.
  *
- * Table (created in the database configured under {@code mysql.balances}, falling
- * back to {@code mysql.sandbox}):
+ * Table (created in the shared database configured under {@code mysql.sandbox}):
  *   player_balances (
  *     uuid CHAR(36) NOT NULL PRIMARY KEY,
  *     coins INT NOT NULL DEFAULT 0,

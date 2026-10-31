@@ -1,6 +1,5 @@
 package org.thesandbox.core.commands.utility;
 
-import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -8,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,20 +35,20 @@ public class WorldCommand implements ISubCommand
     {
         if (!(sender instanceof Player player))
         {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "This command can only be used in-game."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "This command can only be used in-game."));
             return true;
         }
 
         if (args.length < 1)
         {
-            player.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " <" + String.join("|", ALLOWED_WORLDS) + ">"));
+            player.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <" + String.join("|", ALLOWED_WORLDS) + ">"));
             return true;
         }
 
         String requested = args[0].toLowerCase();
         if (!ALLOWED_WORLDS.contains(requested))
         {
-            player.sendMessage(CommandMessages.error(ChatColor.RED + "Unknown world: " + requested));
+            player.sendMessage(CommandMessages.error(Colors.RED + "Unknown world: " + requested));
             return true;
         }
 
@@ -56,7 +56,7 @@ public class WorldCommand implements ISubCommand
 
         if (world == null)
         {
-            player.sendMessage(CommandMessages.error(ChatColor.RED + "That world does not exist."));
+            player.sendMessage(CommandMessages.error(Colors.RED + "That world does not exist."));
             return true;
         }
 
@@ -64,11 +64,11 @@ public class WorldCommand implements ISubCommand
         boolean success = player.teleport(world.getSpawnLocation());
         if (success)
         {
-            player.sendMessage(CommandMessages.command(ChatColor.GRAY + "Teleporting you to " + requested + "."));
+            player.sendMessage(CommandMessages.command(Colors.GRAY + "Teleporting you to " + requested + "."));
         }
         else
         {
-            player.sendMessage(CommandMessages.error(ChatColor.RED + "Failed to teleport."));
+            player.sendMessage(CommandMessages.error(Colors.RED + "Failed to teleport."));
         }
 
         return true;

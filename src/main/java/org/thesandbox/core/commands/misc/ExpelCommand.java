@@ -1,6 +1,5 @@
 package org.thesandbox.core.commands.misc;
 
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -10,6 +9,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -29,7 +29,7 @@ public class ExpelCommand implements ISubCommand
     {
         if (!(sender instanceof Player playerSender))
         {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "This command can only be used in-game."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "This command can only be used in-game."));
             return true;
         }
 
@@ -116,11 +116,11 @@ public class ExpelCommand implements ISubCommand
 
         if (pushedPlayers.isEmpty())
         {
-            playerSender.sendMessage(CommandMessages.error(ChatColor.RED + "No players pushed."));
+            playerSender.sendMessage(CommandMessages.error(Colors.RED + "No players pushed."));
         }
         else
         {
-            playerSender.sendMessage(CommandMessages.command(ChatColor.GRAY + "Successfully pushed " + pushedPlayers.size() + " players: " + String.join(", ", pushedPlayers)));
+            playerSender.sendMessage(CommandMessages.command(Colors.GRAY + "Successfully pushed " + pushedPlayers.size() + " players: " + String.join(", ", pushedPlayers)));
         }
 
         return true;

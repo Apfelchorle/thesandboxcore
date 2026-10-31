@@ -277,4 +277,3 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
         return isFloatBoat(boat);
     }
 }
-

@@ -1,9 +1,8 @@
 package org.thesandbox.core.tags;
 
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -21,16 +20,17 @@ import java.util.Map;
  */
 public class TagService {
     private final JavaPlugin plugin;
-    private HikariDataSource dataSource;
+    private final DataSource dataSource;
 
-    public TagService(JavaPlugin plugin) {
+    public TagService(JavaPlugin plugin, DataSource dataSource) {
         this.plugin = plugin;
+        this.dataSource = dataSource;
     }
 
     // ---- lifecycle ----
     public void init() {
+        if (dataSource == null) return;
         try {
-            setupPool();
             ensureTable();
         } catch (Throwable t) {
             plugin.getLogger().warning("[TagService] init failed: " + t.getMessage());
@@ -38,34 +38,7 @@ public class TagService {
     }
 
     public void shutdown() {
-        try {
-            if (this.dataSource != null && !this.dataSource.isClosed()) {
-                this.dataSource.close();
-            }
-        } catch (Throwable ignored) {}
-    }
-
-    private void setupPool() {
-        if (this.dataSource != null && !this.dataSource.isClosed()) return;
-
-        String host = plugin.getConfig().getString("mysql.sandbox.host");
-        int    port = plugin.getConfig().getInt("mysql.sandbox.port");
-        String db   = plugin.getConfig().getString("mysql.sandbox.database");
-        String user = plugin.getConfig().getString("mysql.sandbox.user");
-        String pass = plugin.getConfig().getString("mysql.sandbox.password");
-
-        String jdbcUrl = "jdbc:mysql://" + host + ":" + port + "/" + db + "?useSSL=false&autoReconnect=true";
-        HikariConfig cfg = new HikariConfig();
-        cfg.setJdbcUrl(jdbcUrl);
-        cfg.setUsername(user);
-        cfg.setPassword(pass);
-        cfg.setMaximumPoolSize(5);
-        cfg.setMinimumIdle(1);
-        cfg.setIdleTimeout(60000);
-        cfg.setMaxLifetime(1800000);
-        cfg.setConnectionTimeout(10000);
-
-        this.dataSource = new HikariDataSource(cfg);
+        // The shared Database owns the pool.
     }
 
     private void ensureTable() throws SQLException {

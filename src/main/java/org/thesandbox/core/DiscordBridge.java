@@ -37,8 +37,8 @@ import org.jetbrains.annotations.NotNull;
 import org.thesandbox.core.discord.model.ReportRecord;
 import org.thesandbox.core.fun.Utils;
 import org.thesandbox.core.listeners.ChatFilterEngine;
-import org.thesandbox.core.listeners.PublicChatBridgeListener;
 import org.thesandbox.core.login.LoginService;
+import org.thesandbox.core.util.Colors;
 import org.thesandbox.core.util.HexColorUtil;
 import org.thesandbox.core.util.PlayerDataKeys;
 import org.thesandbox.core.util.PlayerDataListener;
@@ -46,8 +46,6 @@ import org.thesandbox.core.util.PlayerDataListener;
 import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.nio.file.Paths;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -65,7 +63,11 @@ public class DiscordBridge extends ListenerAdapter
     private final TheSandboxCore plugin;
 
     private final ChatFilterEngine chatFilterEngine;
-    private JDA jda;
+    private final Object startLock = new Object();
+    // ===== Reports indexing (original style) =====
+    private final Map<String, ReportRecord> byId = new ConcurrentHashMap<>();
+    private final Map<String, String> byMessageId = new ConcurrentHashMap<>();
+    private final Map<String, Deque<String>> byPlayer = new ConcurrentHashMap<>();
     private final PlayerDataListener playerDataListener;
 
     // Channels
@@ -88,11 +90,9 @@ public class DiscordBridge extends ListenerAdapter
     // Verified role (configurable with fallback)
     private static final String DEFAULT_VERIFIED_ROLE = "1415327115150360617";
     private static final String DEFAULT_MEMBER_ROLE_ID = "1227366929426157578";
-
-    // ===== Reports indexing (original style) =====
-    private final Map<String, ReportRecord> byId = new HashMap<>();
-    private final Map<String, String> byMessageId = new HashMap<>();
-    private final Map<String, Deque<String>> byPlayer = new HashMap<>();
+    private volatile JDA jda;
+    private volatile JDA pendingJda;
+    private volatile boolean ready;
 
     // Constructors
     public DiscordBridge(TheSandboxCore plugin, ChatFilterEngine chatFilterEngine, PlayerDataListener playerDataListener) {
@@ -102,19 +102,26 @@ public class DiscordBridge extends ListenerAdapter
     }
 
     public boolean start() {
+        if (!plugin.getConfig().getBoolean("discord.enabled", false)) {
+            plugin.getLogger().info("[Discord] Disabled by config.");
+            return false;
+        }
+
+        String token = cfg("discord.token", "discord.token");
+        if (token == null || token.isEmpty()) {
+            plugin.getLogger().warning("[Discord] No token configured.");
+            return false;
+        }
+
+        synchronized (startLock) {
+            if (jda != null || pendingJda != null) {
+                return true; // already connected or connecting
+            }
+        }
+
+        final JDA candidate;
         try {
-            if (!plugin.getConfig().getBoolean("discord.enabled", false)) {
-                plugin.getLogger().info("[Discord] Disabled by config.");
-                return false;
-            }
-
-            String token = cfg("discord.token", "discord.token");
-            if (token == null || token.isEmpty()) {
-                plugin.getLogger().warning("[Discord] No token configured.");
-                return false;
-            }
-
-            this.jda = JDABuilder.createDefault(token)
+            candidate = JDABuilder.createDefault(token)
                     .enableIntents(
                             GatewayIntent.GUILD_MESSAGES,
                             GatewayIntent.GUILD_MESSAGE_REACTIONS,
@@ -124,26 +131,63 @@ public class DiscordBridge extends ListenerAdapter
                     )
                     .addEventListeners(this)
                     .build();
+        } catch (Throwable t) {
+            plugin.getLogger().warning("[Discord] Failed to create client: " + t.getMessage());
+            return false;
+        }
 
-            // Bounded wait: awaitReady() has no timeout and would freeze server startup if Discord is unreachable.
+        this.pendingJda = candidate;
+
+        // JDA connects on its own thread. Blocking on awaitReady() here used to freeze
+        // server startup for up to 45 seconds, so wait asynchronously and finish on the
+        // main thread once JDA is actually ready.
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
             try {
-                java.util.concurrent.CompletableFuture
-                    .runAsync(() -> {
-                        try {
-                            this.jda.awaitReady();
-                        } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                            throw new java.util.concurrent.CompletionException(ie);
-                        }
-                    })
-                    .get(45, java.util.concurrent.TimeUnit.SECONDS);
-            } catch (java.util.concurrent.TimeoutException te) {
-                plugin.getLogger().warning("[Discord] Timed out waiting for Discord to become ready - continuing without it.");
-                this.jda.shutdownNow();
-                this.jda = null;
-                return false;
+                candidate.awaitReady();
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                failStart(candidate, "startup interrupted");
+                return;
+            } catch (Throwable t) {
+                failStart(candidate, t.getMessage());
+                return;
             }
 
+            try {
+                Bukkit.getScheduler().runTask(plugin, () -> finishStart(candidate));
+            } catch (Throwable t) {
+                // Plugin disabled while we were connecting.
+                candidate.shutdownNow();
+                pendingJda = null;
+                plugin.getLogger().warning("[Discord] Could not finish startup: " + t.getMessage());
+            }
+        });
+
+        return true;
+    }
+
+    private void failStart(JDA candidate, String reason) {
+        if (pendingJda == candidate) {
+            pendingJda = null;
+        }
+        try {
+            candidate.shutdownNow();
+        } catch (Throwable ignored) {
+        }
+        plugin.getLogger().warning("[Discord] Failed to start: " + reason);
+    }
+
+    private void finishStart(JDA candidate) {
+        if (pendingJda != candidate || !plugin.isEnabled()) {
+            candidate.shutdownNow();
+            if (pendingJda == candidate) pendingJda = null;
+            return;
+        }
+
+        pendingJda = null;
+        jda = candidate;
+
+        try {
             // Clear any old GLOBAL commands then register per-guild (shows in channels fast)
             try { jda.updateCommands().addCommands().queue(); } catch (Throwable ignored) {}
 
@@ -162,10 +206,10 @@ public class DiscordBridge extends ListenerAdapter
             // start() runs again on /reload-style reconnects: unregister the previous instances first,
             // otherwise every chat message and join/leave gets relayed once per previous start().
             unregisterBridgeListeners();
-            this.publicChatListener = new PublicChatBridgeListener(plugin, this);
             this.activityListener = new ServerActivityListener();
-            Bukkit.getPluginManager().registerEvents(this.publicChatListener, plugin);
             Bukkit.getPluginManager().registerEvents(this.activityListener, plugin);
+
+            ready = true;
 
             // ✅ Server start embed (to public chat channel)
             sendServerStartEmbed();
@@ -174,25 +218,14 @@ public class DiscordBridge extends ListenerAdapter
             autoArchiveExistingReportsOnStartup();
 
             plugin.getLogger().info("[Discord] Connected.");
-            return true;
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-            plugin.getLogger().warning("[Discord] Startup interrupted.");
-            return false;
-        } catch (Exception e) {
-            plugin.getLogger().warning("[Discord] Failed to start: " + e.getMessage());
-            return false;
+        } catch (Throwable t) {
+            plugin.getLogger().warning("[Discord] Failed to finish startup: " + t.getMessage());
         }
     }
 
-    private org.bukkit.event.Listener publicChatListener;
     private org.bukkit.event.Listener activityListener;
 
     private void unregisterBridgeListeners() {
-        if (publicChatListener != null) {
-            org.bukkit.event.HandlerList.unregisterAll(publicChatListener);
-            publicChatListener = null;
-        }
         if (activityListener != null) {
             org.bukkit.event.HandlerList.unregisterAll(activityListener);
             activityListener = null;
@@ -201,18 +234,35 @@ public class DiscordBridge extends ListenerAdapter
 
     public void stop() {
         unregisterBridgeListeners();
-        try {
-            sendServerStopEmbedBlocking();
-        } catch (Exception e) {
-            plugin.getLogger().warning("[Discord] Failed to send stop embed: " + e.getMessage());
+
+        JDA current;
+        synchronized (startLock) {
+            current = jda != null ? jda : pendingJda;
+            ready = false;
         }
 
-        if (jda != null) {
-            jda.shutdownNow();
+        if (current != null) {
+            try {
+                if (current == jda && current.getStatus() == JDA.Status.CONNECTED) {
+                    sendServerStopEmbedBlocking();
+                }
+            } catch (Exception e) {
+                plugin.getLogger().warning("[Discord] Failed to send stop embed: " + e.getMessage());
+            }
+
+            synchronized (startLock) {
+                jda = null;
+                pendingJda = null;
+            }
+
+            current.shutdownNow();
             log("[JDA] Triggered Shutdown...");
             try {
-                jda.awaitShutdown(java.time.Duration.ofSeconds(30));
-                log("[JDA] Shutdown complete.");
+                if (!current.awaitShutdown(java.time.Duration.ofSeconds(5))) {
+                    log("[JDA] Shutdown did not complete within 5 seconds.");
+                } else {
+                    log("[JDA] Shutdown complete.");
+                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 log("[JDA] Shutdown wait interrupted.");
@@ -220,7 +270,7 @@ public class DiscordBridge extends ListenerAdapter
                 dump(e, " [JDA] EXCEPTION : ");
             }
         }
-        jda = null;
+
         schemuploadsChannel = null;
         staffChannel = null;
         logsChannel = null;
@@ -229,8 +279,20 @@ public class DiscordBridge extends ListenerAdapter
         archivedReportsChannel = null;
     }
 
-    public boolean isReady() {
-        return jda != null;
+    private void sendServerStopEmbedBlocking() {
+        TextChannel ch = getChatChannel();
+        if (ch == null) return;
+
+        EmbedBuilder eb = new EmbedBuilder()
+                .setColor(new Color(255, 0, 0))
+                .setDescription("**:red_square: Server has stopped!**");
+        try {
+            ch.sendMessageEmbeds(eb.build())
+                    .submit()
+                    .get(5, java.util.concurrent.TimeUnit.SECONDS);
+        } catch (Throwable t) {
+            plugin.getLogger().warning("[Discord] Stop embed failed: " + t.getMessage());
+        }
     }
 
     /* --------------------------- Command registration --------------------------- */
@@ -322,65 +384,6 @@ public class DiscordBridge extends ListenerAdapter
         String verifiedRoleId = plugin.getConfig().getString("discord.verified-role-id", DEFAULT_VERIFIED_ROLE);
         if (verifiedRoleId == null || verifiedRoleId.isEmpty()) return null;
         return g.getRoleById(verifiedRoleId);
-    }
-
-    /**
-     * Reflection-based lookup so this class doesn't depend on a specific VerificationService API.
-     * It tries common method names:
-     *  - Optional<?> findByDiscordId(long)
-     *  - Optional<?> getLinkedByDiscordId(long)
-     *  - Optional<?> lookupByDiscordId(long)
-     *  - Optional<?> getLinkByDiscordId(long)
-     * And then extracts fields/getters "mcName"/"name" and "uuid"/"uniqueId".
-     */
-    private UUID tryExtractUuid(Object record) {
-        // Try common getters
-        String[] getters = {"getUuid", "uuid", "getUniqueId", "uniqueId"};
-        for (String g : getters) {
-            try {
-                Method m = record.getClass().getMethod(g);
-                Object v = m.invoke(record);
-                if (v instanceof UUID) return (UUID) v;
-                if (v instanceof String s) return UUID.fromString(s);
-            } catch (Throwable ignored) {}
-        }
-
-        // Try fields
-        String[] fields = {"uuid", "uniqueId"};
-        for (String f : fields) {
-            try {
-                Field fld = record.getClass().getDeclaredField(f);
-                fld.setAccessible(true);
-                Object v = fld.get(record);
-                if (v instanceof UUID) return (UUID) v;
-                if (v instanceof String s) return UUID.fromString(s);
-            } catch (Throwable ignored) {}
-        }
-        return null;
-    }
-
-    private String tryExtractName(Object record) {
-        // Try getters
-        String[] getters = {"getMcName", "mcName", "getName", "name"};
-        for (String g : getters) {
-            try {
-                Method m = record.getClass().getMethod(g);
-                Object v = m.invoke(record);
-                if (v != null) return String.valueOf(v);
-            } catch (Throwable ignored) {}
-        }
-
-        // Try fields
-        String[] fields = {"mcName", "name"};
-        for (String f : fields) {
-            try {
-                Field fld = record.getClass().getDeclaredField(f);
-                fld.setAccessible(true);
-                Object v = fld.get(record);
-                if (v != null) return String.valueOf(v);
-            } catch (Throwable ignored) {}
-        }
-        return null;
     }
 
     /* --------------------------- Config helpers --------------------------- */
@@ -494,36 +497,8 @@ public class DiscordBridge extends ListenerAdapter
         return archivedReportsChannel;
     }
 
-    /* -------------------- Staff chat: MC -> Discord -------------------- */
-    public void sendStaffMessageFromMinecraft(String groupTag, String name, String message)
-    {
-        if (!plugin.isDiscordChatBridgeEnabled()) return;
-        TextChannel ch = getStaffChannel();
-        if (ch == null) return;
-
-        String g = ChatColor.stripColor(groupTag == null ? "Player" : groupTag).trim();
-        String n = ChatColor.stripColor(name == null ? "" : name).trim();
-        String m = replaceLinksWithMediaTag(ChatColor.stripColor(message == null ? "" : message)).trim();
-
-        String line = "**[" + g + "] " + n + "** » " + m;
-        String safeLine = antiPingEveryoneHere(line);
-
-        boolean embeds = plugin.getConfig().getBoolean("discord.use-embeds", false);
-        if (embeds) {
-            ch.sendMessageEmbeds(new EmbedBuilder()
-                    .setDescription(safeLine)
-                    .build()).queue();
-        } else {
-            ch.sendMessage(safeLine).queue();
-        }
-    }
-
-    private static String chatFilter(String s) {
-        if (s == null) return null;
-        List<String> badwords = new ArrayList<>();
-        String filteredmsg = s.replace("nigger", "n***er");
-
-        return filteredmsg;
+    public boolean isReady() {
+        return ready && jda != null;
     }
 
     // erm,  class --> public this ---> private that
@@ -1314,9 +1289,28 @@ public class DiscordBridge extends ListenerAdapter
         });
     }
 
-    private void pushIndex(String playerName, String reportId) {
-        String k = playerName == null ? "" : playerName.toLowerCase(Locale.ENGLISH);
-        byPlayer.computeIfAbsent(k, __ -> new ArrayDeque<>()).addLast(reportId);
+    /* -------------------- Staff chat: MC -> Discord -------------------- */
+    public void sendStaffMessageFromMinecraft(String groupTag, String name, String message)
+    {
+        if (!plugin.isDiscordChatBridgeEnabled()) return;
+        TextChannel ch = getStaffChannel();
+        if (ch == null) return;
+
+        String g = Colors.strip(groupTag == null ? "Player" : groupTag).trim();
+        String n = Colors.strip(name == null ? "" : name).trim();
+        String m = replaceLinksWithMediaTag(Colors.strip(message == null ? "" : message)).trim();
+
+        String line = "**[" + g + "] " + n + "** » " + m;
+        String safeLine = antiPingEveryoneHere(line);
+
+        boolean embeds = plugin.getConfig().getBoolean("discord.use-embeds", false);
+        if (embeds) {
+            ch.sendMessageEmbeds(new EmbedBuilder()
+                    .setDescription(safeLine)
+                    .build()).queue();
+        } else {
+            ch.sendMessage(safeLine).queue();
+        }
     }
 
     /** Called by TheSandboxCore when staff run /tpo <name> in-game (from your click action). */
@@ -1562,26 +1556,10 @@ public class DiscordBridge extends ListenerAdapter
                 .setDescription("**:yellow_square: " + update_message + " **");
         ch.sendMessageEmbeds(eb.build()).queue();
     }
-    public void sendGenericEmbed(String msg, Color color, String sender, String avatarurl ,String channel) {
-        TextChannel ch;
-        switch (channel) {
-            case "Logs":
-                ch = getStaffLogsChannel();
-                break;
-            case "Staff":
-                ch = getStaffChannel();
-            case "Schems":
-                ch = getSchemUploadsChannel();
-                break;
-            default:
-                ch = getStaffLogsChannel();
-        }
-        if (ch == null) return;
-        EmbedBuilder eb = new EmbedBuilder()
-                .setColor(new Color(color.getRGB()))
-                .setAuthor("Requested By " + sender, null, avatarurl)
-                .setDescription(msg);
-        ch.sendMessageEmbeds(eb.build()).queue();
+
+    private void pushIndex(String playerName, String reportId) {
+        String k = playerName == null ? "" : playerName.toLowerCase(Locale.ENGLISH);
+        byPlayer.computeIfAbsent(k, __ -> new java.util.concurrent.ConcurrentLinkedDeque<>()).addLast(reportId);
     }
     private void sendVanishEmbed(Player p, String message) {
         TextChannel ch = getStaffLogsChannel();
@@ -1595,18 +1573,28 @@ public class DiscordBridge extends ListenerAdapter
                 .setAuthor(name + " " + message, null, headurl);
         ch.sendMessageEmbeds(eb.build()).queue();
     }
-    private void sendServerStopEmbedBlocking() {
-        TextChannel ch = getChatChannel();
-        if (ch == null) return;
 
-        EmbedBuilder eb = new EmbedBuilder()
-                .setColor(new Color(255, 0, 0))
-                .setDescription("**:red_square: Server has stopped!**");
-        try {
-            ch.sendMessageEmbeds(eb.build()).complete();
-        } catch (Throwable t) {
-            plugin.getLogger().warning("[Discord] Stop embed failed: " + t.getMessage());
+    public void sendGenericEmbed(String msg, Color color, String sender, String avatarurl ,String channel) {
+        TextChannel ch;
+        switch (channel) {
+            case "Logs":
+                ch = getStaffLogsChannel();
+                break;
+            case "Staff":
+                ch = getStaffChannel();
+                break;
+            case "Schems":
+                ch = getSchemUploadsChannel();
+                break;
+            default:
+                ch = getStaffLogsChannel();
         }
+        if (ch == null) return;
+        EmbedBuilder eb = new EmbedBuilder()
+                .setColor(new Color(color.getRGB()))
+                .setAuthor("Requested By " + sender, null, avatarurl)
+                .setDescription(msg);
+        ch.sendMessageEmbeds(eb.build()).queue();
     }
     private void sendPlayerJoinEmbed(Player p) {
         if (!plugin.isDiscordChatBridgeEnabled()) return;

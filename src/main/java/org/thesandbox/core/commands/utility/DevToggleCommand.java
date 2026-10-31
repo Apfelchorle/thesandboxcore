@@ -1,6 +1,5 @@
 package org.thesandbox.core.commands.utility;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -8,6 +7,7 @@ import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.commands.meta.CommandName;
+import org.thesandbox.core.util.Colors;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,7 +25,7 @@ public class DevToggleCommand implements ISubCommand {
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
         if (sender instanceof Player p && !p.hasPermission("sandbox.superuser")) {
-            p.sendMessage(CommandMessages.error(ChatColor.RED + "You do not have permission to use this command."));
+            p.sendMessage(CommandMessages.error(Colors.RED + "You do not have permission to use this command."));
             return true;
         }
 
@@ -35,7 +35,7 @@ public class DevToggleCommand implements ISubCommand {
         }
 
         if (args.length >= 2 && args[1].equalsIgnoreCase("status")) {
-            sender.sendMessage(CommandMessages.command(ChatColor.GRAY + "Discord chat bridge is currently " + statusText() + ChatColor.GRAY + "."));
+            sender.sendMessage(CommandMessages.command(Colors.GRAY + "Discord chat bridge is currently " + statusText() + Colors.GRAY + "."));
             return true;
         }
 
@@ -46,19 +46,19 @@ public class DevToggleCommand implements ISubCommand {
 
         boolean desired = !plugin.isDiscordChatBridgeEnabled();
         plugin.setDiscordChatBridgeEnabled(desired);
-        sender.sendMessage(CommandMessages.command((desired ? ChatColor.GREEN : ChatColor.RED) + "Minecraft/Discord chat bridge has been " + (desired ? "enabled" : "disabled") + "."));
+        sender.sendMessage(CommandMessages.command((desired ? Colors.GREEN : Colors.RED) + "Minecraft/Discord chat bridge has been " + (desired ? "enabled" : "disabled") + "."));
         return true;
     }
 
     private void sendUsage(CommandSender sender, String label) {
-        sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " discord [status]"));
-        sender.sendMessage(CommandMessages.command(ChatColor.GRAY + "Currently: " + statusText()));
+        sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " discord [status]"));
+        sender.sendMessage(CommandMessages.command(Colors.GRAY + "Currently: " + statusText()));
     }
 
     private String statusText() {
         return plugin.isDiscordChatBridgeEnabled()
-                ? ChatColor.GREEN + "enabled"
-                : ChatColor.RED + "disabled";
+                ? Colors.GREEN + "enabled"
+                : Colors.RED + "disabled";
     }
 
     @Override

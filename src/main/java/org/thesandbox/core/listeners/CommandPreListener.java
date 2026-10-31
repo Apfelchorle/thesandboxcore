@@ -1,6 +1,5 @@
 package org.thesandbox.core.listeners;
 
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -10,6 +9,7 @@ import org.thesandbox.core.DiscordBridge;
 import org.thesandbox.core.managers.CommandBlockManager;
 import org.thesandbox.core.managers.CommandSpyManager;
 import org.thesandbox.core.services.ShushService;
+import org.thesandbox.core.util.Colors;
 
 import java.util.function.Supplier;
 
@@ -47,7 +47,7 @@ public class CommandPreListener implements Listener {
     public void onCommandBlock(PlayerCommandPreprocessEvent event) {
         final Player sender = event.getPlayer();
         if (commandBlockManager.isCommandsBlocked(sender)) {
-            sender.sendMessage(ChatColor.RED + "Your commands are currently blocked.");
+            sender.sendMessage(Colors.RED + "Your commands are currently blocked.");
             event.setCancelled(true);
         }
     }
@@ -66,7 +66,7 @@ public class CommandPreListener implements Listener {
         final String spyCommand = commandSpyManager.spyDisplayCommand(rawMessage);
         String fmt = plugin.getConfig().getString("commandspy.format",
                 plugin.getConfig().getString("commandspy-format", "&7%player%: %command%"));
-        String formatted = ChatColor.translateAlternateColorCodes('&', fmt)
+        String formatted = Colors.color(fmt)
                 .replace("%player%", sender.getName())
                 .replace("%command%", spyCommand);
 

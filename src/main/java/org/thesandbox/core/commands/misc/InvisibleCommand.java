@@ -1,7 +1,6 @@
 package org.thesandbox.core.commands.misc;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -9,6 +8,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffectType;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,9 +40,9 @@ public class InvisibleCommand implements ISubCommand
             }
 
             String who = (sender instanceof Player) ? sender.getName() : "CONSOLE";
-            Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + who + " - Clearing all players of invisibility potion effects"));
+            Colors.broadcast(CommandMessages.server(Colors.RED + who + " - Clearing all players of invisibility potion effects"));
 
-            sender.sendMessage(CommandMessages.command(ChatColor.YELLOW + "Cleared invisibility from " + cleared + " player(s)."));
+            sender.sendMessage(CommandMessages.command(Colors.YELLOW + "Cleared invisibility from " + cleared + " player(s)."));
             return true;
         }
 
@@ -53,7 +53,7 @@ public class InvisibleCommand implements ISubCommand
             if (p.hasPotionEffect(PotionEffectType.INVISIBILITY))
             {
                 if (p.hasPermission("sandbox.staff")) {
-                    invisible.add(p.getName() + ChatColor.RED + " (STAFF)" + ChatColor.GRAY);
+                    invisible.add(p.getName() + Colors.RED + " (STAFF)" + Colors.GRAY);
                 } else {
                     invisible.add(p.getName());
                 }
@@ -62,11 +62,11 @@ public class InvisibleCommand implements ISubCommand
 
         if (invisible.isEmpty())
         {
-            sender.sendMessage(CommandMessages.command(ChatColor.GREEN + "There are no invisible players."));
+            sender.sendMessage(CommandMessages.command(Colors.GREEN + "There are no invisible players."));
         }
         else
         {
-            sender.sendMessage(CommandMessages.command(ChatColor.GRAY + "Invisible players: " + ChatColor.GRAY + String.join(", ", invisible)));
+            sender.sendMessage(CommandMessages.command(Colors.GRAY + "Invisible players: " + Colors.GRAY + String.join(", ", invisible)));
         }
         return true;
     }

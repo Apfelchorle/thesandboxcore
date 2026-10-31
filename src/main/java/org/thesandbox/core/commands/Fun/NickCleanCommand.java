@@ -3,13 +3,13 @@ package org.thesandbox.core.commands.Fun;
 import com.earth2me.essentials.Essentials;
 import com.earth2me.essentials.User;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,7 +39,7 @@ public class NickCleanCommand implements ISubCommand
     {
         if (essentials == null || !essentials.isEnabled())
         {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "Essentials is not available; cannot clean nicknames."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "Essentials is not available; cannot clean nicknames."));
             return true;
         }
 
@@ -50,23 +50,23 @@ public class NickCleanCommand implements ISubCommand
             Player target = Bukkit.getPlayerExact(args[0]);
             if (target == null)
             {
-                sender.sendMessage(CommandMessages.error(ChatColor.RED + "Player not found: " + args[0]));
+                sender.sendMessage(CommandMessages.error(Colors.RED + "Player not found: " + args[0]));
                 return true;
             }
 
-            Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + who + " - Cleaning " + target.getName() + "'s nickname"));
+            Colors.broadcast(CommandMessages.server(Colors.RED + who + " - Cleaning " + target.getName() + "'s nickname"));
             cleanOne(sender, target);
             return true;
         }
 
         // No args: clean everyone
-        Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + who + " - Cleaning all nicknames"));
+        Colors.broadcast(CommandMessages.server(Colors.RED + who + " - Cleaning all nicknames"));
         int changed = 0;
         for (Player p : Bukkit.getOnlinePlayers())
         {
             if (cleanOne(sender, p)) changed++;
         }
-        sender.sendMessage(CommandMessages.command(ChatColor.GRAY + "Finished cleaning nicknames. " + changed + " change" + (changed == 1 ? "" : "s") + " applied."));
+        sender.sendMessage(CommandMessages.command(Colors.GRAY + "Finished cleaning nicknames. " + changed + " change" + (changed == 1 ? "" : "s") + " applied."));
         return true;
     }
 
@@ -94,8 +94,8 @@ public class NickCleanCommand implements ISubCommand
                 user.setNickname(cleaned);
             }
 
-            sender.sendMessage(CommandMessages.command(ChatColor.RESET + player.getName() + ": \"" + orig + ChatColor.RESET
-                    + "\" -> \"" + cleaned + ChatColor.RESET + "\"."));
+            sender.sendMessage(CommandMessages.command(Colors.RESET + player.getName() + ": \"" + orig + Colors.RESET
+                    + "\" -> \"" + cleaned + Colors.RESET + "\"."));
             return true;
         }
         return false;

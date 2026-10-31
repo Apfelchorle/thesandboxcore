@@ -1,13 +1,13 @@
 package org.thesandbox.core.commands.Admin;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,21 +27,21 @@ public class SudoCommand implements ISubCommand
     {
         if (args.length < 2)
         {
-            sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " <player> <command>"));
+            sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <player> <command>"));
             return true;
         }
 
         Player target = Bukkit.getPlayerExact(args[0]);
         if (target == null)
         {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "Player not found: " + args[0]));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "Player not found: " + args[0]));
             return true;
         }
 
         // Permission hierarchy enforcement
         if (!canControl(sender, target))
         {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "You cannot send commands as a player of equal or higher rank!"));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "You cannot send commands as a player of equal or higher rank!"));
             return true;
         }
 
@@ -53,18 +53,18 @@ public class SudoCommand implements ISubCommand
         }
         if (cmd.isEmpty())
         {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "You must specify a command to run."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "You must specify a command to run."));
             return true;
         }
 
         boolean ok = Bukkit.dispatchCommand(target, cmd);
         if (ok)
         {
-            sender.sendMessage(CommandMessages.command(ChatColor.GRAY + "Successfully sent the following command: \"" + cmd + "\" as " + target.getName()));
+            sender.sendMessage(CommandMessages.command(Colors.GRAY + "Successfully sent the following command: \"" + cmd + "\" as " + target.getName()));
         }
         else
         {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "Failed to run command as " + target.getName() + "."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "Failed to run command as " + target.getName() + "."));
         }
 
         return true;

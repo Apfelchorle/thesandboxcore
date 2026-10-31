@@ -205,7 +205,7 @@ public final class CommandAutoRegistrar {
 
     private static Map<String, List<String>> readCommandKeysAndAliases(JavaPlugin plugin) {
         Map<String, List<String>> out = new LinkedHashMap<>();
-        PluginDescriptionFile pdf = plugin.getDescription();
+        if (!(plugin.getPluginMeta() instanceof PluginDescriptionFile pdf)) return out;
         Map<String, Map<String, Object>> cmds = pdf.getCommands();
         if (cmds == null) return out;
         for (Map.Entry<String, Map<String, Object>> e : cmds.entrySet()) {

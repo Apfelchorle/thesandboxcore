@@ -9,17 +9,17 @@ import net.luckperms.api.model.user.UserManager;
 import net.luckperms.api.node.Node;
 import net.luckperms.api.node.types.PrefixNode;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.thesandbox.core.util.HexColorUtil;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.guilds.Guild;
 import org.thesandbox.core.guilds.GuildManager;
 import org.thesandbox.core.tags.TagService;
+import org.thesandbox.core.util.Colors;
+import org.thesandbox.core.util.HexColorUtil;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -42,10 +42,34 @@ public class TagCommand implements ISubCommand {
         this(plugin, tagService, null);
     }
 
+    /** UPDATED: remove trailing spaces & dangling codes, then append ONLY a reset (no space). */
+    private static String ensureSingleSpaceAfterTag(String s) {
+        if (s == null) s = "";
+        // Remove trailing whitespace
+        s = s.replaceAll("\\s+$", "");
+        // Remove dangling legacy (&x) / section (§x) color/format codes at the end
+        s = s.replaceAll("(?i)(?:&[0-9A-FK-OR]|§[0-9A-FK-OR])+$", "");
+        // Remove dangling §x hex sequences at the end
+        s = s.replaceAll("(?i)(?:§x(§[0-9A-F]){6})+$", "");
+        // Remove dangling &#RRGGBB sequences at the end
+        s = s.replaceAll("(?i)(?:&#[0-9A-F]{6})+$", "");
+        // Append ONLY reset, no space
+        return s + Colors.RESET;
+    }
+
+    private static String normalizeStoredTag(String tagValue) {
+        String out = HexColorUtil.translate(tagValue == null ? "" : tagValue);
+        out = out.replaceAll("\\s+$", "");
+        out = out.replaceAll("(?i)(?:&[0-9A-FK-OR]|§[0-9A-FK-OR])+$", "");
+        out = out.replaceAll("(?i)(?:§x(§[0-9A-F]){6})+$", "");
+        out = out.replaceAll("(?i)(?:&#[0-9A-F]{6})+$", "");
+        return out + Colors.RESET;
+    }
+
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " [-save] <set <tag..> | gradient <hex> <hex> <tag..> | list | off | save | clear <player> | clearall>"));
+            sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " [-save] <set <tag..> | gradient <hex> <hex> <tag..> | list | off | save | clear <player> | clearall>"));
             return true;
         }
 
@@ -55,7 +79,7 @@ public class TagCommand implements ISubCommand {
             saveFlag = true;
             idx = 1;
             if (args.length <= 1) {
-                sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " -save <set|gradient|save ...>"));
+                sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " -save <set|gradient|save ...>"));
                 return true;
             }
         }
@@ -69,7 +93,8 @@ public class TagCommand implements ISubCommand {
             case "save" -> handleSaveCurrent(sender);
             case "clear" -> handleClear(sender, Arrays.copyOfRange(args, idx + 1, args.length));
             case "clearall" -> handleClearAll(sender);
-            default -> sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " [-save] <set|gradient|list|off|save|clear|clearall>"));
+            default ->
+                    sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " [-save] <set|gradient|list|off|save|clear|clearall>"));
         }
         return true;
     }
@@ -77,11 +102,11 @@ public class TagCommand implements ISubCommand {
     // ---- /tag set <tag..> ----
     private void handleSet(CommandSender sender, String label, String[] args, boolean save) {
         if (!(sender instanceof Player p)) {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "Only players can set their tag."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "Only players can set their tag."));
             return;
         }
         if (args.length == 0) {
-            p.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " set <tag..>"));
+            p.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " set <tag..>"));
             return;
         }
         String raw = joinWithSpaces(args);
@@ -90,7 +115,7 @@ public class TagCommand implements ISubCommand {
         if (!sender.hasPermission("sandbox.mb")) {
             String blocked = firstBlacklistedTerm(raw);
             if (blocked != null) {
-                p.sendMessage(CommandMessages.error(ChatColor.RED + "That tag contains a blocked term: " + ChatColor.YELLOW + blocked));
+                p.sendMessage(CommandMessages.error(Colors.RED + "That tag contains a blocked term: " + Colors.YELLOW + blocked));
                 return;
             }
         }
@@ -98,7 +123,7 @@ public class TagCommand implements ISubCommand {
         // Visible-length enforcement
         int visibleLen = visibleLength(raw);
         if (visibleLen > MAX_VISIBLE_LEN) {
-            p.sendMessage(CommandMessages.error(ChatColor.RED + "That tag is too long (" + visibleLen + "/" + MAX_VISIBLE_LEN + "). Shorten it."));
+            p.sendMessage(CommandMessages.error(Colors.RED + "That tag is too long (" + visibleLen + "/" + MAX_VISIBLE_LEN + "). Shorten it."));
             return;
         }
 
@@ -111,17 +136,17 @@ public class TagCommand implements ISubCommand {
     // ---- /tag gradient <hex> <hex> <tag..> ----
     private void handleGradient(CommandSender sender, String label, String[] args, boolean save) {
         if (!(sender instanceof Player p)) {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "Only players can set their tag."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "Only players can set their tag."));
             return;
         }
         if (args.length < 3) {
-            p.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " gradient <hex> <hex> <tag..>"));
+            p.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " gradient <hex> <hex> <tag..>"));
             return;
         }
         String c1 = normalizeHex(args[0]);
         String c2 = normalizeHex(args[1]);
         if (c1 == null || c2 == null) {
-            p.sendMessage(CommandMessages.error(ChatColor.RED + "Colors must be hex like #ff00aa or ff00aa."));
+            p.sendMessage(CommandMessages.error(Colors.RED + "Colors must be hex like #ff00aa or ff00aa."));
             return;
         }
         String text = joinWithSpaces(Arrays.copyOfRange(args, 2, args.length));
@@ -130,7 +155,7 @@ public class TagCommand implements ISubCommand {
         if (!sender.hasPermission("sandbox.mb")) {
             String blocked = firstBlacklistedTerm(text);
             if (blocked != null) {
-                p.sendMessage(CommandMessages.error(ChatColor.RED + "That tag contains a blocked term: " + ChatColor.YELLOW + blocked));
+                p.sendMessage(CommandMessages.error(Colors.RED + "That tag contains a blocked term: " + Colors.YELLOW + blocked));
                 return;
             }
         }
@@ -138,7 +163,7 @@ public class TagCommand implements ISubCommand {
         // Visible-length = plain text length for gradient
         int visibleLen = text.length();
         if (visibleLen > MAX_VISIBLE_LEN) {
-            p.sendMessage(CommandMessages.error(ChatColor.RED + "That tag is too long (" + visibleLen + "/" + MAX_VISIBLE_LEN + "). Shorten it."));
+            p.sendMessage(CommandMessages.error(Colors.RED + "That tag is too long (" + visibleLen + "/" + MAX_VISIBLE_LEN + "). Shorten it."));
             return;
         }
 
@@ -161,18 +186,18 @@ public class TagCommand implements ISubCommand {
                         if (u == null) continue;
                         String tag = currentPrefixAtPriority(u, PREFIX_PRIORITY);
                         if (tag != null && !tag.isEmpty()) {
-                            lines.add(ChatColor.DARK_AQUA + " - " + online.getName() + ChatColor.GRAY + " -> " + tag);
+                            lines.add(Colors.DARK_AQUA + " - " + online.getName() + Colors.GRAY + " -> " + tag);
                         }
                     } catch (Exception ignored) {}
                 }
                 if (lines.isEmpty()) {
-                    sender.sendMessage(CommandMessages.command(ChatColor.YELLOW + "No one online currently has a tag."));
+                    sender.sendMessage(CommandMessages.command(Colors.YELLOW + "No one online currently has a tag."));
                 } else {
-                    sender.sendMessage(CommandMessages.command(ChatColor.GRAY + "Online players with tags:"));
+                    sender.sendMessage(CommandMessages.command(Colors.GRAY + "Online players with tags:"));
                     for (String line : lines) sender.sendMessage(CommandMessages.command(line));
                 }
             } catch (Exception e) {
-                sender.sendMessage(CommandMessages.error(ChatColor.RED + "Error listing tags: " + e.getMessage()));
+                sender.sendMessage(CommandMessages.error(Colors.RED + "Error listing tags: " + e.getMessage()));
             }
         });
     }
@@ -180,7 +205,7 @@ public class TagCommand implements ISubCommand {
     // ---- /tag save ----
     private void handleSaveCurrent(CommandSender sender) {
         if (!(sender instanceof Player p)) {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "Only players can use /tag save."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "Only players can use /tag save."));
             return;
         }
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -189,18 +214,18 @@ public class TagCommand implements ISubCommand {
                 UserManager um = lp.getUserManager();
                 User user = um.loadUser(p.getUniqueId()).get(5, TimeUnit.SECONDS);
                 if (user == null) {
-                    p.sendMessage(CommandMessages.error(ChatColor.RED + "LuckPerms user not found."));
+                    p.sendMessage(CommandMessages.error(Colors.RED + "LuckPerms user not found."));
                     return;
                 }
                 String current = currentPrefixAtPriority(user, PREFIX_PRIORITY);
                 if (current == null || current.isEmpty()) {
-                    p.sendMessage(CommandMessages.error(ChatColor.YELLOW + "You don't have a tag to save yet."));
+                    p.sendMessage(CommandMessages.error(Colors.YELLOW + "You don't have a tag to save yet."));
                     return;
                 }
                 tagService.saveTag(p.getName(), decolor(current));
-                p.sendMessage(CommandMessages.command(ChatColor.GREEN + "Saved your current tag."));
+                p.sendMessage(CommandMessages.command(Colors.GREEN + "Saved your current tag."));
             } catch (Exception e) {
-                p.sendMessage(CommandMessages.error(ChatColor.RED + "Error: " + e.getMessage()));
+                p.sendMessage(CommandMessages.error(Colors.RED + "Error: " + e.getMessage()));
             }
         });
     }
@@ -208,21 +233,23 @@ public class TagCommand implements ISubCommand {
     // ---- /tag off ----
     private void handleOff(CommandSender sender) {
         if (!(sender instanceof Player p)) {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "Only players can use /tag off."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "Only players can use /tag off."));
             return;
         }
         tagService.deleteTag(p.getName()); // also remove from MySQL per spec
         applyFallbackPrefixAsync(p.getName(), p.getUniqueId(), true);
     }
 
+    // ---- helpers ----
+
     // ---- /tag clear <player> ----
     private void handleClear(CommandSender sender, String[] args) {
         if (!sender.hasPermission("sandbox.staff")) {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "You need to be staff to do that."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "You need to be staff to do that."));
             return;
         }
         if (args.length != 1) {
-            sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + labelFrom(sender) + " clear <player>"));
+            sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + labelFrom(sender) + " clear <player>"));
             return;
         }
         String targetName = args[0];
@@ -232,12 +259,12 @@ public class TagCommand implements ISubCommand {
                 UserManager um = lp.getUserManager();
                 UUID uuid = um.lookupUniqueId(targetName).get(5, TimeUnit.SECONDS);
                 if (uuid == null) {
-                    sender.sendMessage(CommandMessages.error(ChatColor.RED + "Unknown player: " + targetName));
+                    sender.sendMessage(CommandMessages.error(Colors.RED + "Unknown player: " + targetName));
                     return;
                 }
                 User user = um.loadUser(uuid).get(5, TimeUnit.SECONDS);
                 if (user == null) {
-                    sender.sendMessage(CommandMessages.error(ChatColor.RED + "Could not load LuckPerms user for " + targetName));
+                    sender.sendMessage(CommandMessages.error(Colors.RED + "Could not load LuckPerms user for " + targetName));
                     return;
                 }
                 tagService.deleteTag(targetName);
@@ -245,21 +272,26 @@ public class TagCommand implements ISubCommand {
                 user.getCachedData().invalidate();
                 um.saveUser(user).get(5, TimeUnit.SECONDS);
                 if (fallback != null) {
-                    sender.sendMessage(CommandMessages.command(ChatColor.GREEN + "Cleared saved tag for " + targetName + ". " + ChatColor.GRAY + "Now using " + fallback + "."));
+                    sender.sendMessage(CommandMessages.command(Colors.GREEN + "Cleared saved tag for " + targetName + ". " + Colors.GRAY + "Now using " + fallback + "."));
                 } else {
-                    sender.sendMessage(CommandMessages.command(ChatColor.GREEN + "Cleared tag for " + targetName + ". " + ChatColor.GRAY + "Now using their normal LuckPerms rank prefix."));
+                    sender.sendMessage(CommandMessages.command(Colors.GREEN + "Cleared tag for " + targetName + ". " + Colors.GRAY + "Now using their normal LuckPerms rank prefix."));
                 }
-                Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + sender.getName() + " - " + "Removing " + targetName + "'s tag"));
+                Colors.broadcast(CommandMessages.server(Colors.RED + sender.getName() + " - " + "Removing " + targetName + "'s tag"));
             } catch (Exception e) {
-                sender.sendMessage(CommandMessages.error(ChatColor.RED + "Error clearing: " + e.getMessage()));
+                sender.sendMessage(CommandMessages.error(Colors.RED + "Error clearing: " + e.getMessage()));
             }
         });
+    }
+
+    private static String stripLeadingSpaces(String s) {
+        if (s == null) return "";
+        return s.replaceFirst("^\\s+", "");
     }
 
     // ---- /tag clearall ----
     private void handleClearAll(CommandSender sender) {
         if (!sender.hasPermission("sandbox.staff")) {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "You need to be staff to do that."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "You need to be staff to do that."));
             return;
         }
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -277,72 +309,11 @@ public class TagCommand implements ISubCommand {
                         }
                     } catch (Exception ignored) {}
                 }
-                sender.sendMessage(CommandMessages.command(ChatColor.GREEN + "Cleared tags for " + clearedUsers + " online player(s). "
-                        + ChatColor.GRAY + "(Saved tags in MySQL were not modified.)"));
-                Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + sender.getName() + " - " + "Removing all online tags"));
+                sender.sendMessage(CommandMessages.command(Colors.GREEN + "Cleared tags for " + clearedUsers + " online player(s). "
+                        + Colors.GRAY + "(Saved tags in MySQL were not modified.)"));
+                Colors.broadcast(CommandMessages.server(Colors.RED + sender.getName() + " - " + "Removing all online tags"));
             } catch (Exception e) {
-                sender.sendMessage(CommandMessages.error(ChatColor.RED + "clearall error: " + e.getMessage()));
-            }
-        });
-    }
-
-    // ---- helpers ----
-
-    private String getEssentialsNickOrName(Player p) {
-        try {
-            org.bukkit.plugin.Plugin ess = Bukkit.getPluginManager().getPlugin("Essentials");
-            if (ess != null && ess.isEnabled()) {
-                java.lang.reflect.Method getUser = ess.getClass().getMethod("getUser", Player.class);
-                Object user = getUser.invoke(ess, p);
-                if (user != null) {
-                    java.lang.reflect.Method getNickname = user.getClass().getMethod("getNickname");
-                    Object nickObj = getNickname.invoke(user);
-                    if (nickObj instanceof String nick && !nick.isEmpty()) {
-                        String colored = ChatColor.translateAlternateColorCodes('&', nick);
-                        return stripLeadingSpaces(colored); // avoid doubled gap in preview
-                    }
-                }
-            }
-        } catch (Throwable ignored) {}
-        return p.getName();
-    }
-
-    private static String stripLeadingSpaces(String s) {
-        if (s == null) return "";
-        return s.replaceFirst("^\\s+", "");
-    }
-
-    private void applyPrefixAsync(String playerName, UUID uuid, String prefix, boolean save, boolean notify) {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try {
-                LuckPerms lp = LuckPermsProvider.get();
-                UserManager um = lp.getUserManager();
-                User user = um.loadUser(uuid).get(5, TimeUnit.SECONDS);
-                if (user == null) {
-                    if (notify) {
-                        Player pl = Bukkit.getPlayer(uuid);
-                        if (pl != null) pl.sendMessage(CommandMessages.error(ChatColor.RED + "LuckPerms user not found."));
-                    }
-                    return;
-                }
-                removePrefixNodes(user);
-                PrefixNode node = PrefixNode.builder(prefix, PREFIX_PRIORITY).build();
-                user.data().add(node);
-                user.getCachedData().invalidate();
-                um.saveUser(user).get(5, TimeUnit.SECONDS);
-                if (save) tagService.saveTag(playerName, decolor(prefix));
-                if (notify) {
-                    Player p = Bukkit.getPlayer(uuid);
-                    if (p != null) {
-                        p.sendMessage(CommandMessages.command(ChatColor.GREEN + "Tag updated!"));
-                        String nameToShow = getEssentialsNickOrName(p);
-                        // Preview shows exactly what was set (no forced space)
-                        p.sendMessage(CommandMessages.command(ChatColor.GRAY + "Preview: " + prefix + " " + ChatColor.RESET + nameToShow));
-                    }
-                }
-            } catch (Exception e) {
-                Player p = Bukkit.getPlayer(uuid);
-                if (p != null) p.sendMessage(CommandMessages.error(ChatColor.RED + "Error: " + e.getMessage()));
+                sender.sendMessage(CommandMessages.error(Colors.RED + "clearall error: " + e.getMessage()));
             }
         });
     }
@@ -357,19 +328,23 @@ public class TagCommand implements ISubCommand {
         return sb.toString();
     }
 
-    /** UPDATED: remove trailing spaces & dangling codes, then append ONLY a reset (no space). */
-    private static String ensureSingleSpaceAfterTag(String s) {
-        if (s == null) s = "";
-        // Remove trailing whitespace
-        s = s.replaceAll("\\s+$", "");
-        // Remove dangling legacy (&x) / section (§x) color/format codes at the end
-        s = s.replaceAll("(?i)(?:&[0-9A-FK-OR]|§[0-9A-FK-OR])+$", "");
-        // Remove dangling §x hex sequences at the end
-        s = s.replaceAll("(?i)(?:§x(§[0-9A-F]){6})+$", "");
-        // Remove dangling &#RRGGBB sequences at the end
-        s = s.replaceAll("(?i)(?:&#[0-9A-F]{6})+$", "");
-        // Append ONLY reset, no space
-        return s + ChatColor.RESET;
+    private String getEssentialsNickOrName(Player p) {
+        try {
+            org.bukkit.plugin.Plugin ess = Bukkit.getPluginManager().getPlugin("Essentials");
+            if (ess != null && ess.isEnabled()) {
+                java.lang.reflect.Method getUser = ess.getClass().getMethod("getUser", Player.class);
+                Object user = getUser.invoke(ess, p);
+                if (user != null) {
+                    java.lang.reflect.Method getNickname = user.getClass().getMethod("getNickname");
+                    Object nickObj = getNickname.invoke(user);
+                    if (nickObj instanceof String nick && !nick.isEmpty()) {
+                        String colored = Colors.color(nick);
+                        return stripLeadingSpaces(colored); // avoid doubled gap in preview
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+        return p.getName();
     }
 
     private static String normalizeHex(String in) {
@@ -481,12 +456,7 @@ public class TagCommand implements ISubCommand {
         return changed;
     }
 
-    /**
-     * After a saved /tag is cleared, keep the same fallback order used on join:
-     * 1) guild rank prefix in the managed tag slot, if the player has one;
-     * 2) otherwise remove the managed tag slot so LuckPerms' normal rank prefix is used.
-     */
-    private void applyFallbackPrefixAsync(String playerName, UUID uuid, boolean notify) {
+    private void applyPrefixAsync(String playerName, UUID uuid, String prefix, boolean save, boolean notify) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
                 LuckPerms lp = LuckPermsProvider.get();
@@ -494,29 +464,29 @@ public class TagCommand implements ISubCommand {
                 User user = um.loadUser(uuid).get(5, TimeUnit.SECONDS);
                 if (user == null) {
                     if (notify) {
-                        Player p = Bukkit.getPlayer(uuid);
-                        if (p != null) p.sendMessage(CommandMessages.error(ChatColor.RED + "LuckPerms user not found."));
+                        Player pl = Bukkit.getPlayer(uuid);
+                        if (pl != null) pl.sendMessage(CommandMessages.error(Colors.RED + "LuckPerms user not found."));
                     }
                     return;
                 }
-
-                String fallback = applyFallbackPrefix(user, uuid);
+                removePrefixNodes(user);
+                PrefixNode node = PrefixNode.builder(prefix, PREFIX_PRIORITY).build();
+                user.data().add(node);
                 user.getCachedData().invalidate();
                 um.saveUser(user).get(5, TimeUnit.SECONDS);
-
+                if (save) tagService.saveTag(playerName, decolor(prefix));
                 if (notify) {
                     Player p = Bukkit.getPlayer(uuid);
                     if (p != null) {
-                        if (fallback != null) {
-                            p.sendMessage(CommandMessages.command(ChatColor.YELLOW + "Tag cleared. " + ChatColor.GRAY + "Using your " + fallback + " now."));
-                        } else {
-                            p.sendMessage(CommandMessages.command(ChatColor.YELLOW + "Tag cleared. " + ChatColor.GRAY + "Using your normal LuckPerms rank prefix now."));
-                        }
+                        p.sendMessage(CommandMessages.command(Colors.GREEN + "Tag updated!"));
+                        String nameToShow = getEssentialsNickOrName(p);
+                        // Preview shows exactly what was set (no forced space)
+                        p.sendMessage(CommandMessages.command(Colors.GRAY + "Preview: " + prefix + " " + Colors.RESET + nameToShow));
                     }
                 }
             } catch (Exception e) {
                 Player p = Bukkit.getPlayer(uuid);
-                if (p != null) p.sendMessage(CommandMessages.error(ChatColor.RED + "Error: " + e.getMessage()));
+                if (p != null) p.sendMessage(CommandMessages.error(Colors.RED + "Error: " + e.getMessage()));
             }
         });
     }
@@ -546,13 +516,44 @@ public class TagCommand implements ISubCommand {
         }
     }
 
-    private static String normalizeStoredTag(String tagValue) {
-        String out = HexColorUtil.translate(tagValue == null ? "" : tagValue);
-        out = out.replaceAll("\\s+$", "");
-        out = out.replaceAll("(?i)(?:&[0-9A-FK-OR]|§[0-9A-FK-OR])+$", "");
-        out = out.replaceAll("(?i)(?:§x(§[0-9A-F]){6})+$", "");
-        out = out.replaceAll("(?i)(?:&#[0-9A-F]{6})+$", "");
-        return out + ChatColor.RESET;
+    /**
+     * After a saved /tag is cleared, keep the same fallback order used on join:
+     * 1) guild rank prefix in the managed tag slot, if the player has one;
+     * 2) otherwise remove the managed tag slot so LuckPerms' normal rank prefix is used.
+     */
+    private void applyFallbackPrefixAsync(String playerName, UUID uuid, boolean notify) {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                LuckPerms lp = LuckPermsProvider.get();
+                UserManager um = lp.getUserManager();
+                User user = um.loadUser(uuid).get(5, TimeUnit.SECONDS);
+                if (user == null) {
+                    if (notify) {
+                        Player p = Bukkit.getPlayer(uuid);
+                        if (p != null) p.sendMessage(CommandMessages.error(Colors.RED + "LuckPerms user not found."));
+                    }
+                    return;
+                }
+
+                String fallback = applyFallbackPrefix(user, uuid);
+                user.getCachedData().invalidate();
+                um.saveUser(user).get(5, TimeUnit.SECONDS);
+
+                if (notify) {
+                    Player p = Bukkit.getPlayer(uuid);
+                    if (p != null) {
+                        if (fallback != null) {
+                            p.sendMessage(CommandMessages.command(Colors.YELLOW + "Tag cleared. " + Colors.GRAY + "Using your " + fallback + " now."));
+                        } else {
+                            p.sendMessage(CommandMessages.command(Colors.YELLOW + "Tag cleared. " + Colors.GRAY + "Using your normal LuckPerms rank prefix now."));
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                Player p = Bukkit.getPlayer(uuid);
+                if (p != null) p.sendMessage(CommandMessages.error(Colors.RED + "Error: " + e.getMessage()));
+            }
+        });
     }
 
     @Override

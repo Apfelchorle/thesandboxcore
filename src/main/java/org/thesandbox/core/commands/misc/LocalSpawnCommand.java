@@ -1,6 +1,5 @@
 package org.thesandbox.core.commands.misc;
 
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -8,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.Collections;
 import java.util.List;
@@ -25,7 +25,7 @@ public class LocalSpawnCommand implements ISubCommand
     public boolean execute(CommandSender sender, Command command, String label, String[] args)
     {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "This command can only be used in-game."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "This command can only be used in-game."));
             return true;
         }
 
@@ -34,7 +34,7 @@ public class LocalSpawnCommand implements ISubCommand
         // Teleport synchronously (safe on main thread)
         player.teleport(spawn);
 
-        player.sendMessage(CommandMessages.command(ChatColor.YELLOW + "Teleported to spawnpoint for world \"" +
+        player.sendMessage(CommandMessages.command(Colors.YELLOW + "Teleported to spawnpoint for world \"" +
                 player.getWorld().getName() + "\"."));
         return true;
     }

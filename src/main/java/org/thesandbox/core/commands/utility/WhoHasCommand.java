@@ -1,7 +1,6 @@
 package org.thesandbox.core.commands.utility;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -9,6 +8,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -27,7 +27,7 @@ public class WhoHasCommand implements ISubCommand
     {
         if (args.length < 1)
         {
-            sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " <item> [clear]"));
+            sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <item> [clear]"));
             return true;
         }
 
@@ -37,7 +37,7 @@ public class WhoHasCommand implements ISubCommand
 
         if (material == null)
         {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "Invalid item: " + materialName));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "Invalid item: " + materialName));
             return true;
         }
 
@@ -46,12 +46,12 @@ public class WhoHasCommand implements ISubCommand
         {
             if (!sender.hasPermission("sandbox.staff"))
             {
-                sender.sendMessage(CommandMessages.error(ChatColor.RED + "You do not have permission to clear inventories."));
+                sender.sendMessage(CommandMessages.error(Colors.RED + "You do not have permission to clear inventories."));
                 return true;
             }
 
             final String actor = (sender instanceof Player p) ? p.getName() : "CONSOLE";
-            Bukkit.broadcastMessage(CommandMessages.server(ChatColor.AQUA + actor + " - Clearing all inventories of " + material.name()));
+            Colors.broadcast(CommandMessages.server(Colors.AQUA + actor + " - Clearing all inventories of " + material.name()));
 
             for (final Player target : Bukkit.getOnlinePlayers())
             {
@@ -62,7 +62,6 @@ public class WhoHasCommand implements ISubCommand
                 if (target.getInventory().contains(material))
                 {
                     target.getInventory().remove(material);
-                    target.updateInventory();
                 }
             }
             return true; // do not list players when clearing
@@ -80,12 +79,12 @@ public class WhoHasCommand implements ISubCommand
 
         if (players.isEmpty())
         {
-            sender.sendMessage(CommandMessages.command(ChatColor.GRAY + "There are no players with " + material.name()));
+            sender.sendMessage(CommandMessages.command(Colors.GRAY + "There are no players with " + material.name()));
         }
         else
         {
-            sender.sendMessage(CommandMessages.command(ChatColor.GRAY + "Players with " + material.name() + ": "
-                    + ChatColor.RED + String.join(", ", players)));
+            sender.sendMessage(CommandMessages.command(Colors.GRAY + "Players with " + material.name() + ": "
+                    + Colors.RED + String.join(", ", players)));
         }
 
         return true;

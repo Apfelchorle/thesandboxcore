@@ -3,7 +3,6 @@ package org.thesandbox.core.commands.utility;
 import me.libraryaddict.disguise.DisguiseAPI;
 import me.libraryaddict.disguise.events.DisguiseEvent;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -12,6 +11,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.Collections;
 import java.util.List;
@@ -34,7 +34,7 @@ public class DisguiseToggleCommand implements ISubCommand, Listener
     {
 
         if (!Bukkit.getPluginManager().isPluginEnabled("LibsDisguises")) {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "LibsDisguises is not installed or not enabled."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "LibsDisguises is not installed or not enabled."));
             return true;
         }
 
@@ -42,7 +42,7 @@ public class DisguiseToggleCommand implements ISubCommand, Listener
 
         String who = (sender instanceof Player) ? sender.getName() : "CONSOLE";
         String verb = disguisesEnabled ? "Enabling" : "Disabling";
-        Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + who + " - " + verb + " disguises"));
+        Colors.broadcast(CommandMessages.server(Colors.RED + who + " - " + verb + " disguises"));
 
         // If we just disabled disguises, clear them immediately
         if (!disguisesEnabled) {
@@ -66,7 +66,7 @@ public class DisguiseToggleCommand implements ISubCommand, Listener
             event.setCancelled(true);
 
             if (event.getEntity() instanceof Player) {
-                event.getEntity().sendMessage(CommandMessages.error(ChatColor.RED + "Disguises are currently disabled."));
+                event.getEntity().sendMessage(CommandMessages.error(Colors.RED + "Disguises are currently disabled."));
             }
         }
     }

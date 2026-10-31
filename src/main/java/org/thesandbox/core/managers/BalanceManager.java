@@ -15,13 +15,7 @@ import org.thesandbox.core.util.PlayerDataListener;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.IntUnaryOperator;
 
@@ -42,6 +36,11 @@ public class BalanceManager {
     /** UUIDs whose writes are currently being drained, so updates stay ordered. */
     private final Set<UUID> saving = ConcurrentHashMap.newKeySet();
 
+    /**
+     * True once the initial schema/load pass has completed.
+     */
+    private volatile boolean ready;
+
     public BalanceManager(TheSandboxCore plugin, DataSource dataSource) {
         this.plugin = plugin;
         this.repository = new BalanceRepository(dataSource);
@@ -51,23 +50,39 @@ public class BalanceManager {
         return plugin.getDataListener();
     }
 
+    /**
+     * Warms the cache in the background. Before that completes, reads use the legacy
+     * YAML value instead of blocking the main thread on a database round-trip.
+     */
     public void init() {
-        try {
-            repository.ensureSchema();
+        Utils.log("Initializing BalanceManager (SQL)...");
 
-            // First SQL deployment: import the old YAML balances before the cache is warmed.
-            if (repository.count() == 0) {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                repository.ensureSchema();
+
+                // First SQL deployment / new players: import legacy YAML values before the
+                // cache is warmed, so no mutation can base itself on a stale YAML balance.
                 migrateYamlBalances();
-            } else {
-                Bukkit.getScheduler().runTaskAsynchronously(plugin, this::migrateYamlBalances);
+
+                // putIfAbsent keeps coin changes made while this pass was running.
+                for (var entry : repository.loadAll().entrySet()) {
+                    cache.putIfAbsent(entry.getKey(), entry.getValue());
+                }
+                ready = true;
+                plugin.getLogger().info("[Balances] SQL cache loaded (" + cache.size() + " players).");
+
+                // Coin changes made while the schema was being created were queued in memory.
+                flush();
+            } catch (SQLException e) {
+                ready = true; // fall back to per-player/YAML reads instead of retrying forever
+                plugin.getLogger().severe("[Balances] Could not initialize SQL storage: " + e.getMessage());
             }
+        });
+    }
 
-            cache.putAll(repository.loadAll());
-        } catch (SQLException e) {
-            plugin.getLogger().severe("[Balances] Could not initialize SQL storage: " + e.getMessage());
-        }
-
-        Utils.log("Initialized BalanceManager (SQL)");
+    public boolean isReady() {
+        return ready;
     }
 
     /** Copies coins from the legacy player_data/*.yml files into SQL, never overwriting existing rows. */
@@ -208,6 +223,9 @@ public class BalanceManager {
         Integer cached = cache.get(uuid);
         if (cached != null) return cached;
 
+        // Until the background load finishes, avoid a main-thread SQL round-trip.
+        if (!ready) return playerData().get(uuid, PlayerDataKeys.COINS, 0);
+
         Integer stored = queryCoins(uuid);
         if (stored == null) {
             // Database outage: read the legacy YAML value without caching it so the
@@ -235,7 +253,8 @@ public class BalanceManager {
     private void updateCoins(UUID uuid, IntUnaryOperator update) {
         // compute() keeps read/modify/write atomic without recursively touching the cache.
         cache.compute(uuid, (id, current) -> {
-            Integer base = current != null ? current : queryCoins(id);
+            Integer base = current;
+            if (base == null) base = queryCoins(id);
             if (base == null) base = playerData().get(id, PlayerDataKeys.COINS, 0);
             return update.applyAsInt(base);
         });

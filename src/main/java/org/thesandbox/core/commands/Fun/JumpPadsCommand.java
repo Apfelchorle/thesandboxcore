@@ -12,19 +12,22 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.util.Vector;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.util.PlayerDataListener;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class JumpPadsCommand implements Listener, ISubCommand {
 
     public static final double DAMPING_COEFFICIENT = 0.8;
     private static final String DEFAULT_MODE = JumpPadMode.OFF.name();
-    private final Map<Player, Boolean> pushMap = new HashMap<>();
+    private final Map<UUID, Boolean> pushMap = new ConcurrentHashMap<>();
+    private final Map<UUID, JumpPadMode> modeCache = new ConcurrentHashMap<>();
     private final TheSandboxCore plugin;
     private final PlayerDataListener dataListener;
     private final double strength = 0.4;
@@ -36,24 +39,93 @@ public class JumpPadsCommand implements Listener, ISubCommand {
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
-    private JumpPadMode getModeFor(Player player) {
-        String stored = dataListener.get(player.getUniqueId(), "jumppadmode", DEFAULT_MODE);
-        try {
-            return JumpPadMode.valueOf(stored);
-        } catch (IllegalArgumentException e) {
-            return JumpPadMode.OFF;
-        }
+    private void setModeFor(Player player, JumpPadMode mode) {
+        modeCache.put(player.getUniqueId(), mode);
+        dataListener.set(player.getUniqueId(), "jumppadmode", mode.name());
     }
 
-    private void setModeFor(Player player, JumpPadMode mode) {
-        dataListener.set(player.getUniqueId(), "jumppadmode", mode.name());
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        UUID id = event.getPlayer().getUniqueId();
+        pushMap.remove(id);
+        modeCache.remove(id);
+    }
+
+    @EventHandler
+    public void onPlayerMove(PlayerMoveEvent event)
+    {
+        if (!event.hasExplicitlyChangedBlock())
+        {
+            return;
+        }
+
+        final Player player = event.getPlayer();
+        final JumpPadMode mode = getModeFor(player);
+
+        if (mode == JumpPadMode.OFF || player.getGameMode() == GameMode.SPECTATOR)
+        {
+            return;
+        }
+
+        final Block block = event.getTo().getBlock();
+        final boolean onWool = Tag.WOOL.isTagged(block.getRelative(0, -1, 0).getType());
+        final Vector velocity = player.getVelocity().clone();
+        boolean changed = false;
+
+        Boolean canPush = pushMap.getOrDefault(player.getUniqueId(), true);
+
+        if (onWool)
+        {
+            if (canPush)
+            {
+                velocity.setY(strength + 0.85);
+                changed = true;
+            }
+            canPush = false;
+        }
+        else
+        {
+            canPush = true;
+        }
+        pushMap.put(player.getUniqueId(), canPush);
+
+        if (mode == JumpPadMode.NORMAL_AND_SIDEWAYS)
+        {
+            if (Tag.WOOL.isTagged(block.getRelative(1, 0, 0).getType()))
+            {
+                velocity.add(new Vector(-DAMPING_COEFFICIENT * strength, 0.0, 0.0));
+                changed = true;
+            }
+
+            if (Tag.WOOL.isTagged(block.getRelative(-1, 0, 0).getType()))
+            {
+                velocity.add(new Vector(DAMPING_COEFFICIENT * strength, 0.0, 0.0));
+                changed = true;
+            }
+
+            if (Tag.WOOL.isTagged(block.getRelative(0, 0, 1).getType()))
+            {
+                velocity.add(new Vector(0.0, 0.0, -DAMPING_COEFFICIENT * strength));
+                changed = true;
+            }
+
+            if (Tag.WOOL.isTagged(block.getRelative(0, 0, -1).getType()))
+            {
+                velocity.add(new Vector(0.0, 0.0, DAMPING_COEFFICIENT * strength));
+                changed = true;
+            }
+        }
+
+        if (changed)
+        {
+            player.setFallDistance(0.0f);
+            player.setVelocity(velocity);
+        }
     }
 
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args)
     {
-        final String who = (sender instanceof Player) ? sender.getName() : "CONSOLE"; // i have no idea why this is here
-
         if (!(sender instanceof Player player)) {
             sender.sendMessage(Component.text("Only players can execute this command!", NamedTextColor.RED));
             return true;
@@ -101,80 +173,15 @@ public class JumpPadsCommand implements Listener, ISubCommand {
         return Collections.emptyList();
     }
 
-    @EventHandler
-    public void onPlayerMove(PlayerMoveEvent event)
-    {
-        if (!event.hasExplicitlyChangedBlock())
-        {
-            return;
-        }
-
-        final Player player = event.getPlayer();
-        final JumpPadMode mode = getModeFor(player);
-
-        if (mode == JumpPadMode.OFF || player.getGameMode() == GameMode.SPECTATOR)
-        {
-            return;
-        }
-
-        final Block block = event.getTo().getBlock();
-        final boolean onWool = Tag.WOOL.isTagged(block.getRelative(0, -1, 0).getType());
-        final Vector velocity = player.getVelocity().clone();
-        boolean changed = false;
-
-        Boolean canPush = pushMap.get(player);
-        if (canPush == null)
-        {
-            canPush = true;
-        }
-
-        if (onWool)
-        {
-            if (canPush)
-            {
-                velocity.setY(strength + 0.85);
-                changed = true;
+    private JumpPadMode getModeFor(Player player) {
+        return modeCache.computeIfAbsent(player.getUniqueId(), id -> {
+            String stored = dataListener.get(id, "jumppadmode", DEFAULT_MODE);
+            try {
+                return JumpPadMode.valueOf(stored);
+            } catch (IllegalArgumentException e) {
+                return JumpPadMode.OFF;
             }
-            canPush = false;
-        }
-        else
-        {
-            canPush = true;
-        }
-        pushMap.put(player, canPush);
-
-        if (mode == JumpPadMode.NORMAL_AND_SIDEWAYS)
-        {
-            if (Tag.WOOL.isTagged(block.getRelative(1, 0, 0).getType()))
-            {
-                velocity.add(new Vector(-DAMPING_COEFFICIENT * strength, 0.0, 0.0));
-                changed = true;
-            }
-
-            if (Tag.WOOL.isTagged(block.getRelative(-1, 0, 0).getType()))
-            {
-                velocity.add(new Vector(DAMPING_COEFFICIENT * strength, 0.0, 0.0));
-                changed = true;
-            }
-
-            if (Tag.WOOL.isTagged(block.getRelative(0, 0, 1).getType()))
-            {
-                velocity.add(new Vector(0.0, 0.0, -DAMPING_COEFFICIENT * strength));
-                changed = true;
-            }
-
-            if (Tag.WOOL.isTagged(block.getRelative(0, 0, -1).getType()))
-            {
-                velocity.add(new Vector(0.0, 0.0, DAMPING_COEFFICIENT * strength));
-                changed = true;
-            }
-        }
-
-        if (changed)
-        {
-            player.setFallDistance(0.0f);
-            player.setVelocity(velocity);
-        }
+        });
     }
 
     public enum JumpPadMode

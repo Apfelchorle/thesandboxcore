@@ -13,7 +13,10 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.thesandbox.core.fun.Utils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Removes entity clutter (dropped items, arrows, minecarts, ...) per chunk.

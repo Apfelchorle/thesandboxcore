@@ -1,7 +1,6 @@
 package org.thesandbox.core.commands.Fun;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
@@ -13,6 +12,7 @@ import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,7 +33,7 @@ public class SkullCommand implements ISubCommand
     {
         // Must be a player
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "Only players can use this command."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "Only players can use this command."));
             return true;
         }
 
@@ -55,7 +55,7 @@ public class SkullCommand implements ISubCommand
         SkullMeta meta = (SkullMeta) skull.getItemMeta();
         if (meta != null) {
             meta.setOwningPlayer(target);
-            meta.setDisplayName(ChatColor.GOLD + target.getName() + "'s Head");
+            meta.displayName(Colors.component(Colors.GOLD + target.getName() + "'s Head"));
             skull.setItemMeta(meta);
         }
 
@@ -68,10 +68,10 @@ public class SkullCommand implements ISubCommand
             leftovers.values().forEach(item ->
                     player.getWorld().dropItemNaturally(player.getLocation(), item)
             );
-            player.sendMessage(CommandMessages.command(ChatColor.YELLOW + "Your inventory was full, so the skull was dropped at your feet."));
+            player.sendMessage(CommandMessages.command(Colors.YELLOW + "Your inventory was full, so the skull was dropped at your feet."));
         } else {
-            player.sendMessage(CommandMessages.command(ChatColor.GREEN + "You have been given " +
-                    ChatColor.GOLD + target.getName() + "'s head" + ChatColor.GREEN + "."));
+            player.sendMessage(CommandMessages.command(Colors.GREEN + "You have been given " +
+                    Colors.GOLD + target.getName() + "'s head" + Colors.GREEN + "."));
         }
 
         return true;

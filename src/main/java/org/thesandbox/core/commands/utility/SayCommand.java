@@ -1,7 +1,6 @@
 package org.thesandbox.core.commands.utility;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.command.Command;
@@ -10,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.fun.Utils;
+import org.thesandbox.core.util.Colors;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -45,16 +45,16 @@ public class SayCommand implements ISubCommand
             if (pingEveryone)
             {
                 perViewer = highlightInsensitive(perViewer, "@everyone",
-                        ChatColor.YELLOW, ChatColor.LIGHT_PURPLE);
+                        Colors.YELLOW, Colors.LIGHT_PURPLE);
             }
 
             // Highlight THIS viewer's @Name (yellow)
             perViewer = highlightInsensitive(perViewer, "@" + viewer.getName(),
-                    ChatColor.YELLOW, ChatColor.LIGHT_PURPLE);
+                    Colors.YELLOW, Colors.LIGHT_PURPLE);
 
             // Highlight THIS viewer's bare Name (yellow)
             perViewer = highlightInsensitive(perViewer, viewer.getName(),
-                    ChatColor.YELLOW, ChatColor.LIGHT_PURPLE);
+                    Colors.YELLOW, Colors.LIGHT_PURPLE);
 
             // Send message (baseline magenta remains unless sender’s & codes override it)
             viewer.sendMessage(CommandMessages.server("") + prefix + perViewer);
@@ -133,11 +133,11 @@ public class SayCommand implements ISubCommand
      * Case-insensitive highlight of all occurrences of 'term'.
      * - If 'term' contains non-word chars (like '@'), we do a plain case-insensitive find.
      * - Otherwise we use word boundaries so "Ann" doesn't match "Annika".
-     * Inserts startColor before the match and resetColor after, preserving surrounding text.
+     * Inserts startColor before the match and resetColor after, preserving surrounding Colors.
      * Runs after color-code translation.
      */
     private static String highlightInsensitive(String input, String term,
-                                               ChatColor startColor, ChatColor resetColor)
+                                               String startColor, String resetColor)
     {
         if (input == null || term == null || term.isEmpty()) return input;
 
@@ -152,7 +152,7 @@ public class SayCommand implements ISubCommand
         {
             String matched = m.group();
             m.appendReplacement(sb,
-                    Matcher.quoteReplacement(startColor.toString() + matched + resetColor));
+                    Matcher.quoteReplacement(startColor + matched + resetColor));
         }
         m.appendTail(sb);
         return sb.toString();

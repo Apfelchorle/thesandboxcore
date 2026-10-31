@@ -214,14 +214,14 @@ public class ShopCommand implements Listener, ISubCommand {
     private ItemStack getItem(ItemStack item, String name, String ... lore) {
         ItemMeta meta = item.getItemMeta();
 
-        // meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', name));
+        // meta.setDisplayName(Colors.color(name));
 
         meta.displayName(LegacyComponentSerializer.legacyAmpersand().deserialize(name));
 
         List<Component> loreList = new ArrayList<>();
 
         for (String s : lore) {
-            // loreList.add(ChatColor.translateAlternateColorCodes('&', s));
+            // loreList.add(Colors.color(s));
             loreList.add(LegacyComponentSerializer.legacyAmpersand().deserialize(s));
         }
         meta.lore(loreList);

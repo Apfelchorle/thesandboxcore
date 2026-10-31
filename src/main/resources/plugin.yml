@@ -56,6 +56,7 @@ commands:
   updatelocal:
     permission: sandbox.superuser
     usage: /updatelocal
+    aliases: [ pyrorefrence,update ]
 
   dismount:
     description: Force dismount from an Entity.
@@ -244,12 +245,6 @@ commands:
     permission: sandbox.default
     aliases: [ lmsg ]
     usage: "/loginmessage <message>"
-
-  update:
-    description: "(Deprecated) use /updatelocal or /updateallproxies"
-    permission: sandbox.superuser
-    aliases: [pyrorefrence]
-    usage: /update
 
   gtfo:
     description: "Temporarily ban a player (default 24h)"

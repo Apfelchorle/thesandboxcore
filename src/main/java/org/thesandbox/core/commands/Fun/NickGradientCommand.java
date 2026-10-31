@@ -2,7 +2,6 @@ package org.thesandbox.core.commands.Fun;
 
 import com.earth2me.essentials.Essentials;
 import com.earth2me.essentials.User;
-import net.md_5.bungee.api.ChatColor; // ChatColor.of(Color) -> §x... hex format
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
@@ -12,6 +11,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -38,19 +38,19 @@ public class NickGradientCommand implements ISubCommand
     {
         if (!(sender instanceof Player player))
         {
-            sender.sendMessage(CommandMessages.error(org.bukkit.ChatColor.RED + "This command can only be used in-game."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "This command can only be used in-game."));
             return true;
         }
 
         if (essentials == null || !essentials.isEnabled())
         {
-            sender.sendMessage(CommandMessages.error(org.bukkit.ChatColor.RED + "Essentials is not enabled on this server."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "Essentials is not enabled on this server."));
             return true;
         }
 
         if (args.length != 3)
         {
-            sender.sendMessage(CommandMessages.usage(org.bukkit.ChatColor.RED + "Usage: /" + label + " <hex|random> <hex|random> <nick>"));
+            sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <hex|random> <hex|random> <nick>"));
             return true;
         }
 
@@ -59,7 +59,7 @@ public class NickGradientCommand implements ISubCommand
         // Length check
         if (nickRaw.length() < 3 || nickRaw.length() > 30)
         {
-            sender.sendMessage(CommandMessages.error(org.bukkit.ChatColor.RED + "Your nickname must be between 3 and 30 characters long."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "Your nickname must be between 3 and 30 characters long."));
             return true;
         }
 
@@ -67,10 +67,10 @@ public class NickGradientCommand implements ISubCommand
         for (Player p : Bukkit.getOnlinePlayers())
         {
             if (p == player) continue;
-            String strippedDisplay = org.bukkit.ChatColor.stripColor(p.getDisplayName());
+            String strippedDisplay = Colors.strip(Colors.plain(p.displayName()));
             if (p.getName().equalsIgnoreCase(nickRaw) || (strippedDisplay != null && strippedDisplay.trim().equalsIgnoreCase(nickRaw)))
             {
-                sender.sendMessage(CommandMessages.error(org.bukkit.ChatColor.RED + "That nickname is already in use."));
+                sender.sendMessage(CommandMessages.error(Colors.RED + "That nickname is already in use."));
                 return true;
             }
         }
@@ -86,7 +86,7 @@ public class NickGradientCommand implements ISubCommand
             showFrom = isRandomToken(args[0]);
             showTo   = isRandomToken(args[1]);
         } catch (IllegalArgumentException ex) {
-            sender.sendMessage(CommandMessages.error(org.bukkit.ChatColor.RED + "Invalid hex values. Use #RRGGBB or 'random'."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "Invalid hex values. Use #RRGGBB or 'random'."));
             return true;
         }
 
@@ -99,7 +99,7 @@ public class NickGradientCommand implements ISubCommand
         for (int i = 0; i < chars.length; i++)
         {
             java.awt.Color step = toAWT(gradient.get(i));
-            chars[i] = ChatColor.of(step) + chars[i];
+            chars[i] = Colors.of(step) + chars[i];
         }
         String outputNick = StringUtils.join(chars, "");
 
@@ -107,7 +107,7 @@ public class NickGradientCommand implements ISubCommand
         User user = essentials.getUser(player);
         if (user == null)
         {
-            sender.sendMessage(CommandMessages.error(org.bukkit.ChatColor.RED + "Could not access your Essentials data."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "Could not access your Essentials data."));
             return true;
         }
         user.setNickname(outputNick);
@@ -117,7 +117,7 @@ public class NickGradientCommand implements ISubCommand
         if (showFrom) suffix.append(" (From: ").append(toHex(awt1)).append(")");
         if (showTo)   suffix.append(" (To: ").append(toHex(awt2)).append(")");
 
-        sender.sendMessage(CommandMessages.command(org.bukkit.ChatColor.YELLOW + "Your nickname is now: '" + outputNick + org.bukkit.ChatColor.YELLOW + "'" + ChatColor.GRAY + suffix));
+        sender.sendMessage(CommandMessages.command(Colors.YELLOW + "Your nickname is now: '" + outputNick + Colors.YELLOW + "'" + Colors.GRAY + suffix));
         return true;
     }
 

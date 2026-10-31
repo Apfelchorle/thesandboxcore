@@ -1,11 +1,11 @@
 package org.thesandbox.core.managers;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 import org.thesandbox.core.login.LoginService;
+import org.thesandbox.core.util.Colors;
 
 public class RankScoreboardManager {
 
@@ -20,24 +20,24 @@ public class RankScoreboardManager {
      */
     public void setupRankScoreboardTeams() {
         Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
-        ensureRankTeam(board, "00_operator", "&4&lOP &8• ", ChatColor.DARK_RED);
-        ensureRankTeam(board, "10_admin", "&c&lADMIN &8• ", ChatColor.RED);
-        ensureRankTeam(board, "20_staff", "&6&lSTAFF &8• ", ChatColor.GOLD);
-        ensureRankTeam(board, "30_mb", "&3&lMB &8• ", ChatColor.DARK_AQUA);
-        ensureRankTeam(board, "40_vip", "&5&lVIP &8• ", ChatColor.DARK_PURPLE);
-        ensureRankTeam(board, "99_default", "", ChatColor.GRAY);
+        ensureRankTeam(board, "00_operator", "&4&lOP &8• ", Colors.DARK_RED);
+        ensureRankTeam(board, "10_admin", "&c&lADMIN &8• ", Colors.RED);
+        ensureRankTeam(board, "20_staff", "&6&lSTAFF &8• ", Colors.GOLD);
+        ensureRankTeam(board, "30_mb", "&3&lMB &8• ", Colors.DARK_AQUA);
+        ensureRankTeam(board, "40_vip", "&5&lVIP &8• ", Colors.DARK_PURPLE);
+        ensureRankTeam(board, "99_default", "", Colors.GRAY);
     }
 
-    private Team ensureRankTeam(Scoreboard board, String name, String prefix, ChatColor nameColor) {
+    private Team ensureRankTeam(Scoreboard board, String name, String prefix, String nameColor) {
         Team team = board.getTeam(name);
         if (team == null) {
             team = board.registerNewTeam(name);
         }
 
-        team.setPrefix(ChatColor.translateAlternateColorCodes('&', prefix));
+        team.prefix(Colors.component(prefix));
 
         try {
-            team.setColor(nameColor);
+            team.color(Colors.namedColor(nameColor));
         } catch (NoSuchMethodError ignored) {
             // Older APIs do not have Team#setColor; the prefix will still display.
         }

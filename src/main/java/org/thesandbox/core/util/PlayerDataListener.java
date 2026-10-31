@@ -88,10 +88,7 @@ public class PlayerDataListener implements Listener {
 
     @SuppressWarnings("unchecked")
     public <T> T get(UUID uuid, String key, T defaultValue) {
-        Map<String, Object> data = playerCache.get(uuid);
-        if (data == null) {
-            data = dataManager.loadAllData(uuid, DEFAULTS);
-        }
+        Map<String, Object> data = ensureLoaded(uuid);
         if (!data.containsKey(key)) return defaultValue;
         try {
             return (T) data.get(key);

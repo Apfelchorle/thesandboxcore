@@ -1,15 +1,14 @@
 package org.thesandbox.core.commands.misc;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -60,7 +59,7 @@ public class PluginControlCommand implements ISubCommand
     {
         if (!canUse(sender))
         {
-            msg(sender, CommandMessages.error(ChatColor.RED + "You don't have permission to use this."));
+            msg(sender, CommandMessages.error(Colors.RED + "You don't have permission to use this."));
             return true;
         }
 
@@ -70,17 +69,17 @@ public class PluginControlCommand implements ISubCommand
         {
             for (Plugin pl : pm.getPlugins())
             {
-                PluginDescriptionFile desc = pl.getDescription();
-                String version = desc.getVersion() == null ? "" : desc.getVersion().trim();
-                List<String> authors = desc.getAuthors() == null ? Collections.emptyList() : desc.getAuthors();
+                var meta = pl.getPluginMeta();
+                String version = meta.getVersion() == null ? "" : meta.getVersion().trim();
+                List<String> authors = meta.getAuthors() == null ? Collections.emptyList() : meta.getAuthors();
 
-                ChatColor stateColor = pl.isEnabled() ? ChatColor.GREEN : ChatColor.RED;
+                String stateColor = pl.isEnabled() ? Colors.GREEN : Colors.RED;
                 String authorsJoined = authors.isEmpty() ? "Unknown" : String.join(", ", authors);
 
                 msg(sender,
-                        CommandMessages.command(ChatColor.GRAY + "- " + stateColor + pl.getName()
-                                + ChatColor.GOLD + (version.isEmpty() ? "" : " v" + version)
-                                + ChatColor.GRAY + " by " + authorsJoined));
+                        CommandMessages.command(Colors.GRAY + "- " + stateColor + pl.getName()
+                                + Colors.GOLD + (version.isEmpty() ? "" : " v" + version)
+                                + Colors.GRAY + " by " + authorsJoined));
             }
             return true;
         }
@@ -92,7 +91,7 @@ public class PluginControlCommand implements ISubCommand
 
             if (target == null)
             {
-                msg(sender, CommandMessages.error(ChatColor.RED + "Plugin not found: " + args[1]));
+                msg(sender, CommandMessages.error(Colors.RED + "Plugin not found: " + args[1]));
                 return true;
             }
 
@@ -101,17 +100,17 @@ public class PluginControlCommand implements ISubCommand
                 case "enable" -> {
                     if (target.isEnabled())
                     {
-                        msg(sender, CommandMessages.error(ChatColor.GRAY + target.getName() + " is already enabled."));
+                        msg(sender, CommandMessages.error(Colors.GRAY + target.getName() + " is already enabled."));
                         return true;
                     }
                     pm.enablePlugin(target);
                     if (target.isEnabled())
                     {
-                        msg(sender, CommandMessages.command(ChatColor.GREEN + target.getName() + " is now enabled!"));
+                        msg(sender, CommandMessages.command(Colors.GREEN + target.getName() + " is now enabled!"));
                     }
                     else
                     {
-                        msg(sender, CommandMessages.error(ChatColor.RED + "Failed to enable " + target.getName() + "."));
+                        msg(sender, CommandMessages.error(Colors.RED + "Failed to enable " + target.getName() + "."));
                     }
                     return true;
                 }
@@ -124,31 +123,31 @@ public class PluginControlCommand implements ISubCommand
                     }
                     if (untouchable.contains(target.getName()))
                     {
-                        msg(sender, CommandMessages.error(ChatColor.RED + target.getName() + " cannot be disabled!"));
+                        msg(sender, CommandMessages.error(Colors.RED + target.getName() + " cannot be disabled!"));
                         return true;
                     }
                     pm.disablePlugin(target);
-                    msg(sender, CommandMessages.command(ChatColor.YELLOW + target.getName() + " is now disabled!"));
+                    msg(sender, CommandMessages.command(Colors.YELLOW + target.getName() + " is now disabled!"));
                     return true;
                 }
 
                 case "reload" -> {
                     if (untouchable.contains(target.getName()))
                     {
-                        msg(sender, CommandMessages.error(ChatColor.RED + target.getName() + " cannot be reloaded!"));
+                        msg(sender, CommandMessages.error(Colors.RED + target.getName() + " cannot be reloaded!"));
                         return true;
                     }
                     // Note: reloading arbitrary plugins can be risky.
                     pm.disablePlugin(target);
                     pm.enablePlugin(target);
-                    msg(sender, CommandMessages.command(ChatColor.GREEN + target.getName() + " has been reloaded!"));
+                    msg(sender, CommandMessages.command(Colors.GREEN + target.getName() + " has been reloaded!"));
                     return true;
                 }
             }
         }
 
         // Usage message
-        msg(sender, CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " <enable|disable|reload> <plugin> | list"));
+        msg(sender, CommandMessages.usage(Colors.RED + "Usage: /" + label + " <enable|disable|reload> <plugin> | list"));
         return true;
     }
 

@@ -1,5 +1,6 @@
 package org.thesandbox.core.commands.misc;
 
+import org.thesandbox.core.util.Colors;
 import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -29,14 +30,14 @@ public class ExplodeCommand implements ISubCommand
     {
         if (args.length < 1)
         {
-            sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " <player>"));
+            sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <player>"));
             return true;
         }
 
         Player target = Bukkit.getPlayerExact(args[0]);
         if (target == null)
         {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "Player not found: " + args[0]));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "Player not found: " + args[0]));
             return true;
         }
 
@@ -124,7 +125,7 @@ public class ExplodeCommand implements ISubCommand
                     catch (Throwable ignored2) { target.damage(1000.0); }
                 }
 
-                executor.sendMessage(CommandMessages.command(ChatColor.GRAY + "Exploded " + target.getName() + "."));
+                executor.sendMessage(CommandMessages.command(Colors.GRAY + "Exploded " + target.getName() + "."));
 
                 cancel();
             }

@@ -1,15 +1,15 @@
 package org.thesandbox.core.util;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.thesandbox.core.TheSandboxCore;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
+import java.util.*;
 
 public class DataManager {
 
@@ -78,12 +78,7 @@ public class DataManager {
         FileConfiguration config = YamlConfiguration.loadConfiguration(file);
 
         config.set(key, value);
-
-        try {
-            config.save(file);
-        } catch (IOException e) {
-            plugin.getLogger().severe("Failed to save data for " + uuid);
-        }
+        saveAtomically(config, file, uuid);
     }
 
     public Map<String, Object> loadAllData(
@@ -107,6 +102,34 @@ public class DataManager {
         return result;
     }
 
+    /**
+     * Writes to a sibling temp file and then moves it into place. A crash mid-save
+     * can no longer leave a truncated player-data file behind.
+     */
+    private void saveAtomically(FileConfiguration config, File target, UUID uuid) {
+        File tmp = null;
+        try {
+            tmp = File.createTempFile(uuid.toString(), ".tmp", playerFolder);
+            config.save(tmp);
+
+            try {
+                Files.move(tmp.toPath(), target.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING,
+                        StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(tmp.toPath(), target.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException e) {
+            plugin.getLogger().severe(
+                    "Failed to save data for " + uuid + ": " + e.getMessage());
+        } finally {
+            if (tmp != null && tmp.exists() && !tmp.delete()) {
+                plugin.getLogger().warning("Could not delete temporary player-data file " + tmp);
+            }
+        }
+    }
+
     public void saveAllData(UUID uuid, Map<String, Object> data) {
         File file = fileFor(uuid);
         FileConfiguration config = new YamlConfiguration(); // Fresh config or loaded
@@ -115,14 +138,6 @@ public class DataManager {
             config.set(entry.getKey(), entry.getValue());
         }
 
-        try {
-            config.save(file);
-        } catch (IOException e) {
-            plugin
-                .getLogger()
-                .severe(
-                    "Failed to save data for " + uuid + ": " + e.getMessage()
-                );
-        }
+        saveAtomically(config, file, uuid);
     }
 }

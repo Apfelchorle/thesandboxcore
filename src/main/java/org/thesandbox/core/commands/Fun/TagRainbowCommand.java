@@ -7,7 +7,6 @@ import net.luckperms.api.model.user.UserManager;
 import net.luckperms.api.node.Node;
 import net.luckperms.api.node.types.PrefixNode;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -15,6 +14,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.tags.TagService;
+import org.thesandbox.core.util.Colors;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,7 +23,7 @@ import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 /**
- * /tagrainbow [text...]
+ * /tagrainbow [Colors...]
  * - If text is provided: rainbow-ify that text and set as your tag (session-only).
  * - If no text: rainbow-ify your existing tag (if any).
  * - Use /tag save to persist the current tag afterward.
@@ -48,7 +48,7 @@ public class TagRainbowCommand implements ISubCommand
     {
         if (!(sender instanceof Player p))
         {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "Only players can use /" + label + "."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "Only players can use /" + label + "."));
             return true;
         }
 
@@ -63,7 +63,7 @@ public class TagRainbowCommand implements ISubCommand
                 User user = um.loadUser(p.getUniqueId()).get(5, TimeUnit.SECONDS);
                 if (user == null)
                 {
-                    p.sendMessage(CommandMessages.error(ChatColor.RED + "LuckPerms user not found."));
+                    p.sendMessage(CommandMessages.error(Colors.RED + "LuckPerms user not found."));
                     return;
                 }
 
@@ -76,12 +76,12 @@ public class TagRainbowCommand implements ISubCommand
                         String blocked = firstBlacklistedTerm(input);
                         if (blocked != null)
                         {
-                            p.sendMessage(CommandMessages.error(ChatColor.RED + "That tag contains a blocked term: " + ChatColor.YELLOW + blocked));
+                            p.sendMessage(CommandMessages.error(Colors.RED + "That tag contains a blocked term: " + Colors.YELLOW + blocked));
                             return;
                         }
                     }
                     // Allow &-codes in input, then strip to visible text
-                    String legacy = ChatColor.translateAlternateColorCodes('&', input);
+                    String legacy = Colors.color(input);
                     baseVisible = stripAllColors(legacy).trim();
                 }
                 else
@@ -90,7 +90,7 @@ public class TagRainbowCommand implements ISubCommand
                     String current = currentPrefixAtPriority(user, PREFIX_PRIORITY);
                     if (current == null || current.isEmpty())
                     {
-                        p.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /tagrainbow <tag>"));
+                        p.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /tagrainbow <tag>"));
                         return;
                     }
                     baseVisible = stripAllColors(current).trim();
@@ -98,7 +98,7 @@ public class TagRainbowCommand implements ISubCommand
 
                 if (baseVisible.isEmpty())
                 {
-                    p.sendMessage(CommandMessages.error(ChatColor.RED + "Your tag text has no visible characters."));
+                    p.sendMessage(CommandMessages.error(Colors.RED + "Your tag text has no visible characters."));
                     return;
                 }
 
@@ -106,7 +106,7 @@ public class TagRainbowCommand implements ISubCommand
                 int visibleLen = baseVisible.length();
                 if (visibleLen > MAX_VISIBLE_LEN)
                 {
-                    p.sendMessage(CommandMessages.error(ChatColor.RED + "That tag is too long (" + visibleLen + "/" + MAX_VISIBLE_LEN + "). Shorten it."));
+                    p.sendMessage(CommandMessages.error(Colors.RED + "That tag is too long (" + visibleLen + "/" + MAX_VISIBLE_LEN + "). Shorten it."));
                     return;
                 }
 
@@ -119,14 +119,14 @@ public class TagRainbowCommand implements ISubCommand
                 um.saveUser(user).get(5, TimeUnit.SECONDS);
                 user.getCachedData().invalidate();
 
-                p.sendMessage(CommandMessages.command(ChatColor.GREEN + "Rainbow tag applied (session-only)."));
+                p.sendMessage(CommandMessages.command(Colors.GREEN + "Rainbow tag applied (session-only)."));
                 String nameToShow = getEssentialsNickOrName(p);
-                p.sendMessage(CommandMessages.command(ChatColor.GRAY + "Preview: " + finalPrefix + ChatColor.RESET + nameToShow));
-                p.sendMessage(CommandMessages.command(ChatColor.LIGHT_PURPLE + "Want to save your tag? Run " + ChatColor.RED + "/tag save" + ChatColor.LIGHT_PURPLE + " to persist your current tag."));
+                p.sendMessage(CommandMessages.command(Colors.GRAY + "Preview: " + finalPrefix + Colors.RESET + nameToShow));
+                p.sendMessage(CommandMessages.command(Colors.LIGHT_PURPLE + "Want to save your tag? Run " + Colors.RED + "/tag save" + Colors.LIGHT_PURPLE + " to persist your current tag."));
             }
             catch (Exception e)
             {
-                p.sendMessage(CommandMessages.error(ChatColor.RED + "Error: " + e.getMessage()));
+                p.sendMessage(CommandMessages.error(Colors.RED + "Error: " + e.getMessage()));
             }
         });
 
@@ -136,7 +136,7 @@ public class TagRainbowCommand implements ISubCommand
     @Override
     public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args)
     {
-        // No static suggestions; user types their text.
+        // No static suggestions; user types their Colors.
         return List.of();
     }
 
@@ -176,9 +176,9 @@ public class TagRainbowCommand implements ISubCommand
     private static String rainbowify(String text)
     {
         // ROYGBIV using closest Bukkit colors
-        ChatColor[] colors = new ChatColor[]{
-            ChatColor.RED, ChatColor.GOLD, ChatColor.YELLOW,
-            ChatColor.GREEN, ChatColor.BLUE, ChatColor.DARK_PURPLE, ChatColor.LIGHT_PURPLE
+        String[] colors = new String[]{
+                Colors.RED, Colors.GOLD, Colors.YELLOW,
+                Colors.GREEN, Colors.BLUE, Colors.DARK_PURPLE, Colors.LIGHT_PURPLE
         };
         StringBuilder out = new StringBuilder();
         int idx = 0;
@@ -190,7 +190,7 @@ public class TagRainbowCommand implements ISubCommand
                 out.append(c);
                 continue;
             }
-            ChatColor cc = colors[idx % colors.length];
+            String cc = colors[idx % colors.length];
             idx++;
             out.append(cc).append(c);
         }
@@ -209,7 +209,7 @@ public class TagRainbowCommand implements ISubCommand
         s = s.replaceAll("(?i)(?:§x(§[0-9A-F]){6})+$", "");
         // Remove dangling &#RRGGBB sequences
         s = s.replaceAll("(?i)(?:&#[0-9A-F]{6})+$", "");
-        return s + " " + ChatColor.RESET;
+        return s + " " + Colors.RESET;
     }
 
     /** Strip legacy (&/§) and hex sequences to get visible characters only. */
@@ -257,7 +257,7 @@ public class TagRainbowCommand implements ISubCommand
                     Object nickObj = getNickname.invoke(user);
                     if (nickObj instanceof String nick && !nick.isEmpty())
                     {
-                        String colored = ChatColor.translateAlternateColorCodes('&', nick);
+                        String colored = Colors.color(nick);
                         return stripLeadingSpaces(colored); // avoid doubled gap in preview
                     }
                 }

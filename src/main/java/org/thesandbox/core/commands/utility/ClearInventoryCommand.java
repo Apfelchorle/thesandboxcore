@@ -1,12 +1,12 @@
 package org.thesandbox.core.commands.utility;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import javax.sql.DataSource;
 import java.lang.reflect.Field;
@@ -46,16 +46,14 @@ public class ClearInventoryCommand implements ISubCommand
         {
             if (!(sender instanceof Player player))
             {
-                sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&c&lError &8» &cConsole must specify a player or all. Usage: /" + label + " <player|all>"));
+                sender.sendMessage(Colors.color("&c&lError &8» &cConsole must specify a player or all. Usage: /" + label + " <player|all>"));
                 return true;
             }
 
             if (isConfirmationDisabled(player))
             {
                 clearInv(player);
-                player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&7&lCommand &8» &7Your inventory has been cleared."));
+                player.sendMessage(Colors.color("&7&lCommand &8» &7Your inventory has been cleared."));
                 return true;
             }
 
@@ -64,18 +62,15 @@ public class ClearInventoryCommand implements ISubCommand
 
             if (until != null && until >= now)
             {
-                player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&7&lCommand &8» &7Type /" + label + " confirm to clear your inventory."));
+                player.sendMessage(Colors.color("&7&lCommand &8» &7Type /" + label + " confirm to clear your inventory."));
             }
             else
             {
                 pendingConfirm.put(player.getUniqueId(), now + CONFIRM_WINDOW_MS);
-                player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&7&lCommand &8» &7Are you sure? Type /" + label + " confirm within 15 seconds to clear your inventory."));
+                player.sendMessage(Colors.color("&7&lCommand &8» &7Are you sure? Type /" + label + " confirm within 15 seconds to clear your inventory."));
             }
 
-            player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-            "&7&lCommand &8» &7You can disable this confirmation with /" + label + " confirm off&7."));
+            player.sendMessage(Colors.color("&7&lCommand &8» &7You can disable this confirmation with /" + label + " confirm off&7."));
             return true;
         }
 
@@ -83,8 +78,7 @@ public class ClearInventoryCommand implements ISubCommand
         {
             if (!(sender instanceof Player player))
             {
-                sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&c&lError &8» &cConsole cannot confirm. Use /" + label + " <player|all>."));
+                sender.sendMessage(Colors.color("&c&lError &8» &cConsole cannot confirm. Use /" + label + " <player|all>."));
                 return true;
             }
 
@@ -98,10 +92,8 @@ public class ClearInventoryCommand implements ISubCommand
                     pendingConfirm.remove(uuid);
                     saveConfirmationDisabled(uuid, true);
 
-                    player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                    "&7&lCommand &8» &7Inventory clear confirmation has been disabled."));
-                    player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                    "&7&lCommand &8» &7Use /" + label + " confirm on to enable it again."));
+                    player.sendMessage(Colors.color("&7&lCommand &8» &7Inventory clear confirmation has been disabled."));
+                    player.sendMessage(Colors.color("&7&lCommand &8» &7Use /" + label + " confirm on to enable it again."));
                     return true;
                 }
 
@@ -111,21 +103,18 @@ public class ClearInventoryCommand implements ISubCommand
                     pendingConfirm.remove(uuid);
                     saveConfirmationDisabled(uuid, false);
 
-                    player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                    "&7&lCommand &8» &7Inventory clear confirmation has been enabled."));
+                    player.sendMessage(Colors.color("&7&lCommand &8» &7Inventory clear confirmation has been enabled."));
                     return true;
                 }
 
-                player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&c&lUsage &8» &c/" + label + " confirm <on|off>"));
+                player.sendMessage(Colors.color("&c&lUsage &8» &c/" + label + " confirm <on|off>"));
                 return true;
             }
 
             if (isConfirmationDisabled(player))
             {
                 clearInv(player);
-                player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&7&lCommand &8» &7Your inventory has been cleared."));
+                player.sendMessage(Colors.color("&7&lCommand &8» &7Your inventory has been cleared."));
                 return true;
             }
 
@@ -134,22 +123,19 @@ public class ClearInventoryCommand implements ISubCommand
             if (until == null || until < System.currentTimeMillis())
             {
                 pendingConfirm.remove(uuid);
-                player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&c&lError &8» &cNo pending confirmation. Use /" + label + " first."));
+                player.sendMessage(Colors.color("&c&lError &8» &cNo pending confirmation. Use /" + label + " first."));
                 return true;
             }
 
             pendingConfirm.remove(uuid);
             clearInv(player);
-            player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-            "&7&lCommand &8» &7Your inventory has been cleared."));
+            player.sendMessage(Colors.color("&7&lCommand &8» &7Your inventory has been cleared."));
             return true;
         }
 
         if (!sender.hasPermission("sandbox.staff"))
         {
-            sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-            "&c&lError &8» &cNo permission."));
+            sender.sendMessage(Colors.color("&c&lError &8» &cNo permission."));
             return true;
         }
 
@@ -160,8 +146,7 @@ public class ClearInventoryCommand implements ISubCommand
                 clearInv(target);
             }
 
-            Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&',
-            "&c&lServer &8» &c" + sender.getName() + " cleared all online players' inventories."));
+            Colors.broadcast(Colors.color("&c&lServer &8» &c" + sender.getName() + " cleared all online players' inventories."));
             return true;
         }
 
@@ -183,15 +168,13 @@ public class ClearInventoryCommand implements ISubCommand
 
         if (target == null)
         {
-            sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-            "&c&lError &8» &cPlayer not found: " + args[0]));
+            sender.sendMessage(Colors.color("&c&lError &8» &cPlayer not found: " + args[0]));
             return true;
         }
 
         clearInv(target);
 
-        Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&',
-        "&c&lServer &8» &c" + sender.getName() + " cleared " + target.getName() + "'s inventory."));
+        Colors.broadcast(Colors.color("&c&lServer &8» &c" + sender.getName() + " cleared " + target.getName() + "'s inventory."));
         return true;
     }
 
@@ -309,7 +292,6 @@ public class ClearInventoryCommand implements ISubCommand
         player.getInventory().clear();
         player.getInventory().setArmorContents(null);
         player.getInventory().setItemInOffHand(null);
-        player.updateInventory();
     }
 
     @Override

@@ -1,7 +1,6 @@
 package org.thesandbox.core.services;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.ThrownPotion;
 import org.bukkit.event.EventHandler;
@@ -13,6 +12,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.thesandbox.core.util.Colors;
 import org.thesandbox.core.util.PotionSpyRepository;
 
 import javax.sql.DataSource;
@@ -45,31 +45,6 @@ public class PotionSpyService implements Listener
         if (p.hasPermission("sandbox.mod")) return Tier.MOD;
         return Tier.DEFAULT;
     }
-
-    // resolve a PotionEffectType by trying multiple possible enum names (for cross-version compatibility)
-    private static PotionEffectType tryNames(String... names)
-    {
-        for (String n : names)
-        {
-            PotionEffectType t = PotionEffectType.getByName(n);
-            if (t != null) return t;
-        }
-        return null;
-    }
-
-    private static Set<PotionEffectType> buildBadEffects()
-    {
-        Set<PotionEffectType> set = new HashSet<>();
-        Optional.ofNullable(tryNames("BLINDNESS")).ifPresent(set::add);
-        Optional.ofNullable(tryNames("LEVITATION")).ifPresent(set::add);
-        Optional.ofNullable(tryNames("CONFUSION", "NAUSEA")).ifPresent(set::add);
-        Optional.ofNullable(tryNames("SLOW", "SLOWNESS")).ifPresent(set::add);
-        Optional.ofNullable(tryNames("SLOW_DIGGING", "MINING_FATIGUE")).ifPresent(set::add);
-        Optional.ofNullable(tryNames("HUNGER")).ifPresent(set::add);
-        return Collections.unmodifiableSet(set);
-    }
-
-    private final Set<PotionEffectType> badPotionEffects = buildBadEffects();
 
     public PotionSpyService(JavaPlugin plugin, DataSource dataSource)
     {
@@ -110,20 +85,52 @@ public class PotionSpyService implements Listener
                 int troll = 0;
                 for (ThrownPotion p : list) if (isTrollPotion(p)) troll++;
 
-                String msg = ChatColor.DARK_GRAY + "[" + ChatColor.YELLOW + "PotionSpy" + ChatColor.DARK_GRAY + "] "
-                        + ChatColor.RESET + shooter.getName() + " splashed "
+                String msg = Colors.DARK_GRAY + "[" + Colors.YELLOW + "PotionSpy" + Colors.DARK_GRAY + "] "
+                        + Colors.RESET + shooter.getName() + " splashed "
                         + total + " " + (total == 1 ? "potion" : "potions")
                         + " at X:" + latest.getLocation().getBlockX()
                         + " Y:" + latest.getLocation().getBlockY()
                         + " Z:" + latest.getLocation().getBlockZ()
                         + " in world '" + latest.getWorld().getName() + "'"
-                        + (troll > 0 ? ChatColor.RED + " (most likely troll " + (troll == 1 ? "potion" : "potions") + ")" : "")
-                        + ChatColor.RESET + ".";
+                        + (troll > 0 ? Colors.RED + " (most likely troll " + (troll == 1 ? "potion" : "potions") + ")" : "")
+                        + Colors.RESET + ".";
 
                 // NEW: broadcast filtered by viewer/thrower tier
                 broadcastToEnabled(msg, shooterId);
             }
         }, 40L, 40L);
+    }
+
+    private static Set<PotionEffectType> buildBadEffects()
+    {
+        Set<PotionEffectType> set = new HashSet<>();
+        Optional.ofNullable(tryNames("BLINDNESS")).ifPresent(set::add);
+        Optional.ofNullable(tryNames("LEVITATION")).ifPresent(set::add);
+        Optional.ofNullable(tryNames("CONFUSION", "NAUSEA")).ifPresent(set::add);
+        Optional.ofNullable(tryNames("SLOW", "SLOWNESS")).ifPresent(set::add);
+        Optional.ofNullable(tryNames("SLOW_DIGGING", "MINING_FATIGUE")).ifPresent(set::add);
+        Optional.ofNullable(tryNames("HUNGER")).ifPresent(set::add);
+        return Collections.unmodifiableSet(set);
+    }
+
+    private final Set<PotionEffectType> badPotionEffects = buildBadEffects();
+
+    // resolve a PotionEffectType by trying multiple possible enum names (for cross-version compatibility)
+    private static PotionEffectType tryNames(String... names)
+    {
+        for (String n : names)
+        {
+            String normalized = n.toLowerCase(Locale.ROOT).replace(' ', '_').replace('-', '_');
+            String key = switch (normalized) {
+                case "slow" -> "slowness";
+                case "slow_digging" -> "mining_fatigue";
+                case "confusion" -> "nausea";
+                default -> normalized;
+            };
+            PotionEffectType t = org.bukkit.Registry.EFFECT.get(org.bukkit.NamespacedKey.minecraft(key));
+            if (t != null) return t;
+        }
+        return null;
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

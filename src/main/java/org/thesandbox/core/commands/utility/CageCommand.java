@@ -23,6 +23,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.server.PluginDisableEvent;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -47,14 +48,12 @@ public class CageCommand implements ISubCommand, Listener
     {
         if (!sender.hasPermission("sandbox.staff"))
         {
-            sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&c&lError &8» &cNo permission."));
+            sender.sendMessage(Colors.color("&c&lError &8» &cNo permission."));
             return true;
         }
         if (args.length < 1)
         {
-            sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&c&lUsage &8» &c/" + label + " <player> [skull <username> | block <MATERIAL>] | /" + label + " purge"));
+            sender.sendMessage(Colors.color("&c&lUsage &8» &c/" + label + " <player> [skull <username> | block <MATERIAL>] | /" + label + " purge"));
             return true;
         }
 
@@ -63,8 +62,7 @@ public class CageCommand implements ISubCommand, Listener
         {
             if (cages.isEmpty())
             {
-                sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&c&lError &8» &cNo players are currently caged."));
+                sender.sendMessage(Colors.color("&c&lError &8» &cNo players are currently caged."));
                 return true;
             }
             // Uncage everyone safely
@@ -81,8 +79,7 @@ public class CageCommand implements ISubCommand, Listener
                     if (d != null) restoreAndRemove(d);
                 }
             }
-            Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&',
-            "&c&lServer &8» &c" + sender.getName() + " has uncaged all players."));
+            Colors.broadcast(Colors.color("&c&lServer &8» &c" + sender.getName() + " has uncaged all players."));
             return true;
         }
 
@@ -98,8 +95,7 @@ public class CageCommand implements ISubCommand, Listener
         }
         if (target == null)
         {
-            sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&c&lError &8» &cPlayer not found."));
+            sender.sendMessage(Colors.color("&c&lError &8» &cPlayer not found."));
             return true;
         }
 
@@ -109,8 +105,7 @@ public class CageCommand implements ISubCommand, Listener
         if (cages.containsKey(tid))
         {
             uncage(target);
-            Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&',
-            "&c&lServer &8» &c" + sender.getName() + " has uncaged " + target.getName() + "."));
+            Colors.broadcast(Colors.color("&c&lServer &8» &c" + sender.getName() + " has uncaged " + target.getName() + "."));
             return true;
         }
 
@@ -125,8 +120,7 @@ public class CageCommand implements ISubCommand, Listener
             {
                 if (args.length < 3)
                 {
-                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                    "&c&lUsage &8» &c/" + label + " <target> skull <username>"));
+                    sender.sendMessage(Colors.color("&c&lUsage &8» &c/" + label + " <target> skull <username>"));
                     return true;
                 }
                 mode = CageMode.SKULL;
@@ -136,15 +130,13 @@ public class CageCommand implements ISubCommand, Listener
             {
                 if (args.length < 3)
                 {
-                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                    "&c&lUsage &8» &c/" + label + " <target> block <material>"));
+                    sender.sendMessage(Colors.color("&c&lUsage &8» &c/" + label + " <target> block <material>"));
                     return true;
                 }
                 Material m = resolveBlockMaterial(args[2]);
                 if (m == null)
                 {
-                    sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                    "&c&lError &8» &cUnknown block: " + args[2]));
+                    sender.sendMessage(Colors.color("&c&lError &8» &cUnknown block: " + args[2]));
                     return true;
                 }
                 mode = CageMode.BLOCK;
@@ -155,14 +147,13 @@ public class CageCommand implements ISubCommand, Listener
         CageData data = buildCage(target, mode, blockMat, skullUser);
 
         if (data == null) {
-            sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-            "&c&lError &8» &cFailed to place cage (world or block issue)."));
+            sender.sendMessage(Colors.color("&c&lError &8» &cFailed to place cage (world or block issue)."));
         return true;
         }
 
         // Broadcast shows skull username exactly as typed; blocks stay ALL CAPS (Material.name()).
         String msg = "&c&lServer &8» &c" + sender.getName() + " has caged " + target.getName() + broadcastSuffix(mode, blockMat, skullUser) + ".";
-        Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&', msg));
+        Colors.broadcast(Colors.color(msg));
         return true;
     }
 
@@ -264,8 +255,7 @@ public class CageCommand implements ISubCommand, Listener
             if (!data.blockSet.contains(pos)) continue;
 
             event.setCancelled(true);
-            String message = org.bukkit.ChatColor.translateAlternateColorCodes('&',
-                "&c&lError &8» &cThat block is part of an active cage.");
+            String message = Colors.color("&c&lError &8» &cThat block is part of an active cage.");
 
             event.getPlayer().sendMessage(message);
             return;
@@ -285,8 +275,7 @@ public class CageCommand implements ISubCommand, Listener
                 && isInside(event.getBlockPlaced().getLocation(), d))
         {
             event.setCancelled(true);
-            String message = org.bukkit.ChatColor.translateAlternateColorCodes('&',
-                "&c&lError &8» &cYou cannot place blocks inside your cage.");
+            String message = Colors.color("&c&lError &8» &cYou cannot place blocks inside your cage.");
 
             event.getPlayer().sendMessage(message);
         }
@@ -466,7 +455,7 @@ public class CageCommand implements ISubCommand, Listener
                                     BlockState state = b.getState();
                                     if (state instanceof Skull skull)
                                     {
-                                        skull.setPlayerProfile(prof);
+                                        skull.setProfile(io.papermc.paper.datacomponent.item.ResolvableProfile.resolvableProfile(prof));
                                         skull.update(true, false);
                                     }
                                 }

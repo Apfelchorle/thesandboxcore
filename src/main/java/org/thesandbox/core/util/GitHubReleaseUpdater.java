@@ -6,7 +6,6 @@ import com.google.gson.JsonParser;
 
 import java.io.*;
 import java.net.HttpURLConnection;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -75,7 +74,7 @@ public class GitHubReleaseUpdater {
             // header - the signed S3/CDN URL already carries its own auth
             // in the query string, and forwarding a GitHub token here makes
             // S3 reject the request.
-            HttpURLConnection redirected = (HttpURLConnection) new URL(redirectUrl).openConnection();
+            HttpURLConnection redirected = (HttpURLConnection) java.net.URI.create(redirectUrl).toURL().openConnection();
             redirected.setConnectTimeout(10_000);
             redirected.setReadTimeout(30_000);
 
@@ -106,7 +105,7 @@ public class GitHubReleaseUpdater {
     }
 
     private HttpURLConnection openConnection(String urlStr, String token) throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) new URL(urlStr).openConnection();
+        HttpURLConnection conn = (HttpURLConnection) java.net.URI.create(urlStr).toURL().openConnection();
         conn.setRequestProperty("Accept", "application/vnd.github+json");
         conn.setRequestProperty("User-Agent", "TheSandboxCore-Updater");
         conn.setConnectTimeout(10_000);

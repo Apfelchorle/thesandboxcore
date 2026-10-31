@@ -4,6 +4,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+
 import java.lang.reflect.Method;
 
 public class EssentialsUtil {

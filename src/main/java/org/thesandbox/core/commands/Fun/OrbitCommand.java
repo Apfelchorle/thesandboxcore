@@ -1,7 +1,6 @@
 package org.thesandbox.core.commands.Fun;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -11,6 +10,7 @@ import org.bukkit.util.Vector;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.HashMap;
 import java.util.List;
@@ -35,12 +35,12 @@ public class OrbitCommand implements ISubCommand {
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
         if (!sender.hasPermission("sandbox.staff")) {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "You don’t have permission."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "You don’t have permission."));
             return true;
         }
 
         if (args.length < 1) {
-            sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " <player>"));
+            sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <player>"));
             return true;
         }
 
@@ -56,7 +56,7 @@ public class OrbitCommand implements ISubCommand {
         }
 
         if (target == null) {
-            sender.sendMessage(CommandMessages.error(ChatColor.GRAY + "Player not found."));
+            sender.sendMessage(CommandMessages.error(Colors.GRAY + "Player not found."));
             return true;
         }
 
@@ -67,25 +67,25 @@ public class OrbitCommand implements ISubCommand {
         if (orbitTasks.containsKey(tid)) {
             stopOrbit(target);
             if (!sender.equals(target)) {
-                target.sendMessage(CommandMessages.command(ChatColor.YELLOW + "You are now descending back into the world."));
+                target.sendMessage(CommandMessages.command(Colors.YELLOW + "You are now descending back into the world."));
                 target.setGameMode(GameMode.CREATIVE);
-                target.sendMessage(CommandMessages.command(ChatColor.GRAY + "Your gamemode was updated to CREATIVE."));
+                target.sendMessage(CommandMessages.command(Colors.GRAY + "Your gamemode was updated to CREATIVE."));
             }
             // Broadcast to all players
-            Bukkit.broadcastMessage(CommandMessages.server(ChatColor.AQUA + actor + " - Stopped orbiting " + target.getName()));
+            Colors.broadcast(CommandMessages.server(Colors.AQUA + actor + " - Stopped orbiting " + target.getName()));
             return true;
         }
 
         // Toggle ON: set to SURVIVAL and start vertical orbit (straight up)
         target.setGameMode(GameMode.SURVIVAL);
-        target.sendMessage(CommandMessages.command(ChatColor.GRAY + "Your gamemode was updated to SURVIVAL."));
+        target.sendMessage(CommandMessages.command(Colors.GRAY + "Your gamemode was updated to SURVIVAL."));
         startOrbit(target);
 
         // Broadcast to all players
-        Bukkit.broadcastMessage(CommandMessages.server(ChatColor.AQUA + actor + " - Orbiting " + target.getName()));
+        Colors.broadcast(CommandMessages.server(Colors.AQUA + actor + " - Orbiting " + target.getName()));
 
         if (!sender.equals(target)) {
-            target.sendMessage(CommandMessages.command(ChatColor.GOLD + "BLAST OFF!"));
+            target.sendMessage(CommandMessages.command(Colors.GOLD + "BLAST OFF!"));
         }
         return true;
     }

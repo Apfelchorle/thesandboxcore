@@ -2,14 +2,15 @@ package org.thesandbox.core.commands.Fun;
 
 import com.earth2me.essentials.Essentials;
 import com.earth2me.essentials.User;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.Collections;
 import java.util.List;
@@ -37,13 +38,13 @@ public class DeNickCommand implements ISubCommand
     {
         // Ensure Essentials is present & enabled
         if (essentials == null || !essentials.isEnabled()) {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "Essentials is not installed or not enabled. Cannot remove nicknames."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "Essentials is not installed or not enabled. Cannot remove nicknames."));
             return true;
         }
 
         // Broadcast first (in red)
         final String who = (sender instanceof Player) ? sender.getName() : "CONSOLE";
-        Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + who + " - Removing all online nicknames"));
+        Colors.broadcast(CommandMessages.server(Colors.RED + who + " - Removing all online nicknames"));
 
         // Clear nicknames for all online players
         for (Player target : Bukkit.getOnlinePlayers()) {
@@ -53,18 +54,18 @@ public class DeNickCommand implements ISubCommand
                     // Clear Essentials nickname
                     user.setNickname(null); // null = remove nick
                     // Make sure the live Player display resets as well
-                    target.setDisplayName(target.getName());
+                    target.displayName(Component.text(target.getName()));
                     try {
                         // Tab-list name; null or plain name depending on server version
-                        target.setPlayerListName(target.getName());
+                        target.playerListName(Component.text(target.getName()));
                     } catch (Throwable ignored) {
                         // Older servers may not expose this setter or have restrictions
-                        target.sendMessage(CommandMessages.command(ChatColor.RED + "Your nickname has been cleared by a staff member."));
+                        target.sendMessage(CommandMessages.command(Colors.RED + "Your nickname has been cleared by a staff member."));
                     }
                 }
             } catch (Throwable t) {
                 // Don’t fail the whole command if one player errors
-                sender.sendMessage(CommandMessages.error(ChatColor.RED + "Failed to clear nickname for: " + target.getName()));
+                sender.sendMessage(CommandMessages.error(Colors.RED + "Failed to clear nickname for: " + target.getName()));
             }
         }
 

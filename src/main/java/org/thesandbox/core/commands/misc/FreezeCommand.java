@@ -1,7 +1,6 @@
 package org.thesandbox.core.commands.misc;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -15,6 +14,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -47,7 +47,7 @@ public class FreezeCommand implements ISubCommand, Listener
             globalFreezeEnabled = !globalFreezeEnabled;
             if (globalFreezeEnabled)
             {
-                Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + who + " - Freezing all players"));
+                Colors.broadcast(CommandMessages.server(Colors.RED + who + " - Freezing all players"));
                 // Freeze all non-mods online + notify them once
                 for (Player p : Bukkit.getOnlinePlayers())
                 {
@@ -59,11 +59,11 @@ public class FreezeCommand implements ISubCommand, Listener
             {
                 // Unfreeze everyone
                 FROZEN.clear();
-                Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + who + " - Unfreezing all players"));
+                Colors.broadcast(CommandMessages.server(Colors.RED + who + " - Unfreezing all players"));
                 for (Player p : Bukkit.getOnlinePlayers())
                 {
                     if (isImmune(p)) continue;
-                    p.sendMessage(CommandMessages.command(ChatColor.GRAY + "You are free to move."));
+                    p.sendMessage(CommandMessages.command(Colors.GRAY + "You are free to move."));
                 }
             }
             return true;
@@ -74,10 +74,10 @@ public class FreezeCommand implements ISubCommand, Listener
         {
             FROZEN.clear();
             globalFreezeEnabled = false;
-            Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + who + " - Purging all freezes"));
+            Colors.broadcast(CommandMessages.server(Colors.RED + who + " - Purging all freezes"));
             for (Player p : Bukkit.getOnlinePlayers()) {
                 if (isImmune(p)) continue;
-                p.sendMessage(CommandMessages.command(ChatColor.GRAY + "You are free to move."));
+                p.sendMessage(CommandMessages.command(Colors.GRAY + "You are free to move."));
             }
             return true;
         }
@@ -88,13 +88,13 @@ public class FreezeCommand implements ISubCommand, Listener
             Player target = Bukkit.getPlayerExact(args[0]);
             if (target == null)
             {
-                sender.sendMessage(CommandMessages.error(ChatColor.RED + "Player not found: " + args[0]));
+                sender.sendMessage(CommandMessages.error(Colors.RED + "Player not found: " + args[0]));
                 return true;
             }
 
             if (isImmune(target))
             {
-                sender.sendMessage(CommandMessages.error(ChatColor.RED + "You cannot freeze staff members."));
+                sender.sendMessage(CommandMessages.error(Colors.RED + "You cannot freeze staff members."));
                 return true;
             }
 
@@ -102,18 +102,18 @@ public class FreezeCommand implements ISubCommand, Listener
             if (FROZEN.contains(id))
             {
                 FROZEN.remove(id);
-                Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + who + " - Unfreezing " + target.getName()));
-                target.sendMessage(CommandMessages.command(ChatColor.GRAY + "You are free to move."));
+                Colors.broadcast(CommandMessages.server(Colors.RED + who + " - Unfreezing " + target.getName()));
+                target.sendMessage(CommandMessages.command(Colors.GRAY + "You are free to move."));
             }
             else
             {
                 freezePlayer(target, true);
-                Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + who + " - Freezing " + target.getName()));
+                Colors.broadcast(CommandMessages.server(Colors.RED + who + " - Freezing " + target.getName()));
             }
             return true;
         }
 
-        sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " [target | purge]"));
+        sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " [target | purge]"));
         return true;
     }
 
@@ -194,7 +194,7 @@ public class FreezeCommand implements ISubCommand, Listener
         if (p == null) return;
         FROZEN.add(p.getUniqueId());
         if (notify) {
-            p.sendMessage(CommandMessages.command(ChatColor.GRAY + "You have been frozen by a staff member."));
+            p.sendMessage(CommandMessages.command(Colors.GRAY + "You have been frozen by a staff member."));
         }
     }
 }

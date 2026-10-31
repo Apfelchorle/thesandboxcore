@@ -1,6 +1,5 @@
 package org.thesandbox.core.commands.Admin;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
@@ -10,6 +9,7 @@ import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.login.LoginService;
 import org.thesandbox.core.managers.StaffChatManager;
+import org.thesandbox.core.util.Colors;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +28,7 @@ public class StaffChatCommand implements ISubCommand {
         // Console: broadcast whatever is typed to staff chat
         if (sender instanceof ConsoleCommandSender) {
             if (args.length == 0) {
-                sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " <message>"));
+                sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <message>"));
                 return true;
             }
             String msg = String.join(" ", args);
@@ -47,39 +47,39 @@ public class StaffChatCommand implements ISubCommand {
         if (!(sender instanceof Player p)) return true;
 
         if (!p.hasPermission("sandbox.staff")) {
-            p.sendMessage(CommandMessages.error(ChatColor.RED + "You don't have permission to use staff chat."));
+            p.sendMessage(CommandMessages.error(Colors.RED + "You don't have permission to use staff chat."));
             return true;
         }
 
         // /sc hide on|off
         if (args.length >= 1 && "hide".equalsIgnoreCase(args[0])) {
             if (args.length < 2) {
-                p.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " hide <on|off>"));
+                p.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " hide <on|off>"));
                 return true;
             }
             String v = args[1].toLowerCase(Locale.ENGLISH);
             if (!v.equals("on") && !v.equals("off")) {
-                p.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " hide <on|off>"));
+                p.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " hide <on|off>"));
                 return true;
             }
             boolean hidden = v.equals("on");
             plugin.getStaffChatManager().setStaffChatHidden(p, hidden);
             if (hidden) {
-                p.sendMessage(CommandMessages.command(ChatColor.GRAY + "You will no longer receive staff chat (and cannot speak in it). Use /" + label + " hide off to re-enable."));
+                p.sendMessage(CommandMessages.command(Colors.GRAY + "You will no longer receive staff chat (and cannot speak in it). Use /" + label + " hide off to re-enable."));
             } else {
-                p.sendMessage(CommandMessages.command(ChatColor.GREEN + "You will now receive staff chat."));
+                p.sendMessage(CommandMessages.command(Colors.GREEN + "You will now receive staff chat."));
             }
             return true;
         }
 
         // Block sending if hidden
         if (plugin.getStaffChatManager().isStaffChatHidden(p.getUniqueId())) {
-            p.sendMessage(CommandMessages.error(ChatColor.RED + "You have staff chat hidden. Use /" + label + " hide off to talk again."));
+            p.sendMessage(CommandMessages.error(Colors.RED + "You have staff chat hidden. Use /" + label + " hide off to talk again."));
             return true;
         }
 
         if (args.length == 0) {
-            p.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " <message>"));
+            p.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <message>"));
             return true;
         }
 

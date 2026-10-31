@@ -1,7 +1,6 @@
 package org.thesandbox.core.commands.utility;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -11,6 +10,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
+import org.thesandbox.core.util.Colors;
 
 import java.util.Collections;
 import java.util.List;
@@ -82,7 +82,8 @@ public class HealCommand extends BaseCommand
     {
         if (target.isDead() || target.getHealth() <= 0.0D)
         {
-            if (tellSender) actor.sendMessage(CommandMessages.error(ChatColor.RED + target.getName() + " cannot be healed while dead."));
+            if (tellSender)
+                actor.sendMessage(CommandMessages.error(Colors.RED + target.getName() + " cannot be healed while dead."));
             return false;
         }
 
@@ -111,7 +112,7 @@ public class HealCommand extends BaseCommand
             }
         } catch (Throwable ignored) {}
 
-        if (tellTarget) target.sendMessage(CommandMessages.command(ChatColor.GREEN + "You have been healed!"));
+        if (tellTarget) target.sendMessage(CommandMessages.command(Colors.GREEN + "You have been healed!"));
 
         return true;
     }

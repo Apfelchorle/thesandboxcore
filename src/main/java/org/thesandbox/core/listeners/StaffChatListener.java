@@ -1,10 +1,6 @@
 package org.thesandbox.core.listeners;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -17,6 +13,11 @@ import org.thesandbox.core.fun.Utils;
 import org.thesandbox.core.managers.CommandSpyManager;
 import org.thesandbox.core.managers.LegacySqlStore;
 import org.thesandbox.core.managers.StaffChatManager;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class StaffChatListener implements Listener {
 

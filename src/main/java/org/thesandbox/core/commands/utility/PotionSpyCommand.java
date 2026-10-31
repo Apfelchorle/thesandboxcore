@@ -1,14 +1,14 @@
 package org.thesandbox.core.commands.utility;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.ThrownPotion;
-import org.thesandbox.core.services.PotionSpyService; // <-- UPDATED PACKAGE
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.services.PotionSpyService; // <-- UPDATED PACKAGE
+import org.thesandbox.core.util.Colors;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -29,24 +29,33 @@ public class PotionSpyCommand implements ISubCommand
     {
         if (args.length == 0)
         {
-            if (!(sender instanceof Player p)) { msg(sender, CommandMessages.error(ChatColor.RED + "Only players can toggle PotionSpy.")); return true; }
+            if (!(sender instanceof Player p)) {
+                msg(sender, CommandMessages.error(Colors.RED + "Only players can toggle PotionSpy."));
+                return true;
+            }
             boolean state = service.toggle(p.getUniqueId());
-            msg(sender, CommandMessages.command("PotionSpy is now " + (state ? ChatColor.GREEN + "enabled" : ChatColor.RED + "disabled") + ChatColor.RESET + "."));
+            msg(sender, CommandMessages.command("PotionSpy is now " + (state ? Colors.GREEN + "enabled" : Colors.RED + "disabled") + Colors.RESET + "."));
             return true;
         }
 
         switch (args[0].toLowerCase(Locale.ROOT))
         {
             case "on", "enable" -> {
-                if (!(sender instanceof Player p)) { msg(sender, CommandMessages.error(ChatColor.RED + "Only players can enable PotionSpy.")); return true; }
+                if (!(sender instanceof Player p)) {
+                    msg(sender, CommandMessages.error(Colors.RED + "Only players can enable PotionSpy."));
+                    return true;
+                }
                 service.setEnabled(p.getUniqueId(), true);
-                msg(sender, CommandMessages.command("PotionSpy is now " + ChatColor.GREEN + "enabled" + ChatColor.RESET + "."));
+                msg(sender, CommandMessages.command("PotionSpy is now " + Colors.GREEN + "enabled" + Colors.RESET + "."));
                 return true;
             }
             case "off", "disable" -> {
-                if (!(sender instanceof Player p)) { msg(sender, CommandMessages.error(ChatColor.RED + "Only players can disable PotionSpy.")); return true; }
+                if (!(sender instanceof Player p)) {
+                    msg(sender, CommandMessages.error(Colors.RED + "Only players can disable PotionSpy."));
+                    return true;
+                }
                 service.setEnabled(p.getUniqueId(), false);
-                msg(sender, CommandMessages.command("PotionSpy is now " + ChatColor.RED + "disabled" + ChatColor.RESET + "."));
+                msg(sender, CommandMessages.command("PotionSpy is now " + Colors.RED + "disabled" + Colors.RESET + "."));
                 return true;
             }
             case "history" -> {
@@ -83,13 +92,13 @@ public class PotionSpyCommand implements ISubCommand
                 }
                 else
                 {
-                    msg(sender, CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " history [player] <page>"));
+                    msg(sender, CommandMessages.usage(Colors.RED + "Usage: /" + label + " history [player] <page>"));
                     return true;
                 }
             }
         }
 
-        msg(sender, CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " <on|off|history>"));
+        msg(sender, CommandMessages.usage(Colors.RED + "Usage: /" + label + " <on|off|history>"));
         return true;
     }
 
@@ -100,25 +109,25 @@ public class PotionSpyCommand implements ISubCommand
         int to = Math.min(from + pageSize, entries.size());
         List<Map.Entry<ThrownPotion, Long>> slice = entries.subList(from, to);
 
-        sender.sendMessage(CommandMessages.command(ChatColor.DARK_GRAY + "------------------ " + ChatColor.YELLOW + "PotionSpy: " + title + ChatColor.DARK_GRAY + " ------------------"));
+        sender.sendMessage(CommandMessages.command(Colors.DARK_GRAY + "------------------ " + Colors.YELLOW + "PotionSpy: " + title + Colors.DARK_GRAY + " ------------------"));
         for (Map.Entry<ThrownPotion, Long> e : slice)
         {
             ThrownPotion p = e.getKey();
             Player shooter = (p.getShooter() instanceof Player sp) ? sp : null;
             boolean troll = service.isTrollPotion(p);
 
-            String line = ChatColor.RESET
+            String line = Colors.RESET
                     + (shooter != null ? shooter.getName() : "Unknown")
                     + " splashed a potion at "
-                    + ChatColor.YELLOW + "X:" + p.getLocation().getBlockX()
+                    + Colors.YELLOW + "X:" + p.getLocation().getBlockX()
                     + " Y:" + p.getLocation().getBlockY()
-                    + " Z:" + p.getLocation().getBlockZ() + ChatColor.RESET
-                    + " in world '" + ChatColor.YELLOW + p.getWorld().getName() + ChatColor.RESET + "' about "
-                    + ChatColor.YELLOW + timeAgo(e.getValue(), System.currentTimeMillis()) + ChatColor.RESET + " ago"
-                    + (troll ? ChatColor.RED + " (most likely troll potion/potions)" : "") + ".";
+                    + " Z:" + p.getLocation().getBlockZ() + Colors.RESET
+                    + " in world '" + Colors.YELLOW + p.getWorld().getName() + Colors.RESET + "' about "
+                    + Colors.YELLOW + timeAgo(e.getValue(), System.currentTimeMillis()) + Colors.RESET + " ago"
+                    + (troll ? Colors.RED + " (most likely troll potion/potions)" : "") + ".";
             sender.sendMessage(CommandMessages.command(line));
         }
-        sender.sendMessage(CommandMessages.command(ChatColor.DARK_GRAY + "-------------------- " + ChatColor.YELLOW + page + " / " + lastPage + ChatColor.DARK_GRAY + " --------------------"));
+        sender.sendMessage(CommandMessages.command(Colors.DARK_GRAY + "-------------------- " + Colors.YELLOW + page + " / " + lastPage + Colors.DARK_GRAY + " --------------------"));
     }
 
     private Integer parsePositiveInt(String s) { try { return Integer.parseInt(s); } catch (NumberFormatException e) { return null; } }

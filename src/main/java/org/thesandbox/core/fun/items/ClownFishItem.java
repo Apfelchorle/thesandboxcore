@@ -1,7 +1,5 @@
 package org.thesandbox.core.fun.items;
 
-import java.util.*;
-
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -20,6 +18,11 @@ import org.thesandbox.core.fun.Utils;
 import org.thesandbox.core.fun.items.itemUTILS.Item;
 import org.thesandbox.core.fun.items.itemUTILS.ItemKeys;
 import org.thesandbox.core.util.PlayerDataKeys;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public class ClownFishItem implements Item {
 

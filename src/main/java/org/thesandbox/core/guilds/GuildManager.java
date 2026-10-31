@@ -1,7 +1,5 @@
 package org.thesandbox.core.guilds;
 
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -13,19 +11,22 @@ import net.luckperms.api.model.user.UserManager;
 import net.luckperms.api.node.Node;
 import net.luckperms.api.node.types.PrefixNode;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitTask;
+import org.thesandbox.core.util.Colors;
 import org.thesandbox.core.util.HexColorUtil;
 
+import javax.sql.DataSource;
 import java.io.File;
 import java.lang.reflect.Method;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class GuildManager {
     public static final List<String> RANK_PERMISSIONS = List.of(
@@ -38,8 +39,20 @@ public final class GuildManager {
     private final org.bukkit.plugin.java.JavaPlugin plugin;
     private final File file;
     private YamlConfiguration yml;
-    private HikariDataSource guildDataSource;
+    /**
+     * Coalesces bursts of guild edits into one short async write.
+     */
+    private final Object mysqlWriteLock = new Object();
     private boolean mysqlGuildsAvailable = false;
+    private final AtomicBoolean saveScheduled = new AtomicBoolean();
+    /**
+     * Guild names removed since the last successful snapshot, so stale snapshots cannot resurrect them.
+     */
+    private final Set<String> deletedGuildNames = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private DataSource guildDataSource;
+    private volatile GuildSnapshot pendingSave;
+    private volatile BukkitTask pendingSaveTask;
+    private volatile boolean closed;
 
     private final Map<String, Guild> guildsByName = new HashMap<>();
     private final Map<UUID, String> guildOfPlayer = new HashMap<>();
@@ -50,21 +63,28 @@ public final class GuildManager {
     private static final long INVITE_EXPIRE_MS = 5L * 60L * 1000L;
     private static final int TAG_PREFIX_PRIORITY = 200;
 
-    public GuildManager(org.bukkit.plugin.java.JavaPlugin plugin) {
+    public GuildManager(org.bukkit.plugin.java.JavaPlugin plugin, DataSource dataSource) {
         this.plugin = plugin;
+        this.guildDataSource = dataSource;
         this.file = new File(plugin.getDataFolder(), "guilds.yml");
         setupMysqlGuilds();
         reload();
     }
 
-    public void shutdown() {
+    private void setupMysqlGuilds() {
+        if (guildDataSource == null) {
+            this.mysqlGuildsAvailable = false;
+            plugin.getLogger().warning("[Guilds] Shared database unavailable; falling back to guilds.yml.");
+            return;
+        }
+
         try {
-            if (guildDataSource != null) guildDataSource.close();
+            ensureMysqlGuildTables();
+            this.mysqlGuildsAvailable = true;
+            plugin.getLogger().info("[Guilds] Guild data is using the shared MySQL pool.");
         } catch (Throwable t) {
-            plugin.getLogger().warning("[Guilds] MySQL shutdown error: " + t.getMessage());
-        } finally {
-            guildDataSource = null;
-            mysqlGuildsAvailable = false;
+            this.mysqlGuildsAvailable = false;
+            plugin.getLogger().warning("[Guilds] MySQL guild storage unavailable; falling back to guilds.yml: " + t.getMessage());
         }
     }
 
@@ -109,6 +129,17 @@ public final class GuildManager {
         if (!file.delete()) {
             plugin.getLogger().warning("[Guilds] Migrated guilds.yml into MySQL, but could not delete the old guilds.yml file. You can delete it manually after confirming the MySQL data loaded correctly.");
         }
+    }
+
+    public void shutdown() {
+        // The shared Database owns the pool; only drop our reference.
+        closed = true;
+        BukkitTask task = pendingSaveTask;
+        pendingSaveTask = null;
+        if (task != null) task.cancel();
+        pendingSave = null;
+        guildDataSource = null;
+        mysqlGuildsAvailable = false;
     }
 
     private void loadFromYaml() {
@@ -179,18 +210,161 @@ public final class GuildManager {
             }
 
             guildsByName.put(guildName.toLowerCase(Locale.ROOT), g);
+            deletedGuildNames.remove(guildName.toLowerCase(Locale.ROOT));
             for (UUID u : g.members().keySet()) guildOfPlayer.put(u, g.name());
         }
     }
 
     public void save() {
+        if (closed) return;
+
         if (mysqlGuildsAvailable) {
-            if (!saveAllGuildsToMysql()) {
-                plugin.getLogger().severe("[Guilds] Failed to save guild data to MySQL. Current changes remain in memory until the next successful save.");
-            }
+            // Snapshot on the calling (main) thread, then write on a worker. Bursts of
+            // edits within one second collapse into a single write of the newest state.
+            pendingSave = GuildSnapshot.capture(guildsByName.values(), deletedGuildNames);
+            scheduleAsyncSave();
             return;
         }
 
+        saveYaml();
+    }
+
+    /**
+     * Writes any pending guild state synchronously; used during shutdown.
+     */
+    public void flush() {
+        BukkitTask task = pendingSaveTask;
+        pendingSaveTask = null;
+        if (task != null) task.cancel();
+
+        GuildSnapshot snapshot = pendingSave;
+        pendingSave = null;
+
+        if (mysqlGuildsAvailable) {
+            if (snapshot == null) snapshot = GuildSnapshot.capture(guildsByName.values(), deletedGuildNames);
+            saveSnapshotToMysql(snapshot);
+        } else {
+            saveYaml();
+        }
+    }
+
+    private boolean saveSnapshotToMysql(GuildSnapshot snapshot) {
+        if (!mysqlGuildsAvailable || snapshot == null) return false;
+
+        synchronized (mysqlWriteLock) {
+        try (Connection c = guildDataSource.getConnection()) {
+            boolean oldAutoCommit = c.getAutoCommit();
+            c.setAutoCommit(false);
+            try {
+                try (Statement st = c.createStatement()) {
+                    st.executeUpdate("DELETE FROM sandbox_guild_rank_permissions");
+                    st.executeUpdate("DELETE FROM sandbox_guild_ranks");
+                    st.executeUpdate("DELETE FROM sandbox_guild_members");
+                    // Do not delete sandbox_guilds here. Existing installs may have foreign keys
+                    // from homes/warps to sandbox_guilds with ON DELETE CASCADE. Deleting guilds
+                    // during a normal save can silently wipe every guild home and warp.
+                    // Guild rows are upserted below instead.
+                }
+
+                try (PreparedStatement guildPs = c.prepareStatement("INSERT INTO sandbox_guilds (guild_name, tag, owner_uuid, open_join, public_home, public_guild, is_open, is_public_home) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE tag = VALUES(tag), owner_uuid = VALUES(owner_uuid), open_join = VALUES(open_join), public_home = VALUES(public_home), public_guild = VALUES(public_guild), is_open = VALUES(is_open), is_public_home = VALUES(is_public_home)");
+                     PreparedStatement rankPs = c.prepareStatement("INSERT INTO sandbox_guild_ranks (guild_name, rank_name, prefix) VALUES (?, ?, ?)");
+                     PreparedStatement permPs = c.prepareStatement("INSERT INTO sandbox_guild_rank_permissions (guild_name, rank_name, permission) VALUES (?, ?, ?)");
+                     PreparedStatement memberPs = c.prepareStatement("INSERT INTO sandbox_guild_members (guild_name, player_uuid, rank_name) VALUES (?, ?, ?)");
+                     PreparedStatement homePs = c.prepareStatement("INSERT INTO sandbox_guild_homes (guild_name, world, x, y, z, yaw, pitch) VALUES (?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE world = VALUES(world), x = VALUES(x), y = VALUES(y), z = VALUES(z), yaw = VALUES(yaw), pitch = VALUES(pitch)");
+                     PreparedStatement warpPs = c.prepareStatement("INSERT INTO sandbox_guild_warps (guild_name, warp_name, world, x, y, z, yaw, pitch) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE world = VALUES(world), x = VALUES(x), y = VALUES(y), z = VALUES(z), yaw = VALUES(yaw), pitch = VALUES(pitch)")) {
+
+                    for (GuildRow g : snapshot.guilds()) {
+                        guildPs.setString(1, g.name());
+                        guildPs.setString(2, g.tag() == null ? g.name() : g.tag());
+                        guildPs.setString(3, g.owner().toString());
+                        guildPs.setBoolean(4, g.isOpen());
+                        guildPs.setBoolean(5, g.isPublicHome());
+                        guildPs.setBoolean(6, g.isPublicHome());
+                        guildPs.setBoolean(7, g.isOpen());
+                        guildPs.setBoolean(8, g.isPublicHome());
+                        guildPs.addBatch();
+
+                        for (var e : g.ranks().entrySet()) {
+                            rankPs.setString(1, g.name());
+                            rankPs.setString(2, e.getKey().toUpperCase(Locale.ROOT));
+                            rankPs.setString(3, e.getValue() == null ? "" : e.getValue());
+                            rankPs.addBatch();
+                        }
+
+                        for (var e : g.rankPermissions().entrySet()) {
+                            String rankName = e.getKey().toUpperCase(Locale.ROOT);
+                            for (String permission : e.getValue()) {
+                                String normalized = normalizePermission(permission);
+                                if (!RANK_PERMISSIONS.contains(normalized)) continue;
+                                permPs.setString(1, g.name());
+                                permPs.setString(2, rankName);
+                                permPs.setString(3, normalized);
+                                permPs.addBatch();
+                            }
+                        }
+
+                        for (var e : g.members().entrySet()) {
+                            memberPs.setString(1, g.name());
+                            memberPs.setString(2, e.getKey().toString());
+                            memberPs.setString(3, e.getValue() == null ? "MEMBER" : e.getValue().toUpperCase(Locale.ROOT));
+                            memberPs.addBatch();
+                        }
+
+                        if (g.home() != null && g.home().getWorld() != null) {
+                            bindLocation(homePs, g.name(), g.home(), 1);
+                            homePs.addBatch();
+                        }
+
+                        for (var e : g.warps().entrySet()) {
+                            Location loc = e.getValue();
+                            if (loc == null || loc.getWorld() == null) continue;
+                            warpPs.setString(1, g.name());
+                            warpPs.setString(2, e.getKey().toLowerCase(Locale.ROOT));
+                            warpPs.setString(3, loc.getWorld().getName());
+                            warpPs.setDouble(4, loc.getX());
+                            warpPs.setDouble(5, loc.getY());
+                            warpPs.setDouble(6, loc.getZ());
+                            warpPs.setFloat(7, loc.getYaw());
+                            warpPs.setFloat(8, loc.getPitch());
+                            warpPs.addBatch();
+                        }
+                    }
+
+                    guildPs.executeBatch();
+                    rankPs.executeBatch();
+                    permPs.executeBatch();
+                    memberPs.executeBatch();
+                    homePs.executeBatch();
+                    warpPs.executeBatch();
+
+                    // A disbanded guild may still be present in a snapshot captured before the delete.
+                    for (String deleted : snapshot.deletedGuilds()) {
+                        deleteGuildRows(c, "sandbox_guild_rank_permissions", deleted);
+                        deleteGuildRows(c, "sandbox_guild_ranks", deleted);
+                        deleteGuildRows(c, "sandbox_guild_members", deleted);
+                        deleteGuildRows(c, "sandbox_guild_homes", deleted);
+                        deleteGuildRows(c, "sandbox_guild_warps", deleted);
+                        deleteGuildRows(c, "sandbox_guilds", deleted);
+                    }
+                }
+
+                c.commit();
+                c.setAutoCommit(oldAutoCommit);
+                deletedGuildNames.removeAll(snapshot.deletedGuilds());
+                return true;
+            } catch (SQLException e) {
+                c.rollback();
+                c.setAutoCommit(oldAutoCommit);
+                throw e;
+            }
+        } catch (SQLException e) {
+            plugin.getLogger().severe("[Guilds] MySQL save failed: " + e.getMessage());
+            return false;
+        }
+        }
+    }
+
+    private void saveYaml() {
         yml.set("guilds", null);
 
         for (Guild g : new HashSet<>(guildsByName.values())) {
@@ -211,35 +385,16 @@ public final class GuildManager {
         catch (Exception e) { plugin.getLogger().severe("Failed to save guilds.yml: " + e.getMessage()); }
     }
 
+    private void scheduleAsyncSave() {
+        if (closed) return;
+        if (!saveScheduled.compareAndSet(false, true)) return;
 
-    private void setupMysqlGuilds() {
         try {
-            String host = plugin.getConfig().getString("mysql.sandbox.host", "127.0.0.1");
-            int port = plugin.getConfig().getInt("mysql.sandbox.port", 3306);
-            String db = plugin.getConfig().getString("mysql.sandbox.database", "sandbox");
-            String user = plugin.getConfig().getString("mysql.sandbox.user", "sandbox");
-            String pass = plugin.getConfig().getString("mysql.sandbox.password", "");
-
-            HikariConfig cfg = new HikariConfig();
-            cfg.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + db + "?useSSL=false&useUnicode=true&characterEncoding=utf8&allowPublicKeyRetrieval=true");
-            cfg.setUsername(user);
-            cfg.setPassword(pass);
-            cfg.setPoolName("SandboxGuildsPool");
-            cfg.setMaximumPoolSize(3);
-            cfg.setMinimumIdle(1);
-            cfg.setConnectionTimeout(10000);
-            cfg.setIdleTimeout(600000);
-            cfg.setMaxLifetime(1800000);
-
-            this.guildDataSource = new HikariDataSource(cfg);
-            ensureMysqlGuildTables();
-            this.mysqlGuildsAvailable = true;
-            plugin.getLogger().info("[Guilds] Guild data is using MySQL.");
+            pendingSaveTask = Bukkit.getScheduler().runTaskLaterAsynchronously(
+                    plugin, this::drainAsyncSave, 20L);
         } catch (Throwable t) {
-            this.mysqlGuildsAvailable = false;
-            plugin.getLogger().warning("[Guilds] MySQL guild storage unavailable; falling back to guilds.yml: " + t.getMessage());
-            try { if (guildDataSource != null) guildDataSource.close(); } catch (Throwable ignored) {}
-            guildDataSource = null;
+            saveScheduled.set(false);
+            plugin.getLogger().warning("[Guilds] Could not schedule async save: " + t.getMessage());
         }
     }
 
@@ -351,107 +506,25 @@ public final class GuildManager {
         }
     }
 
+    private void drainAsyncSave() {
+        pendingSaveTask = null;
+        try {
+            while (!closed) {
+                GuildSnapshot snapshot = pendingSave;
+                if (snapshot == null) break;
+                pendingSave = null;
+
+                if (!saveSnapshotToMysql(snapshot)) break;
+            }
+        } finally {
+            saveScheduled.set(false);
+            if (!closed && pendingSave != null) scheduleAsyncSave();
+        }
+    }
+
     private boolean saveAllGuildsToMysql() {
         if (!mysqlGuildsAvailable) return false;
-
-        try (Connection c = guildDataSource.getConnection()) {
-            boolean oldAutoCommit = c.getAutoCommit();
-            c.setAutoCommit(false);
-            try {
-                try (Statement st = c.createStatement()) {
-                    st.executeUpdate("DELETE FROM sandbox_guild_rank_permissions");
-                    st.executeUpdate("DELETE FROM sandbox_guild_ranks");
-                    st.executeUpdate("DELETE FROM sandbox_guild_members");
-                    // Do not delete sandbox_guilds here. Existing installs may have foreign keys
-                    // from homes/warps to sandbox_guilds with ON DELETE CASCADE. Deleting guilds
-                    // during a normal save can silently wipe every guild home and warp.
-                    // Guild rows are upserted below instead.
-                }
-
-                try (PreparedStatement guildPs = c.prepareStatement("INSERT INTO sandbox_guilds (guild_name, tag, owner_uuid, open_join, public_home, public_guild, is_open, is_public_home) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE tag = VALUES(tag), owner_uuid = VALUES(owner_uuid), open_join = VALUES(open_join), public_home = VALUES(public_home), public_guild = VALUES(public_guild), is_open = VALUES(is_open), is_public_home = VALUES(is_public_home)");
-                     PreparedStatement rankPs = c.prepareStatement("INSERT INTO sandbox_guild_ranks (guild_name, rank_name, prefix) VALUES (?, ?, ?)");
-                     PreparedStatement permPs = c.prepareStatement("INSERT INTO sandbox_guild_rank_permissions (guild_name, rank_name, permission) VALUES (?, ?, ?)");
-                     PreparedStatement memberPs = c.prepareStatement("INSERT INTO sandbox_guild_members (guild_name, player_uuid, rank_name) VALUES (?, ?, ?)");
-                     PreparedStatement homePs = c.prepareStatement("INSERT INTO sandbox_guild_homes (guild_name, world, x, y, z, yaw, pitch) VALUES (?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE world = VALUES(world), x = VALUES(x), y = VALUES(y), z = VALUES(z), yaw = VALUES(yaw), pitch = VALUES(pitch)");
-                     PreparedStatement warpPs = c.prepareStatement("INSERT INTO sandbox_guild_warps (guild_name, warp_name, world, x, y, z, yaw, pitch) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE world = VALUES(world), x = VALUES(x), y = VALUES(y), z = VALUES(z), yaw = VALUES(yaw), pitch = VALUES(pitch)")) {
-
-                    for (Guild g : new HashSet<>(guildsByName.values())) {
-                        guildPs.setString(1, g.name());
-                        guildPs.setString(2, g.tag() == null ? g.name() : g.tag());
-                        guildPs.setString(3, g.owner().toString());
-                        guildPs.setBoolean(4, g.isOpen());
-                        guildPs.setBoolean(5, g.isPublicHome());
-                        guildPs.setBoolean(6, g.isPublicHome());
-                        guildPs.setBoolean(7, g.isOpen());
-                        guildPs.setBoolean(8, g.isPublicHome());
-                        guildPs.addBatch();
-
-                        for (var e : g.ranks().entrySet()) {
-                            rankPs.setString(1, g.name());
-                            rankPs.setString(2, e.getKey().toUpperCase(Locale.ROOT));
-                            rankPs.setString(3, e.getValue() == null ? "" : e.getValue());
-                            rankPs.addBatch();
-                        }
-
-                        for (var e : g.rankPermissions().entrySet()) {
-                            String rankName = e.getKey().toUpperCase(Locale.ROOT);
-                            for (String permission : e.getValue()) {
-                                String normalized = normalizePermission(permission);
-                                if (!RANK_PERMISSIONS.contains(normalized)) continue;
-                                permPs.setString(1, g.name());
-                                permPs.setString(2, rankName);
-                                permPs.setString(3, normalized);
-                                permPs.addBatch();
-                            }
-                        }
-
-                        for (var e : g.members().entrySet()) {
-                            memberPs.setString(1, g.name());
-                            memberPs.setString(2, e.getKey().toString());
-                            memberPs.setString(3, e.getValue() == null ? "MEMBER" : e.getValue().toUpperCase(Locale.ROOT));
-                            memberPs.addBatch();
-                        }
-
-                        if (g.home() != null && g.home().getWorld() != null) {
-                            bindLocation(homePs, g.name(), g.home(), 1);
-                            homePs.addBatch();
-                        }
-
-                        for (var e : g.warps().entrySet()) {
-                            Location loc = e.getValue();
-                            if (loc == null || loc.getWorld() == null) continue;
-                            warpPs.setString(1, g.name());
-                            warpPs.setString(2, e.getKey().toLowerCase(Locale.ROOT));
-                            warpPs.setString(3, loc.getWorld().getName());
-                            warpPs.setDouble(4, loc.getX());
-                            warpPs.setDouble(5, loc.getY());
-                            warpPs.setDouble(6, loc.getZ());
-                            warpPs.setFloat(7, loc.getYaw());
-                            warpPs.setFloat(8, loc.getPitch());
-                            warpPs.addBatch();
-                        }
-                    }
-
-                    guildPs.executeBatch();
-                    rankPs.executeBatch();
-                    permPs.executeBatch();
-                    memberPs.executeBatch();
-                    homePs.executeBatch();
-                    warpPs.executeBatch();
-                }
-
-                c.commit();
-                c.setAutoCommit(oldAutoCommit);
-                return true;
-            } catch (SQLException e) {
-                c.rollback();
-                c.setAutoCommit(oldAutoCommit);
-                throw e;
-            }
-        } catch (SQLException e) {
-            plugin.getLogger().severe("[Guilds] MySQL save failed: " + e.getMessage());
-            return false;
-        }
+        return saveSnapshotToMysql(GuildSnapshot.capture(guildsByName.values(), deletedGuildNames));
     }
 
     private void loadFromMysql() {
@@ -473,6 +546,7 @@ public final class GuildManager {
                     g.rankPermissions().clear();
                     g.members().clear();
                     guildsByName.put(g.name().toLowerCase(Locale.ROOT), g);
+                    deletedGuildNames.remove(g.name().toLowerCase(Locale.ROOT));
                 }
             }
 
@@ -545,6 +619,47 @@ public final class GuildManager {
         }
     }
 
+    private boolean upsertHomeMysql(String guildName, Location loc) {
+        if (!mysqlGuildsAvailable || guildName == null || loc == null || loc.getWorld() == null) return false;
+        String sql = "INSERT INTO sandbox_guild_homes (guild_name, world, x, y, z, yaw, pitch) VALUES (?, ?, ?, ?, ?, ?, ?) " +
+                "ON DUPLICATE KEY UPDATE world = VALUES(world), x = VALUES(x), y = VALUES(y), z = VALUES(z), yaw = VALUES(yaw), pitch = VALUES(pitch)";
+        synchronized (mysqlWriteLock) {
+            try (Connection c = guildDataSource.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
+                bindLocation(ps, guildName, loc, 1);
+                ps.executeUpdate();
+                plugin.getLogger().info("[Guilds] Saved guild home to MySQL for " + guildName + ".");
+                return true;
+            } catch (SQLException e) {
+                plugin.getLogger().severe("[Guilds] Failed to save guild home to MySQL for " + guildName + ": " + e.getMessage());
+                return false;
+            }
+        }
+    }
+
+    private boolean upsertWarpMysql(String guildName, String warpName, Location loc) {
+        if (!mysqlGuildsAvailable || guildName == null || warpName == null || loc == null || loc.getWorld() == null) return false;
+        String sql = "INSERT INTO sandbox_guild_warps (guild_name, warp_name, world, x, y, z, yaw, pitch) VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
+                "ON DUPLICATE KEY UPDATE world = VALUES(world), x = VALUES(x), y = VALUES(y), z = VALUES(z), yaw = VALUES(yaw), pitch = VALUES(pitch)";
+        synchronized (mysqlWriteLock) {
+            try (Connection c = guildDataSource.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
+                ps.setString(1, guildName);
+                ps.setString(2, warpName.toLowerCase(Locale.ROOT));
+                ps.setString(3, loc.getWorld().getName());
+                ps.setDouble(4, loc.getX());
+                ps.setDouble(5, loc.getY());
+                ps.setDouble(6, loc.getZ());
+                ps.setFloat(7, loc.getYaw());
+                ps.setFloat(8, loc.getPitch());
+                ps.executeUpdate();
+                plugin.getLogger().info("[Guilds] Saved guild warp '" + warpName + "' to MySQL for " + guildName + ".");
+                return true;
+            } catch (SQLException e) {
+                plugin.getLogger().severe("[Guilds] Failed to save guild warp '" + warpName + "' to MySQL for " + guildName + ": " + e.getMessage());
+                return false;
+            }
+        }
+    }
+
     private Location locationFromResult(ResultSet rs) throws SQLException {
         String worldName = rs.getString("world");
         org.bukkit.World world = Bukkit.getWorld(worldName);
@@ -608,78 +723,98 @@ public final class GuildManager {
         return names;
     }
 
-    private boolean upsertHomeMysql(String guildName, Location loc) {
-        if (!mysqlGuildsAvailable || guildName == null || loc == null || loc.getWorld() == null) return false;
-        String sql = "INSERT INTO sandbox_guild_homes (guild_name, world, x, y, z, yaw, pitch) VALUES (?, ?, ?, ?, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE world = VALUES(world), x = VALUES(x), y = VALUES(y), z = VALUES(z), yaw = VALUES(yaw), pitch = VALUES(pitch)";
-        try (Connection c = guildDataSource.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
-            bindLocation(ps, guildName, loc, 1);
-            ps.executeUpdate();
-            plugin.getLogger().info("[Guilds] Saved guild home to MySQL for " + guildName + ".");
-            return true;
-        } catch (SQLException e) {
-            plugin.getLogger().severe("[Guilds] Failed to save guild home to MySQL for " + guildName + ": " + e.getMessage());
-            return false;
-        }
-    }
-
-    private boolean upsertWarpMysql(String guildName, String warpName, Location loc) {
-        if (!mysqlGuildsAvailable || guildName == null || warpName == null || loc == null || loc.getWorld() == null) return false;
-        String sql = "INSERT INTO sandbox_guild_warps (guild_name, warp_name, world, x, y, z, yaw, pitch) VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE world = VALUES(world), x = VALUES(x), y = VALUES(y), z = VALUES(z), yaw = VALUES(yaw), pitch = VALUES(pitch)";
-        try (Connection c = guildDataSource.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setString(1, guildName);
-            ps.setString(2, warpName.toLowerCase(Locale.ROOT));
-            ps.setString(3, loc.getWorld().getName());
-            ps.setDouble(4, loc.getX());
-            ps.setDouble(5, loc.getY());
-            ps.setDouble(6, loc.getZ());
-            ps.setFloat(7, loc.getYaw());
-            ps.setFloat(8, loc.getPitch());
-            ps.executeUpdate();
-            plugin.getLogger().info("[Guilds] Saved guild warp '" + warpName + "' to MySQL for " + guildName + ".");
-            return true;
-        } catch (SQLException e) {
-            plugin.getLogger().severe("[Guilds] Failed to save guild warp '" + warpName + "' to MySQL for " + guildName + ": " + e.getMessage());
-            return false;
-        }
-    }
-
     private int deleteWarpMysql(String guildName, String warpName) {
         if (!mysqlGuildsAvailable || guildName == null || warpName == null) return -1;
-        try (Connection c = guildDataSource.getConnection();
-             PreparedStatement ps = c.prepareStatement("DELETE FROM sandbox_guild_warps WHERE guild_name = ? AND warp_name = ?")) {
-            ps.setString(1, guildName);
-            ps.setString(2, warpName.toLowerCase(Locale.ROOT));
-            return ps.executeUpdate();
-        } catch (SQLException e) {
-            plugin.getLogger().severe("[Guilds] Failed to delete guild warp '" + warpName + "' from MySQL for " + guildName + ": " + e.getMessage());
-            return -1;
+        synchronized (mysqlWriteLock) {
+            try (Connection c = guildDataSource.getConnection();
+                 PreparedStatement ps = c.prepareStatement("DELETE FROM sandbox_guild_warps WHERE guild_name = ? AND warp_name = ?")) {
+                ps.setString(1, guildName);
+                ps.setString(2, warpName.toLowerCase(Locale.ROOT));
+                return ps.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().severe("[Guilds] Failed to delete guild warp '" + warpName + "' from MySQL for " + guildName + ": " + e.getMessage());
+                return -1;
+            }
         }
     }
 
     private void deleteGuildFromMysql(String guildName) {
         if (!mysqlGuildsAvailable || guildName == null) return;
-        try (Connection c = guildDataSource.getConnection()) {
-            boolean oldAutoCommit = c.getAutoCommit();
-            c.setAutoCommit(false);
-            try {
-                deleteGuildRows(c, "sandbox_guild_rank_permissions", guildName);
-                deleteGuildRows(c, "sandbox_guild_ranks", guildName);
-                deleteGuildRows(c, "sandbox_guild_members", guildName);
-                deleteGuildRows(c, "sandbox_guild_homes", guildName);
-                deleteGuildRows(c, "sandbox_guild_warps", guildName);
-                deleteGuildRows(c, "sandbox_guilds", guildName);
-                c.commit();
+        synchronized (mysqlWriteLock) {
+            try (Connection c = guildDataSource.getConnection()) {
+                boolean oldAutoCommit = c.getAutoCommit();
+                c.setAutoCommit(false);
+                try {
+                    deleteGuildRows(c, "sandbox_guild_rank_permissions", guildName);
+                    deleteGuildRows(c, "sandbox_guild_ranks", guildName);
+                    deleteGuildRows(c, "sandbox_guild_members", guildName);
+                    deleteGuildRows(c, "sandbox_guild_homes", guildName);
+                    deleteGuildRows(c, "sandbox_guild_warps", guildName);
+                    deleteGuildRows(c, "sandbox_guilds", guildName);
+                    c.commit();
+                } catch (SQLException e) {
+                    c.rollback();
+                    throw e;
+                } finally {
+                    c.setAutoCommit(oldAutoCommit);
+                }
             } catch (SQLException e) {
-                c.rollback();
-                throw e;
-            } finally {
-                c.setAutoCommit(oldAutoCommit);
+                plugin.getLogger().severe("[Guilds] Failed to delete MySQL guild " + guildName + ": " + e.getMessage());
             }
-        } catch (SQLException e) {
-            plugin.getLogger().severe("[Guilds] Failed to delete MySQL guild " + guildName + ": " + e.getMessage());
         }
+    }
+
+    public boolean sendGuildChat(Player sender, String rawMessage) {
+        if (sender == null || rawMessage == null) return false;
+        Guild g = guildOf(sender.getUniqueId());
+        if (g == null) return false;
+
+        Component line = Colors.c("&6&l[GUILD]&r ");
+        String rankTag = g.visiblePrefixFor(sender.getUniqueId());
+        if (rankTag != null && !rankTag.isBlank()) {
+            line = line.append(rich(rankTag)).append(Component.space()).append(Colors.c("&r"));
+        }
+        line = line
+                .append(guildChatDisplayName(sender))
+                .append(Component.space())
+                .append(Colors.c("&8»&r"))
+                .append(Component.space())
+                .append(rich(rawMessage));
+
+        Set<UUID> delivered = new HashSet<>();
+        for (UUID member : g.members().keySet()) {
+            Player target = Bukkit.getPlayer(member);
+            if (target != null) {
+                target.sendMessage(line);
+                delivered.add(target.getUniqueId());
+            }
+        }
+        for (UUID spyId : guildChatSpies) {
+            Player spy = Bukkit.getPlayer(spyId);
+            if (spy != null && !delivered.contains(spy.getUniqueId()) && spy.hasPermission("sandbox.staff")) {
+                spy.sendMessage(line);
+            }
+        }
+
+        plugin.getLogger().info("[GuildChat:" + g.name() + "] " + PlainTextComponentSerializer.plainText().serialize(line));
+        return true;
+    }
+
+    private Component rich(String input) {
+        if (input == null || input.isEmpty()) return Component.empty();
+
+        // Supports mixed guild-chat formatting in one message:
+        //   legacy colors: &a, &l, &r, etc.
+        //   hex colors: &#ff00ff, #ff00ff, &x&f&f&0&0&f&f
+        //   MiniMessage: <red>, <bold>, <gradient:#ff0:#f0f>, etc.
+        if (looksLikeMiniMessage(input)) {
+            try {
+                return MiniMessage.miniMessage().deserialize(legacyToMiniMessage(input));
+            } catch (Exception ignored) {
+                return Colors.c(input);
+            }
+        }
+        return Colors.c(input);
     }
 
     private void deleteGuildRows(Connection c, String table, String guildName) throws SQLException {
@@ -748,48 +883,23 @@ public final class GuildManager {
     public boolean isGuildChatSpy(UUID uuid) { return guildChatSpies.contains(uuid); }
     public void toggleGuildChatSpy(UUID uuid) { if (!guildChatSpies.add(uuid)) guildChatSpies.remove(uuid); }
 
-    public boolean sendGuildChat(Player sender, String rawMessage) {
-        if (sender == null || rawMessage == null) return false;
-        Guild g = guildOf(sender.getUniqueId());
-        if (g == null) return false;
-
-        Component line = Text.c("&6&l[GUILD]&r ");
-        String rankTag = g.visiblePrefixFor(sender.getUniqueId());
-        if (rankTag != null && !rankTag.isBlank()) {
-            line = line.append(rich(rankTag)).append(Component.space()).append(Text.c("&r"));
-        }
-        line = line
-                .append(guildChatDisplayName(sender))
-                .append(Component.space())
-                .append(Text.c("&8»&r"))
-                .append(Component.space())
-                .append(rich(rawMessage));
-
-        Set<UUID> delivered = new HashSet<>();
-        for (UUID member : g.members().keySet()) {
-            Player target = Bukkit.getPlayer(member);
-            if (target != null) {
-                target.sendMessage(line);
-                delivered.add(target.getUniqueId());
-            }
-        }
-        for (UUID spyId : guildChatSpies) {
-            Player spy = Bukkit.getPlayer(spyId);
-            if (spy != null && !delivered.contains(spy.getUniqueId()) && spy.hasPermission("sandbox.staff")) {
-                spy.sendMessage(line);
-            }
-        }
-
-        plugin.getLogger().info("[GuildChat:" + g.name() + "] " + PlainTextComponentSerializer.plainText().serialize(line));
-        return true;
-    }
-
     private Component guildChatDisplayName(Player player) {
         String nickname = essentialsNickname(player);
         if (nickname != null && !nickname.isBlank()) {
             return rich(nickname);
         }
-        return Text.c("&a" + player.getName());
+        return Colors.c("&a" + player.getName());
+    }
+
+    public CreateResult createGuild(String name, String tag, UUID owner) {
+        if (isInGuild(owner)) return CreateResult.ALREADY_IN_GUILD;
+        if (getGuildByName(name) != null) return CreateResult.NAME_TAKEN;
+        Guild g = new Guild(name, tag, owner);
+        guildsByName.put(name.toLowerCase(Locale.ROOT), g);
+        deletedGuildNames.remove(name.toLowerCase(Locale.ROOT));
+        guildOfPlayer.put(owner, name);
+        save();
+        return CreateResult.OK;
     }
 
     private String essentialsNickname(Player player) {
@@ -812,21 +922,17 @@ public final class GuildManager {
         return null;
     }
 
-    private Component rich(String input) {
-        if (input == null || input.isEmpty()) return Component.empty();
-
-        // Supports mixed guild-chat formatting in one message:
-        //   legacy colors: &a, &l, &r, etc.
-        //   hex colors: &#ff00ff, #ff00ff, &x&f&f&0&0&f&f
-        //   MiniMessage: <red>, <bold>, <gradient:#ff0:#f0f>, etc.
-        if (looksLikeMiniMessage(input)) {
-            try {
-                return MiniMessage.miniMessage().deserialize(legacyToMiniMessage(input));
-            } catch (Exception ignored) {
-                return Text.c(input);
-            }
+    public boolean disbandGuild(Guild g) {
+        if (g == null) return false;
+        for (UUID u : new ArrayList<>(g.members().keySet())) {
+            guildOfPlayer.remove(u);
+            guildChatToggled.remove(u);
         }
-        return Text.c(input);
+        guildsByName.remove(g.name().toLowerCase(Locale.ROOT));
+        deletedGuildNames.add(g.name().toLowerCase(Locale.ROOT));
+        deleteGuildFromMysql(g.name());
+        save();
+        return true;
     }
 
     private boolean looksLikeMiniMessage(String input) {
@@ -890,26 +996,77 @@ public final class GuildManager {
     }
 
     public enum CreateResult { OK, ALREADY_IN_GUILD, NAME_TAKEN }
-    public CreateResult createGuild(String name, String tag, UUID owner) {
-        if (isInGuild(owner)) return CreateResult.ALREADY_IN_GUILD;
-        if (getGuildByName(name) != null) return CreateResult.NAME_TAKEN;
-        Guild g = new Guild(name, tag, owner);
-        guildsByName.put(name.toLowerCase(Locale.ROOT), g);
-        guildOfPlayer.put(owner, name);
+
+    public TransferResult transferOwnership(UUID actor, String targetName) {
+        Guild g = guildOf(actor);
+        if (g == null) return TransferResult.NO_GUILD;
+        if (!g.isOwner(actor)) return TransferResult.NOT_OWNER;
+
+        UUID target = findMemberByName(g, targetName);
+        if (target == null) return TransferResult.TARGET_NOT_IN_GUILD;
+        if (target.equals(actor)) return TransferResult.ALREADY_OWNER;
+
+        UUID oldOwner = g.owner();
+        String oldOwnerPrefix = g.visiblePrefixFor(oldOwner);
+        String newOwnerPrefix = g.visiblePrefixFor(target);
+
+        if (mysqlGuildsAvailable && !transferOwnershipMysql(g.name(), oldOwner, target)) {
+            return TransferResult.STORAGE_ERROR;
+        }
+
+        if (!g.transferOwnership(target)) return TransferResult.TARGET_NOT_IN_GUILD;
+
+        // Refresh the debounced snapshot too, so an older in-flight snapshot cannot
+        // restore the previous owner after the dedicated UPDATE above.
         save();
-        return CreateResult.OK;
+
+        refreshGuildRankPrefix(oldOwner, oldOwnerPrefix);
+        refreshGuildRankPrefix(target, newOwnerPrefix);
+        return TransferResult.OK;
     }
 
-    public boolean disbandGuild(Guild g) {
-        if (g == null) return false;
-        for (UUID u : new ArrayList<>(g.members().keySet())) {
-            guildOfPlayer.remove(u);
-            guildChatToggled.remove(u);
+    private boolean transferOwnershipMysql(String guildName, UUID oldOwner, UUID newOwner) {
+        if (!mysqlGuildsAvailable || guildName == null || oldOwner == null || newOwner == null) return false;
+
+        synchronized (mysqlWriteLock) {
+            try (Connection c = guildDataSource.getConnection()) {
+                boolean oldAutoCommit = c.getAutoCommit();
+                c.setAutoCommit(false);
+                try (PreparedStatement guildPs = c.prepareStatement("UPDATE sandbox_guilds SET owner_uuid = ? WHERE guild_name = ?");
+                     PreparedStatement memberPs = c.prepareStatement("INSERT INTO sandbox_guild_members (guild_name, player_uuid, rank_name) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE guild_name = VALUES(guild_name), rank_name = VALUES(rank_name)")) {
+
+                    guildPs.setString(1, newOwner.toString());
+                    guildPs.setString(2, guildName);
+                    if (guildPs.executeUpdate() == 0) {
+                        c.rollback();
+                        c.setAutoCommit(oldAutoCommit);
+                        return false;
+                    }
+
+                    memberPs.setString(1, guildName);
+                    memberPs.setString(2, oldOwner.toString());
+                    memberPs.setString(3, "MEMBER");
+                    memberPs.addBatch();
+
+                    memberPs.setString(1, guildName);
+                    memberPs.setString(2, newOwner.toString());
+                    memberPs.setString(3, "OWNER");
+                    memberPs.addBatch();
+                    memberPs.executeBatch();
+
+                    c.commit();
+                    c.setAutoCommit(oldAutoCommit);
+                    return true;
+                } catch (SQLException e) {
+                    c.rollback();
+                    c.setAutoCommit(oldAutoCommit);
+                    throw e;
+                }
+            } catch (SQLException e) {
+                plugin.getLogger().severe("[Guilds] Failed to transfer ownership of " + guildName + " in MySQL: " + e.getMessage());
+                return false;
+            }
         }
-        guildsByName.remove(g.name().toLowerCase(Locale.ROOT));
-        deleteGuildFromMysql(g.name());
-        save();
-        return true;
     }
 
     public boolean leaveGuild(UUID player) {
@@ -1023,72 +1180,23 @@ public final class GuildManager {
 
     public enum TransferResult { OK, NO_GUILD, NOT_OWNER, TARGET_NOT_IN_GUILD, ALREADY_OWNER, STORAGE_ERROR }
 
-    public TransferResult transferOwnership(UUID actor, String targetName) {
+    public boolean setHome(UUID actor, Location location) {
         Guild g = guildOf(actor);
-        if (g == null) return TransferResult.NO_GUILD;
-        if (!g.isOwner(actor)) return TransferResult.NOT_OWNER;
-
-        UUID target = findMemberByName(g, targetName);
-        if (target == null) return TransferResult.TARGET_NOT_IN_GUILD;
-        if (target.equals(actor)) return TransferResult.ALREADY_OWNER;
-
-        UUID oldOwner = g.owner();
-        String oldOwnerPrefix = g.visiblePrefixFor(oldOwner);
-        String newOwnerPrefix = g.visiblePrefixFor(target);
-
-        if (mysqlGuildsAvailable && !transferOwnershipMysql(g.name(), oldOwner, target)) {
-            return TransferResult.STORAGE_ERROR;
-        }
-
-        if (!g.transferOwnership(target)) return TransferResult.TARGET_NOT_IN_GUILD;
-
-        if (!mysqlGuildsAvailable) save();
-
-        refreshGuildRankPrefix(oldOwner, oldOwnerPrefix);
-        refreshGuildRankPrefix(target, newOwnerPrefix);
-        return TransferResult.OK;
+        if (g == null || !hasGuildPermission(actor, "sethome") || location == null || location.getWorld() == null) return false;
+        if (mysqlGuildsAvailable && !upsertHomeMysql(g.name(), location)) return false;
+        g.setHome(location.clone());
+        save();
+        return true;
     }
 
-    private boolean transferOwnershipMysql(String guildName, UUID oldOwner, UUID newOwner) {
-        if (!mysqlGuildsAvailable || guildName == null || oldOwner == null || newOwner == null) return false;
-
-        try (Connection c = guildDataSource.getConnection()) {
-            boolean oldAutoCommit = c.getAutoCommit();
-            c.setAutoCommit(false);
-            try (PreparedStatement guildPs = c.prepareStatement("UPDATE sandbox_guilds SET owner_uuid = ? WHERE guild_name = ?");
-                 PreparedStatement memberPs = c.prepareStatement("INSERT INTO sandbox_guild_members (guild_name, player_uuid, rank_name) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE guild_name = VALUES(guild_name), rank_name = VALUES(rank_name)")) {
-
-                guildPs.setString(1, newOwner.toString());
-                guildPs.setString(2, guildName);
-                if (guildPs.executeUpdate() == 0) {
-                    c.rollback();
-                    c.setAutoCommit(oldAutoCommit);
-                    return false;
-                }
-
-                memberPs.setString(1, guildName);
-                memberPs.setString(2, oldOwner.toString());
-                memberPs.setString(3, "MEMBER");
-                memberPs.addBatch();
-
-                memberPs.setString(1, guildName);
-                memberPs.setString(2, newOwner.toString());
-                memberPs.setString(3, "OWNER");
-                memberPs.addBatch();
-                memberPs.executeBatch();
-
-                c.commit();
-                c.setAutoCommit(oldAutoCommit);
-                return true;
-            } catch (SQLException e) {
-                c.rollback();
-                c.setAutoCommit(oldAutoCommit);
-                throw e;
-            }
-        } catch (SQLException e) {
-            plugin.getLogger().severe("[Guilds] Failed to transfer ownership of " + guildName + " in MySQL: " + e.getMessage());
+    public boolean setWarp(UUID actor, String warpName, Location location) {
+        Guild g = guildOf(actor);
+        if (g == null || !hasGuildPermission(actor, "setwarp") || warpName == null || warpName.isBlank() || location == null || location.getWorld() == null)
             return false;
-        }
+        if (mysqlGuildsAvailable && !upsertWarpMysql(g.name(), warpName, location)) return false;
+        g.setWarp(warpName, location.clone());
+        save();
+        return true;
     }
 
     public boolean createRank(UUID actor, String rankName, String prefix) {
@@ -1162,13 +1270,19 @@ public final class GuildManager {
         return g == null ? Set.of() : g.permissionsFor(actor);
     }
 
-    public boolean setHome(UUID actor, Location location) {
+    public boolean deleteWarp(UUID actor, String warpName) {
         Guild g = guildOf(actor);
-        if (g == null || !hasGuildPermission(actor, "sethome") || location == null || location.getWorld() == null) return false;
-        if (mysqlGuildsAvailable && !upsertHomeMysql(g.name(), location)) return false;
-        g.setHome(location.clone());
-        if (!mysqlGuildsAvailable) save();
-        return true;
+        if (g == null || !hasGuildPermission(actor, "delwarp") || warpName == null) return false;
+        if (mysqlGuildsAvailable) {
+            int mysqlDeleted = deleteWarpMysql(g.name(), warpName);
+            if (mysqlDeleted < 0) return false;
+            boolean memoryDeleted = g.deleteWarp(warpName);
+            save();
+            return memoryDeleted || mysqlDeleted > 0;
+        }
+        boolean memoryDeleted = g.deleteWarp(warpName);
+        if (memoryDeleted) save();
+        return memoryDeleted;
     }
 
     public Location homeFor(UUID actor) {
@@ -1189,23 +1303,21 @@ public final class GuildManager {
         return loaded;
     }
 
-    public boolean setWarp(UUID actor, String warpName, Location location) {
-        Guild g = guildOf(actor);
-        if (g == null || !hasGuildPermission(actor, "setwarp") || warpName == null || warpName.isBlank() || location == null || location.getWorld() == null)
-            return false;
-        if (mysqlGuildsAvailable && !upsertWarpMysql(g.name(), warpName, location)) return false;
-        g.setWarp(warpName, location.clone());
-        if (!mysqlGuildsAvailable) save();
+    public boolean adminSetHome(Guild g, Location location) {
+        if (g == null || location == null || location.getWorld() == null) return false;
+        if (mysqlGuildsAvailable && !upsertHomeMysql(g.name(), location)) return false;
+        g.setHome(location.clone());
+        save();
         return true;
     }
 
-    public boolean deleteWarp(UUID actor, String warpName) {
-        Guild g = guildOf(actor);
-        if (g == null || !hasGuildPermission(actor, "delwarp") || warpName == null) return false;
+    public boolean adminDeleteWarp(Guild g, String warpName) {
+        if (g == null || warpName == null) return false;
         if (mysqlGuildsAvailable) {
             int mysqlDeleted = deleteWarpMysql(g.name(), warpName);
             if (mysqlDeleted < 0) return false;
             boolean memoryDeleted = g.deleteWarp(warpName);
+            save();
             return memoryDeleted || mysqlDeleted > 0;
         }
         boolean memoryDeleted = g.deleteWarp(warpName);
@@ -1232,26 +1344,59 @@ public final class GuildManager {
         return names;
     }
 
-
-    public boolean adminSetHome(Guild g, Location location) {
-        if (g == null || location == null || location.getWorld() == null) return false;
-        if (mysqlGuildsAvailable && !upsertHomeMysql(g.name(), location)) return false;
-        g.setHome(location.clone());
-        if (!mysqlGuildsAvailable) save();
-        return true;
+    private String normalizeStoredPrefix(String prefix) {
+        if (prefix == null || prefix.isBlank()) return null;
+        String out = HexColorUtil.translate(prefix);
+        out = out.replaceAll("\\s+$", "");
+        out = out.replaceAll("(?i)(?:&[0-9A-FK-OR]|§[0-9A-FK-OR])+$", "");
+        out = out.replaceAll("(?i)(?:§x(§[0-9A-F]){6})+$", "");
+        out = out.replaceAll("(?i)(?:&#[0-9A-F]{6})+$", "");
+        return out + Colors.RESET;
     }
 
-    public boolean adminDeleteWarp(Guild g, String warpName) {
-        if (g == null || warpName == null) return false;
-        if (mysqlGuildsAvailable) {
-            int mysqlDeleted = deleteWarpMysql(g.name(), warpName);
-            if (mysqlDeleted < 0) return false;
-            boolean memoryDeleted = g.deleteWarp(warpName);
-            return memoryDeleted || mysqlDeleted > 0;
+    /**
+     * Immutable copy of guild state so the SQL write never touches live maps off-thread.
+     */
+    private record GuildSnapshot(List<GuildRow> guilds, Set<String> deletedGuilds) {
+        static GuildSnapshot capture(Collection<Guild> source, Set<String> deletedGuilds) {
+            List<GuildRow> rows = new ArrayList<>(source.size());
+            for (Guild g : source) {
+                if (deletedGuilds.contains(g.name().toLowerCase(Locale.ROOT))) {
+                    // A newer guild with this name exists; the tombstone is obsolete.
+                    deletedGuilds.remove(g.name().toLowerCase(Locale.ROOT));
+                }
+                Map<String, String> ranks = new HashMap<>();
+                for (var e : g.ranks().entrySet()) ranks.put(e.getKey(), e.getValue());
+
+                Map<String, Set<String>> permissions = new HashMap<>();
+                for (var e : g.rankPermissions().entrySet()) {
+                    permissions.put(e.getKey(), Set.copyOf(e.getValue()));
+                }
+
+                rows.add(new GuildRow(
+                        g.name(),
+                        g.tag(),
+                        g.owner(),
+                        g.isOpen(),
+                        g.isPublicHome(),
+                        ranks,
+                        permissions,
+                        Map.copyOf(g.members()),
+                        g.home() == null ? null : g.home().clone(),
+                        copyWarps(g.warps())
+                ));
+            }
+            return new GuildSnapshot(List.copyOf(rows), Set.copyOf(deletedGuilds));
         }
-        boolean memoryDeleted = g.deleteWarp(warpName);
-        if (memoryDeleted) save();
-        return memoryDeleted;
+
+        private static Map<String, Location> copyWarps(Map<String, Location> source) {
+            Map<String, Location> copy = new HashMap<>();
+            for (var e : source.entrySet()) {
+                if (e.getValue() == null) continue;
+                copy.put(e.getKey(), e.getValue().clone());
+            }
+            return copy;
+        }
     }
 
     public enum ToggleResult { OK, NO_GUILD, NO_PERMISSION, INVALID_TOGGLE }
@@ -1345,14 +1490,18 @@ public final class GuildManager {
         return removed;
     }
 
-    private String normalizeStoredPrefix(String prefix) {
-        if (prefix == null || prefix.isBlank()) return null;
-        String out = HexColorUtil.translate(prefix);
-        out = out.replaceAll("\\s+$", "");
-        out = out.replaceAll("(?i)(?:&[0-9A-FK-OR]|§[0-9A-FK-OR])+$", "");
-        out = out.replaceAll("(?i)(?:§x(§[0-9A-F]){6})+$", "");
-        out = out.replaceAll("(?i)(?:&#[0-9A-F]{6})+$", "");
-        return out + ChatColor.RESET;
+    private record GuildRow(
+            String name,
+            String tag,
+            UUID owner,
+            boolean isOpen,
+            boolean isPublicHome,
+            Map<String, String> ranks,
+            Map<String, Set<String>> rankPermissions,
+            Map<UUID, String> members,
+            Location home,
+            Map<String, Location> warps
+    ) {
     }
 
     public static String normalizePermission(String permission) {

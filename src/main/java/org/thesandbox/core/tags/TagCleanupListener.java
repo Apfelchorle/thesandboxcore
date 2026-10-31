@@ -14,9 +14,10 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
-import org.thesandbox.core.util.HexColorUtil;
 import org.thesandbox.core.guilds.Guild;
 import org.thesandbox.core.guilds.GuildManager;
+import org.thesandbox.core.util.Colors;
+import org.thesandbox.core.util.HexColorUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -153,7 +154,7 @@ public class TagCleanupListener implements Listener
         out = out.replaceAll("(?i)(?:&[0-9A-FK-OR]|§[0-9A-FK-OR])+$", "");
         out = out.replaceAll("(?i)(?:§x(§[0-9A-F]){6})+$", "");
         out = out.replaceAll("(?i)(?:&#[0-9A-F]{6})+$", "");
-        return out + org.bukkit.ChatColor.RESET;
+        return out + Colors.RESET;
     }
 
     private String getGuildRankPrefix(UUID uuid)

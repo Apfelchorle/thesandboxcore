@@ -1,7 +1,6 @@
 package org.thesandbox.core.commands.utility;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
@@ -10,6 +9,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.services.ManageChatService;
+import org.thesandbox.core.util.Colors;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +34,7 @@ public class ManageChatCommand implements ISubCommand, TabCompleter {
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
 
         if (args.length < 1) {
-            sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " <mute|clear>"));
+            sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <mute|clear>"));
             return true;
         }
 
@@ -43,10 +43,10 @@ public class ManageChatCommand implements ISubCommand, TabCompleter {
             case "mute": {
                 if (!service.isMuted()) {
                     service.mute();
-                    Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + sender.getName() + " - Muting the chat"));
+                    Colors.broadcast(CommandMessages.server(Colors.RED + sender.getName() + " - Muting the chat"));
                 } else {
                     service.unmute();
-                    Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + sender.getName() + " - Unmuting the chat"));
+                    Colors.broadcast(CommandMessages.server(Colors.RED + sender.getName() + " - Unmuting the chat"));
                 }
                 return true;
             }
@@ -55,18 +55,18 @@ public class ManageChatCommand implements ISubCommand, TabCompleter {
                     if (p.hasPermission("sandbox.staff")) continue; // don't clear for mods
                     for (int i = 0; i < 100; i++) p.sendMessage(" ");
                 }
-                Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + sender.getName() + " - Cleared the chat"));
+                Colors.broadcast(CommandMessages.server(Colors.RED + sender.getName() + " - Cleared the chat"));
                 return true;
             }
             case "forceclear": {
                 for (Player p : Bukkit.getOnlinePlayers()) {
                     for (int i = 0; i < 100; i++) p.sendMessage(" ");
                 }
-                Bukkit.broadcastMessage(CommandMessages.server("&c" + sender.getName() + " - Force Cleared the chat"));
+                Colors.broadcast(CommandMessages.server("&c" + sender.getName() + " - Force Cleared the chat"));
                 return true;
             }
             default: {
-                sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " <mute|clear|forceclear>"));
+                sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <mute|clear|forceclear>"));
                 return true;
             }
         }

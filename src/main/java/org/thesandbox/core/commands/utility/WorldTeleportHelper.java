@@ -1,12 +1,12 @@
 package org.thesandbox.core.commands.utility;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.commands.CommandMessages;
+import org.thesandbox.core.util.Colors;
 
 import java.io.File;
 import java.util.Collections;
@@ -19,20 +19,20 @@ final class WorldTeleportHelper {
 
     static boolean teleport(CommandSender sender, String worldName, String displayName) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(CommandMessages.error(ChatColor.RED + "This command can only be used in-game."));
+            sender.sendMessage(CommandMessages.error(Colors.RED + "This command can only be used in-game."));
             return true;
         }
 
         World world = resolveWorld(worldName);
         if (world == null) {
-            player.sendMessage(CommandMessages.error(ChatColor.RED + displayName + " is not loaded."));
+            player.sendMessage(CommandMessages.error(Colors.RED + displayName + " is not loaded."));
             return true;
         }
 
         if (player.teleport(world.getSpawnLocation())) {
-            player.sendMessage(CommandMessages.command(ChatColor.GRAY + "Teleporting you to the " + displayName.toLowerCase() + "."));
+            player.sendMessage(CommandMessages.command(Colors.GRAY + "Teleporting you to the " + displayName.toLowerCase() + "."));
         } else {
-            player.sendMessage(CommandMessages.error(ChatColor.RED + "Failed to teleport."));
+            player.sendMessage(CommandMessages.error(Colors.RED + "Failed to teleport."));
         }
         return true;
     }

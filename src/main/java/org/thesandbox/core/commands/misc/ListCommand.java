@@ -2,13 +2,13 @@ package org.thesandbox.core.commands.misc;
 
 import de.myzelyam.api.vanish.VanishAPI;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.login.LoginService;
+import org.thesandbox.core.util.Colors;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -98,8 +98,21 @@ public class ListCommand implements ISubCommand
 
     /* ================= helpers ================= */
 
-    private static String color(String s) {
-        return ChatColor.translateAlternateColorCodes('&', s);
+    private String formatEntry(Player p, LoginService.Rank rank, boolean showVanishedTag)
+    {
+        String vanished = showVanishedTag ? color(" &e(VANISHED)") : "";
+        String name = p.getName();
+
+        // Match the same rank prefix style used for LuckPerms/chat and scoreboard teams.
+        // Operator is intentionally displayed as OP here.
+        return switch (rank == null ? LoginService.Rank.DEFAULT : rank) {
+            case OPERATOR -> color("&4&lOP &8• &4" + name) + Colors.RESET + vanished;
+            case ADMIN -> color("&c&lADMIN &8• &c" + name) + Colors.RESET + vanished;
+            case STAFF -> color("&6&lSTAFF &8• &6" + name) + Colors.RESET + vanished;
+            case MB -> color("&3&lMB &8• &3" + name) + Colors.RESET + vanished;
+            case VIP -> color("&5&lVIP &8• &5" + name) + Colors.RESET + vanished;
+            case DEFAULT -> color("&7" + name) + Colors.RESET + vanished;
+        };
     }
 
     private static void send(CommandSender s, String msg) {
@@ -116,20 +129,7 @@ public class ListCommand implements ISubCommand
         }
     }
 
-    private String formatEntry(Player p, LoginService.Rank rank, boolean showVanishedTag)
-    {
-        String vanished = showVanishedTag ? color(" &e(VANISHED)") : "";
-        String name = p.getName();
-
-        // Match the same rank prefix style used for LuckPerms/chat and scoreboard teams.
-        // Operator is intentionally displayed as OP here.
-        return switch (rank == null ? LoginService.Rank.DEFAULT : rank) {
-            case OPERATOR -> color("&4&lOP &8• &4" + name) + ChatColor.RESET + vanished;
-            case ADMIN    -> color("&c&lADMIN &8• &c" + name) + ChatColor.RESET + vanished;
-            case STAFF    -> color("&6&lSTAFF &8• &6" + name) + ChatColor.RESET + vanished;
-            case MB       -> color("&3&lMB &8• &3" + name) + ChatColor.RESET + vanished;
-            case VIP      -> color("&5&lVIP &8• &5" + name) + ChatColor.RESET + vanished;
-            case DEFAULT  -> color("&7" + name) + ChatColor.RESET + vanished;
-        };
+    private static String color(String s) {
+        return Colors.color(s);
     }
 }

@@ -1,13 +1,13 @@
 package org.thesandbox.core.commands.utility;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.thesandbox.core.services.AutoClearService;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.services.AutoClearService;
+import org.thesandbox.core.util.Colors;
 
 import java.util.Collections;
 import java.util.List;
@@ -26,8 +26,7 @@ public class AutoClearCommand implements ISubCommand
     {
         if (args.length < 1)
         {
-            sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&c&lUsage &8» &c/" + label + " <player>" ));
+            sender.sendMessage(Colors.color("&c&lUsage &8» &c/" + label + " <player>"));
             return true;
         }
 
@@ -35,8 +34,7 @@ public class AutoClearCommand implements ISubCommand
         OfflinePlayer target = Bukkit.getOfflinePlayer(args[0]);
         if (target == null || target.getUniqueId() == null)
         {
-            sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&c&lError &8» &cUnknown player: " + args[0]));
+            sender.sendMessage(Colors.color("&c&lError &8» &cUnknown player: " + args[0]));
             return true;
         }
 
@@ -44,14 +42,12 @@ public class AutoClearCommand implements ISubCommand
         if (service.contains(target.getUniqueId()))
         {
             service.remove(target.getUniqueId());
-            sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&7&lCommand &8» &7AutoClear disabled for " + target.getName() + "."));
+            sender.sendMessage(Colors.color("&7&lCommand &8» &7AutoClear disabled for " + target.getName() + "."));
         }
         else
         {
             service.add(target.getUniqueId());
-            sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&7&lCommand &8» &7AutoClear enabled for " + target.getName() + ". Their inventory will clear upon rejoining."));
+            sender.sendMessage(Colors.color("&7&lCommand &8» &7AutoClear enabled for " + target.getName() + ". Their inventory will clear upon rejoining."));
         }
 
         return true;

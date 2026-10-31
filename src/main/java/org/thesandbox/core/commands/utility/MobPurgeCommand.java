@@ -1,7 +1,6 @@
 package org.thesandbox.core.commands.utility;
 
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -12,6 +11,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,14 +41,14 @@ public class MobPurgeCommand implements ISubCommand
             }
             catch (IllegalArgumentException e)
             {
-                sender.sendMessage(CommandMessages.error(ChatColor.RED + args[0] + " is not a valid mob type."));
+                sender.sendMessage(CommandMessages.error(Colors.RED + args[0] + " is not a valid mob type."));
                 return true;
             }
 
             // Validate that it's actually a mob (living & spawnable) and not players
             if (!isMobType(targetType))
             {
-                sender.sendMessage(CommandMessages.error(ChatColor.RED + formatName(targetType.name()) + " is an entity, but not a mob. /entitywipe is for entities."));
+                sender.sendMessage(CommandMessages.error(Colors.RED + formatName(targetType.name()) + " is an entity, but not a mob. /entitywipe is for entities."));
                 return true;
             }
 
@@ -57,7 +57,7 @@ public class MobPurgeCommand implements ISubCommand
 
         // Broadcast admin action in red
         String who = (sender instanceof Player) ? sender.getName() : "CONSOLE";
-        Bukkit.broadcastMessage(CommandMessages.server(ChatColor.RED + who + " - Purging all "
+        Colors.broadcast(CommandMessages.server(Colors.RED + who + " - Purging all "
                 + (targetType != null ? mobName + "s" : "mobs")));
 
         // Do the purge
@@ -89,12 +89,12 @@ public class MobPurgeCommand implements ISubCommand
         // Feedback to sender
         if (targetType != null)
         {
-            sender.sendMessage(CommandMessages.command(ChatColor.GRAY + "" + removed + " " + mobName
+            sender.sendMessage(CommandMessages.command(Colors.GRAY + "" + removed + " " + mobName
                     + (removed == 1 ? "" : "s") + " removed."));
         }
         else
         {
-            sender.sendMessage(CommandMessages.command(ChatColor.GRAY + "" + removed + " mob" + (removed == 1 ? "" : "s") + " removed."));
+            sender.sendMessage(CommandMessages.command(Colors.GRAY + "" + removed + " mob" + (removed == 1 ? "" : "s") + " removed."));
         }
 
         return true;

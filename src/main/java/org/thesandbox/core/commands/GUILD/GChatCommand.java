@@ -9,7 +9,7 @@ import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.commands.meta.CommandAliases;
 import org.thesandbox.core.commands.meta.CommandName;
 import org.thesandbox.core.guilds.GuildManager;
-import org.thesandbox.core.guilds.Text;
+import org.thesandbox.core.util.Colors;
 
 import java.util.List;
 
@@ -29,13 +29,13 @@ public final class GChatCommand implements ISubCommand {
         if (!(sender instanceof Player p)) return true;
 
         if (!guilds.isInGuild(p.getUniqueId())) {
-            p.sendMessage(Text.c(CommandMessages.error("&cYou are not in a guild.")));
+            p.sendMessage(Colors.c(CommandMessages.error("&cYou are not in a guild.")));
             return true;
         }
 
         if (args.length == 0) {
             guilds.toggleGuildChat(p.getUniqueId());
-            p.sendMessage(Text.c(CommandMessages.command("&aGuild chat: " + (guilds.isGuildChatToggled(p.getUniqueId()) ? "&2ON" : "&cOFF"))));
+            p.sendMessage(Colors.c(CommandMessages.command("&aGuild chat: " + (guilds.isGuildChatToggled(p.getUniqueId()) ? "&2ON" : "&cOFF"))));
             return true;
         }
 

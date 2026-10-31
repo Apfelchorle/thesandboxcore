@@ -1,11 +1,11 @@
 package org.thesandbox.core.commands.Admin;
 
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,8 +26,7 @@ public class CommandSpyCommand implements ISubCommand
     {
         if (!(sender instanceof Player player))
         {
-            sender.sendMessage(ChatColor.translateAlternateColorCodes('&',
-            "&c&lError &8» &cOnly players can use this command."));
+            sender.sendMessage(Colors.color("&c&lError &8» &cOnly players can use this command."));
             return true;
         }
 
@@ -38,8 +37,7 @@ public class CommandSpyCommand implements ISubCommand
 
             plugin.getCommandSpyManager().setCmdSpy(player, newState);
 
-            player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-            "&7&lCommand &8» &7CommandSpy has been "
+            player.sendMessage(Colors.color("&7&lCommand &8» &7CommandSpy has been "
                     + (newState ? "enabled" : "disabled")
                     + "&7."));
             return true;
@@ -53,8 +51,7 @@ public class CommandSpyCommand implements ISubCommand
             {
                 plugin.getCommandSpyManager().setCmdSpy(player, false);
 
-                player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&7&lCommand &8» &7CommandSpy has been enabled."));
+                player.sendMessage(Colors.color("&7&lCommand &8» &7CommandSpy has been enabled."));
                 return true;
             }
 
@@ -62,8 +59,7 @@ public class CommandSpyCommand implements ISubCommand
             {
                 plugin.getCommandSpyManager().setCmdSpy(player, false);
 
-                player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&7&lCommand &8» &7CommandSpy has been &cdisabled."));
+                player.sendMessage(Colors.color("&7&lCommand &8» &7CommandSpy has been &cdisabled."));
                 return true;
             }
 
@@ -71,8 +67,7 @@ public class CommandSpyCommand implements ISubCommand
             {
                 boolean enabled = !plugin.getCommandSpyManager().isCmdSpyDisabled(player.getUniqueId());
 
-                player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&7&lCommand &8» &7CommandSpy is currently "
+                player.sendMessage(Colors.color("&7&lCommand &8» &7CommandSpy is currently "
                         + (enabled ? "enabled" : "disabled")
                         + "&7."));
                 return true;
@@ -80,8 +75,7 @@ public class CommandSpyCommand implements ISubCommand
 
             default:
             {
-                player.sendMessage(ChatColor.translateAlternateColorCodes('&',
-                "&c&lUsage &8» &c/" + label + " [on|off|toggle|status]"));
+                player.sendMessage(Colors.color("&c&lUsage &8» &c/" + label + " [on|off|toggle|status]"));
                 return true;
             }
         }

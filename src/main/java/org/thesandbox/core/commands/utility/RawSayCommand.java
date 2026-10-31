@@ -1,11 +1,10 @@
 package org.thesandbox.core.commands.utility;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.Colors;
 
 import java.util.Collections;
 import java.util.List;
@@ -17,15 +16,15 @@ public class RawSayCommand implements ISubCommand
     {
         if (args.length == 0)
         {
-            sender.sendMessage(CommandMessages.usage(ChatColor.RED + "Usage: /" + label + " <message>"));
+            sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <message>"));
             return true;
         }
 
         // Support & color codes
-        String message = ChatColor.translateAlternateColorCodes('&', String.join(" ", args));
+        String message = Colors.color(String.join(" ", args));
 
         // Broadcast to all players (console will also see it in server log)
-        Bukkit.broadcastMessage(CommandMessages.server("") + message);
+        Colors.broadcast(CommandMessages.server("") + message);
         return true;
     }
 

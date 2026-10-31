@@ -10,7 +10,6 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.luckperms.api.LuckPermsProvider;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
@@ -21,6 +20,7 @@ import org.bukkit.plugin.Plugin;
 import org.thesandbox.core.DiscordBridge;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.fun.Utils;
+import org.thesandbox.core.util.Colors;
 import org.thesandbox.core.util.HexColorUtil;
 import org.thesandbox.core.util.PlayerDataKeys;
 
@@ -35,7 +35,11 @@ public class ChatMentionFormatListener implements Listener
     // Adventure / MiniMessage
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
     private final LegacyComponentSerializer legacySerializer =
-            LegacyComponentSerializer.legacySection();
+            LegacyComponentSerializer.builder()
+                    .character('\u00a7')
+                    .hexColors()
+                    .useUnusualXRepeatedCharacterHexFormat()
+                    .build();
 
     public ChatMentionFormatListener(TheSandboxCore core, ChatFilterEngine chatFilterEngine)
     {
@@ -57,6 +61,17 @@ public class ChatMentionFormatListener implements Listener
         final String rawText = Utils.plainText(originalComponent);
 
         final ChatFilterEngine.Result filterResult = chatFilterEngine.scan(rawText);
+
+        if (filterResult != null && filterResult.triggered) {
+            Component staffAlert = Component.text(
+                    "[ChatFilter] " + sender.getName() + " triggered the chat filter. Original: " + rawText,
+                    NamedTextColor.DARK_GRAY);
+            for (Player staff : Bukkit.getOnlinePlayers()) {
+                if (staff.hasPermission("sandbox.staff")) {
+                    staff.sendMessage(staffAlert);
+                }
+            }
+        }
 
         // Guild chat toggle: route through GuildManager so /gchat and toggled chat share formatting, spies, and console logging.
         var guilds = core.getGuildManager();
@@ -181,8 +196,9 @@ public class ChatMentionFormatListener implements Listener
         }
 
         if (base == null || base.isBlank()) {
-            String displayName = p.getDisplayName();
-            base = displayName.isBlank() ? p.getName() : displayName;
+            Component displayName = p.displayName();
+            if (!Utils.plainText(displayName).isBlank()) return displayName;
+            base = p.getName();
         }
 
         if (base.contains("&")) {
@@ -352,7 +368,7 @@ public class ChatMentionFormatListener implements Listener
             // Fall through to Bukkit display name.
         }
 
-        String displayName = p.getDisplayName();
+        String displayName = legacySerializer.serialize(p.displayName());
         return displayName.isBlank() ? p.getName() : displayName;
     }
 
@@ -360,10 +376,10 @@ public class ChatMentionFormatListener implements Listener
     private String rankNameColor(Player p)
     {
         try {
-            if (core.getLoginService() == null) return ChatColor.GRAY.toString();
+            if (core.getLoginService() == null) return Colors.GRAY.toString();
             return colorizeLegacy(core.getLoginService().getRank(p).color);
         } catch (Throwable ignored) {
-            return ChatColor.GRAY.toString();
+            return Colors.GRAY.toString();
         }
     }
 
@@ -491,8 +507,8 @@ public class ChatMentionFormatListener implements Listener
             return out;
         } else {
             // Legacy highlighting with ChatColor
-            final String reset  = ChatColor.RESET.toString();
-            final String yellow = ChatColor.YELLOW.toString();
+            final String reset = Colors.RESET.toString();
+            final String yellow = Colors.YELLOW.toString();
 
             String out = replaceMention(
                     message,
