@@ -458,6 +458,11 @@ commands:
     usage: /list
     permission: sandbox.default
 
+  player:
+    description: Player utilities for online and offline players
+    usage: /player <help|list|tp|uuid> [player|uuid]
+    permission: sandbox.default
+
   devtoggle:
     description: Developer toggles for server systems.
     usage: /devtoggle discord [status]

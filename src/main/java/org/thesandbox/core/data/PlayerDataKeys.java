@@ -5,6 +5,7 @@ public final class PlayerDataKeys {
     // player
     public static final String FIRST_TIME_JOINING = "FirstTimeJoining";
     public static final String COINS = "coins";
+    public static final String LAST_LOCATION = "LastLocation";
 
     // stuff
     public static final String JUMPPADS_MODE = "jumppadmode";

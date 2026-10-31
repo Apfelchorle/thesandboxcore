@@ -1,7 +1,9 @@
 package org.thesandbox.core.data;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -10,6 +12,9 @@ import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.thesandbox.core.TheSandboxCore;
 
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -20,6 +25,7 @@ public class PlayerDataListener implements Listener {
     static {
         DEFAULTS.put(PlayerDataKeys.FIRST_TIME_JOINING, true);
         DEFAULTS.put(PlayerDataKeys.COINS, 0);
+        DEFAULTS.put(PlayerDataKeys.LAST_LOCATION, "");
         DEFAULTS.put(PlayerDataKeys.JUMPPADS_MODE, "disabled");
         DEFAULTS.put(PlayerDataKeys.LIGHTNING_ROD, "not_owned");
         DEFAULTS.put(PlayerDataKeys.LOGIN_MESSAGE, "");
@@ -60,11 +66,14 @@ public class PlayerDataListener implements Listener {
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
-        UUID uuid = event.getPlayer().getUniqueId();
+        Player player = event.getPlayer();
+        UUID uuid = player.getUniqueId();
 
         Map<String, Object> data = playerCache.remove(uuid);
         if (data == null) return;
 
+        // Remember the logout spot so /player tp can reach offline players.
+        data.put(PlayerDataKeys.LAST_LOCATION, encodeLocation(player.getLocation()));
         Map<String, Object> snapshot = new HashMap<>(data);
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -72,13 +81,17 @@ public class PlayerDataListener implements Listener {
         });
     }
 
-    public void saveAll() {
-        for (UUID uuid : new HashSet<>(playerCache.keySet())) {
-            Map<String, Object> data = playerCache.get(uuid);
-            if (data != null) {
-                dataManager.saveAllData(uuid, new HashMap<>(data));
-            }
+    private static String encodeLocation(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return "";
         }
+        String world = URLEncoder.encode(location.getWorld().getName(), StandardCharsets.UTF_8);
+        return world
+                + ";" + location.getX()
+                + ";" + location.getY()
+                + ";" + location.getZ()
+                + ";" + location.getYaw()
+                + ";" + location.getPitch();
     }
 
     /**
@@ -174,6 +187,61 @@ public class PlayerDataListener implements Listener {
 
     public String getGender(UUID uuid) {
         return get(uuid, PlayerDataKeys.GENDER, "male");
+    }
+
+    public void saveAll() {
+        for (UUID uuid : new HashSet<>(playerCache.keySet())) {
+            Map<String, Object> data = playerCache.get(uuid);
+            if (data != null) {
+                Player online = Bukkit.getPlayer(uuid);
+                if (online != null) {
+                    data.put(PlayerDataKeys.LAST_LOCATION, encodeLocation(online.getLocation()));
+                }
+                dataManager.saveAllData(uuid, new HashMap<>(data));
+            }
+        }
+    }
+
+    /**
+     * Last known location, captured when the player quits. Returns null when the
+     * player has no stored location yet or the stored world is not loaded.
+     */
+    public Location getLastLocation(UUID uuid) {
+        return decodeLocation(get(uuid, PlayerDataKeys.LAST_LOCATION, ""));
+    }
+
+    private static Location decodeLocation(String encoded) {
+        if (encoded == null || encoded.isBlank()) {
+            return null;
+        }
+
+        String[] parts = encoded.split(";", 6);
+        if (parts.length != 6) {
+            return null;
+        }
+
+        final String worldName;
+        try {
+            worldName = URLDecoder.decode(parts[0], StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+
+        World world = Bukkit.getWorld(worldName);
+        if (world == null) {
+            return null;
+        }
+
+        try {
+            double x = Double.parseDouble(parts[1]);
+            double y = Double.parseDouble(parts[2]);
+            double z = Double.parseDouble(parts[3]);
+            float yaw = Float.parseFloat(parts[4]);
+            float pitch = Float.parseFloat(parts[5]);
+            return new Location(world, x, y, z, yaw, pitch);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
 }
