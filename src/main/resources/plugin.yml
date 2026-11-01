@@ -463,7 +463,18 @@ commands:
     usage: /player <help|list|tp|uuid> [player|uuid]
     permission: sandbox.default
 
+  config:
+    description: Manage player data and global config settings
+    usage: "/config <get|set|list> [key] [value] [player]"
+    permission: sandbox.staff
+
   devtoggle:
     description: Developer toggles for server systems.
     usage: /devtoggle discord [status]
     permission: sandbox.superuser
+
+  mediatoggle:
+    description: Toggle Discord media-to-ASCII rendering on/off
+    usage: /mediatoggle
+    permission: sandbox.staff
+    aliases: [ asciiart, asciitoggle ]

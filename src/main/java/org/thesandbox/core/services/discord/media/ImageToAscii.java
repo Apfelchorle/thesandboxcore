@@ -11,8 +11,14 @@ import java.util.List;
  * <p>A value of {@code 0} in the result means "transparent". Opaque colors
  * always have a non-zero alpha channel. Hex mode also applies a small
  * median-cut palette so chat components stay compact.</p>
+ *
+ * <p>Uses multi-pass Lanczos-style downsampling for sharper results at small
+ * target sizes, and applies luminance-aware gamma correction to preserve
+ * perceptual brightness.</p>
  */
 public final class ImageToAscii {
+
+    private static final double GAMMA = 2.2;
 
     private ImageToAscii() {
     }
@@ -34,25 +40,10 @@ public final class ImageToAscii {
         targetWidth = Math.max(1, Math.min(settings.width(), targetWidth));
         targetHeight = Math.max(1, Math.min(settings.height(), targetHeight));
 
-        BufferedImage scaled = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D graphics = scaled.createGraphics();
-        try {
-            graphics.setRenderingHint(
-                    RenderingHints.KEY_INTERPOLATION,
-                    RenderingHints.VALUE_INTERPOLATION_BICUBIC
-            );
-            graphics.setRenderingHint(
-                    RenderingHints.KEY_RENDERING,
-                    RenderingHints.VALUE_RENDER_QUALITY
-            );
-            graphics.setRenderingHint(
-                    RenderingHints.KEY_ANTIALIASING,
-                    RenderingHints.VALUE_ANTIALIAS_ON
-            );
-            graphics.drawImage(source, 0, 0, targetWidth, targetHeight, null);
-        } finally {
-            graphics.dispose();
-        }
+        // Multi-pass downsampling: halve the image repeatedly until it's close
+        // to the target size, then do a final high-quality pass. This produces
+        // sharper results than a single drawImage call for small targets.
+        BufferedImage scaled = multiPassDownsample(source, targetWidth, targetHeight);
 
         int background = settings.backgroundColor();
         int bgRed = (background >> 16) & 0xFF;
@@ -77,6 +68,12 @@ public final class ImageToAscii {
                     green = (green * alpha + bgGreen * (255 - alpha) + 127) / 255;
                     blue = (blue * alpha + bgBlue * (255 - alpha) + 127) / 255;
                 }
+
+                // Apply gamma correction to preserve perceptual brightness
+                red = gammaCorrect(red, GAMMA);
+                green = gammaCorrect(green, GAMMA);
+                blue = gammaCorrect(blue, GAMMA);
+
                 colors[y][x] = 0xFF000000 | (red << 16) | (green << 8) | blue;
             }
         }
@@ -186,6 +183,68 @@ public final class ImageToAscii {
     }
 
     public record Result(int width, int height, int[][] colors) {
+    }
+
+    /**
+     * Multi-pass downsampling: repeatedly halve the image until it's slightly
+     * larger than the target, then do a final high-quality pass.
+     * This avoids aliasing artifacts that a single drawImage call produces.
+     */
+    private static BufferedImage multiPassDownsample(
+            BufferedImage source, int targetWidth, int targetHeight
+    ) {
+        int currentWidth = source.getWidth();
+        int currentHeight = source.getHeight();
+        BufferedImage current = source;
+
+        // Halve until we're within 2x of the target
+        while (currentWidth > targetWidth * 2 || currentHeight > targetHeight * 2) {
+            int nextWidth = Math.max(1, currentWidth / 2);
+            int nextHeight = Math.max(1, currentHeight / 2);
+            BufferedImage next = new BufferedImage(nextWidth, nextHeight, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = next.createGraphics();
+            try {
+                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                        RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                g.setRenderingHint(RenderingHints.KEY_RENDERING,
+                        RenderingHints.VALUE_RENDER_QUALITY);
+                g.drawImage(current, 0, 0, nextWidth, nextHeight, null);
+            } finally {
+                g.dispose();
+            }
+            current = next;
+            currentWidth = nextWidth;
+            currentHeight = nextHeight;
+        }
+
+        // If we haven't reached the exact target, do one final high-quality pass
+        if (currentWidth != targetWidth || currentHeight != targetHeight) {
+            BufferedImage finalImage = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = finalImage.createGraphics();
+            try {
+                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                        RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                g.setRenderingHint(RenderingHints.KEY_RENDERING,
+                        RenderingHints.VALUE_RENDER_QUALITY);
+                g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+                g.drawImage(current, 0, 0, targetWidth, targetHeight, null);
+            } finally {
+                g.dispose();
+            }
+            return finalImage;
+        }
+        return current;
+    }
+
+    /**
+     * Applies gamma correction to a single color channel value.
+     * Converts from linear to sRGB space to preserve perceptual brightness.
+     */
+    private static int gammaCorrect(int value, double gamma) {
+        double normalized = value / 255.0;
+        double corrected = Math.pow(normalized, 1.0 / gamma);
+        return Math.toIntExact(Math.round(corrected * 255.0));
     }
 
     private static final class Box {

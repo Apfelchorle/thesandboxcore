@@ -8,6 +8,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.data.PlayerDataKeys;
 import org.thesandbox.core.data.PlayerDataListener;
 
 import java.util.ArrayList;
@@ -69,6 +70,36 @@ public class TheSandboxCoreCommand extends BaseCommand {
                 });
                 return true;
             }
+
+            if (subcommand.equalsIgnoreCase("set")) {
+                if (args.length < 5) {
+                    sender.sendMessage(Component.text("Usage: /" + label + " config set <key> <value> <player>", NamedTextColor.RED));
+                    return true;
+                }
+
+                String playerName = args[args.length - 1];
+                String dataKey = String.join(" ", Arrays.copyOfRange(args, 2, args.length - 2));
+                String dataValue = args[args.length - 2];
+
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                    OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerName);
+                    UUID uuid = offlinePlayer.getUniqueId();
+
+                    playerDataListener.set(uuid, dataKey, dataValue);
+
+                    Component message = Component.text()
+                            .append(Component.text("Set ", NamedTextColor.GREEN))
+                            .append(Component.text(dataKey, NamedTextColor.GOLD))
+                            .append(Component.text(" = ", NamedTextColor.GREEN))
+                            .append(Component.text(dataValue, NamedTextColor.WHITE))
+                            .append(Component.text(" for ", NamedTextColor.GREEN))
+                            .append(Component.text(playerName, NamedTextColor.GOLD))
+                            .build();
+
+                    Bukkit.getScheduler().runTask(plugin, () -> sender.sendMessage(message));
+                });
+                return true;
+            }
         }
 
         // /thesandboxcore reload
@@ -85,7 +116,7 @@ public class TheSandboxCoreCommand extends BaseCommand {
             return true;
         }
 
-        sender.sendMessage(Component.text("Usage: /" + label + " [reload | config get <key> <player>]", NamedTextColor.RED));
+        sender.sendMessage(Component.text("Usage: /" + label + " [reload | config get <key> <player> | config set <key> <value> <player>]", NamedTextColor.RED));
         return true;
     }
 
@@ -110,11 +141,31 @@ public class TheSandboxCoreCommand extends BaseCommand {
         }
 
         if (args.length == 2 && args[0].equalsIgnoreCase("config")) {
-            if ("get".startsWith(args[1].toLowerCase())) completions.add("get");
+            String input = args[1].toLowerCase();
+            if ("get".startsWith(input)) completions.add("get");
+            if ("set".startsWith(input)) completions.add("set");
+            return completions;
+        }
+
+        if (args.length == 3 && args[0].equalsIgnoreCase("config") && args[1].equalsIgnoreCase("set")) {
+            String input = args[2].toLowerCase();
+            for (String key : PlayerDataKeys.getAllKeys()) {
+                if (key.toLowerCase().startsWith(input)) {
+                    completions.add(key);
+                }
+            }
             return completions;
         }
 
         if (args.length >= 4 && args[0].equalsIgnoreCase("config") && args[1].equalsIgnoreCase("get")) {
+            String input = args[args.length - 1].toLowerCase();
+            return Bukkit.getOnlinePlayers().stream()
+                    .map(OfflinePlayer::getName)
+                    .filter(name -> name.toLowerCase().startsWith(input))
+                    .collect(Collectors.toList());
+        }
+
+        if (args.length >= 4 && args[0].equalsIgnoreCase("config") && args[1].equalsIgnoreCase("set")) {
             String input = args[args.length - 1].toLowerCase();
             return Bukkit.getOnlinePlayers().stream()
                     .map(OfflinePlayer::getName)

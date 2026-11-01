@@ -20,6 +20,7 @@ public record MediaRenderSettings(
         int height,
         double charAspect,
         ColorMode colorMode,
+        RenderStyle renderStyle,
         int paletteSize,
         int alphaThreshold,
         int backgroundColor,
@@ -41,6 +42,14 @@ public record MediaRenderSettings(
                 ? ColorMode.LEGACY
                 : ColorMode.HEX;
 
+        String style = config.getString("discord.image-render.style", "block");
+        RenderStyle renderStyle;
+        if (style != null && style.equalsIgnoreCase("emoji")) {
+            renderStyle = RenderStyle.EMOJI;
+        } else {
+            renderStyle = RenderStyle.BLOCK;
+        }
+
         return new MediaRenderSettings(
                 config.getBoolean("discord.image-render.enabled", true),
                 config.getBoolean("discord.image-render.staff", true),
@@ -52,6 +61,7 @@ public record MediaRenderSettings(
                 clamp(config.getInt("discord.image-render.height", 16), 4, 40),
                 clamp(config.getDouble("discord.image-render.char-aspect", 0.9), 0.4, 2.0),
                 mode,
+                renderStyle,
                 clamp(config.getInt("discord.image-render.colors", 64), 2, 256),
                 clamp(config.getInt("discord.image-render.alpha-threshold", 32), 0, 255),
                 parseColor(config.getString("discord.image-render.background", "#1F1F1F"), 0x1F1F1F),
@@ -93,19 +103,34 @@ public record MediaRenderSettings(
     public static MediaRenderSettings disabled() {
         return new MediaRenderSettings(
                 false, false, false, false, false, false,
-                34, 16, 0.9, ColorMode.HEX, 64, 32, 0x1F1F1F,
+                34, 16, 0.9, ColorMode.HEX, RenderStyle.BLOCK, 64, 32, 0x1F1F1F,
                 2000L, 128, 12, 3,
                 8 * 1024 * 1024, 20_000_000, 256, false
         );
     }
 
     public String cacheSignature() {
-        return width + "x" + height + ":" + charAspect + ":" + colorMode + ":" + paletteSize
-                + ":" + alphaThreshold + ":" + Integer.toHexString(backgroundColor) + ":" + fetchSize;
+        return width + "x" + height + ":" + charAspect + ":" + colorMode + ":" + renderStyle
+                + ":" + paletteSize + ":" + alphaThreshold
+                + ":" + Integer.toHexString(backgroundColor) + ":" + fetchSize;
     }
 
     public enum ColorMode {
         HEX,
         LEGACY
+    }
+
+    /**
+     * Controls how each pixel is rendered in chat.
+     */
+    public enum RenderStyle {
+        /**
+         * Uses a block character (█) with color — the default.
+         */
+        BLOCK,
+        /**
+         * Uses colored emoji circles mapped to luminance bands.
+         */
+        EMOJI
     }
 }

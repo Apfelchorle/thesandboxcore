@@ -4,6 +4,11 @@ import java.util.List;
 
 public final class GenericDataKeys {
 
+
+    // thing
+
+    public static final String DISCORD_MEDIA_BLOCK = "DISCORD.MEDIA.ASCII_CHARACTER";
+
     /**
      * true = water/lava flow normally, false = flow is frozen (toggled by /waterflow).
      */

@@ -86,6 +86,7 @@ public class DiscordBridge extends ListenerAdapter {
     private final Map<String, CompletableFuture<Void>> mediaChains = new ConcurrentHashMap<>();
     private volatile MediaCollector mediaCollector = new MediaCollector(MediaRenderSettings.disabled());
     private volatile DiscordMediaRenderer mediaRenderer;
+    private volatile boolean mediaRenderEnabled = true;
     // Channels
     private TextChannel staffChannel;
     private TextChannel schemuploadsChannel;
@@ -518,6 +519,23 @@ public class DiscordBridge extends ListenerAdapter {
         mediaChains.clear();
     }
 
+    /**
+     * Returns whether Discord media-to-ASCII rendering is currently enabled.
+     */
+    public boolean isMediaRenderEnabled() {
+        return mediaRenderEnabled;
+    }
+
+    /**
+     * Toggles whether Discord media is rendered as ASCII art in-game.
+     * When disabled, messages with media show a clickable [Media] tag instead.
+     *
+     * @param enabled true to enable ASCII rendering, false to disable
+     */
+    public void setMediaRenderEnabled(boolean enabled) {
+        this.mediaRenderEnabled = enabled;
+    }
+
     /* ---------------------- Discord -> MC (staff & public) ---------------------- */
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent event) {
@@ -563,7 +581,7 @@ public class DiscordBridge extends ListenerAdapter {
                     .replace("  ", " ");
 
             MediaPlan mediaPlan = mediaCollector.collect(event.getMessage(), staff, true);
-            CompletableFuture<Optional<Component>> rendered = mediaRenderer == null
+            CompletableFuture<Optional<Component>> rendered = (!mediaRenderEnabled || mediaRenderer == null)
                     ? CompletableFuture.completedFuture(Optional.empty())
                     : mediaRenderer.render(mediaPlan);
 
@@ -632,7 +650,7 @@ public class DiscordBridge extends ListenerAdapter {
                     .replace("  ", " ");
 
             MediaPlan mediaPlan = mediaCollector.collect(event.getMessage(), chat, false);
-            CompletableFuture<Optional<Component>> rendered = mediaRenderer == null
+            CompletableFuture<Optional<Component>> rendered = (!mediaRenderEnabled || mediaRenderer == null)
                     ? CompletableFuture.completedFuture(Optional.empty())
                     : mediaRenderer.render(mediaPlan);
 

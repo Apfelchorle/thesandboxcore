@@ -1,5 +1,7 @@
 package org.thesandbox.core.data;
 
+import java.util.List;
+
 public final class PlayerDataKeys {
 
     // player
@@ -27,6 +29,29 @@ public final class PlayerDataKeys {
     public static final String VANISHED = "Vanished";
     // CHATFILTER
     public static final String CHATFILTER = "ChatFilterStatus";
+
+    public static List<String> getAllKeys() {
+        return List.of(
+                FIRST_TIME_JOINING,
+                COINS,
+                LAST_LOCATION,
+                JUMPPADS_MODE,
+                LOGIN_MESSAGE,
+                LIGHTNING_ROD,
+                LOGIN_MESSAGES_STATE,
+                CLOWN_FISH,
+                RIDEABLE_ENDER_PEARL,
+                GRAPPLING_HOOK,
+                Stacking_Potato,
+                FLOAT_BOAT,
+                WIND_ROD,
+                MARRIAGE_STATUS,
+                MARRIAGE_SPOUSE,
+                GENDER,
+                VANISHED,
+                CHATFILTER
+        );
+    }
 
     private PlayerDataKeys() {
     }
