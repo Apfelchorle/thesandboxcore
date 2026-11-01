@@ -87,6 +87,7 @@ public class DiscordBridge extends ListenerAdapter {
     private volatile MediaCollector mediaCollector = new MediaCollector(MediaRenderSettings.disabled());
     private volatile DiscordMediaRenderer mediaRenderer;
     private volatile boolean mediaRenderEnabled = true;
+    private volatile AnimatedMapService animatedMapService;
     // Channels
     private TextChannel staffChannel;
     private TextChannel schemuploadsChannel;
@@ -516,6 +517,17 @@ public class DiscordBridge extends ListenerAdapter {
                 }
             }
         }
+
+        // Close animated map service
+        AnimatedMapService mapService = this.animatedMapService;
+        this.animatedMapService = null;
+        if (mapService != null) {
+            try {
+                mapService.close();
+            } catch (Throwable ignored) {
+            }
+        }
+
         mediaChains.clear();
     }
 
@@ -534,6 +546,20 @@ public class DiscordBridge extends ListenerAdapter {
      */
     public void setMediaRenderEnabled(boolean enabled) {
         this.mediaRenderEnabled = enabled;
+    }
+
+    /**
+     * Returns the animated map service for creating GIF maps.
+     */
+    public AnimatedMapService getAnimatedMapService() {
+        return animatedMapService;
+    }
+
+    /**
+     * Sets the animated map service (called during initialization).
+     */
+    public void setAnimatedMapService(AnimatedMapService service) {
+        this.animatedMapService = service;
     }
 
     /* ---------------------- Discord -> MC (staff & public) ---------------------- */

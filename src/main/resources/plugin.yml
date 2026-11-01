@@ -478,3 +478,9 @@ commands:
     usage: /mediatoggle
     permission: sandbox.staff
     aliases: [ asciiart, asciitoggle ]
+
+  gifmap:
+    description: Create an animated Minecraft map from a Discord GIF URL
+    usage: /gifmap <gif-url>
+    permission: sandbox.default
+    aliases: [ animatedmap ]

@@ -4,26 +4,38 @@ import com.github.retrooper.packetevents.PacketEvents;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.staff.UpdateLocalCommand;
-import org.thesandbox.core.data.*;
-import org.thesandbox.core.data.database.*;
-import org.thesandbox.core.services.listeners.*;
-import org.thesandbox.core.services.chat.*;
+import org.thesandbox.core.data.DataManager;
+import org.thesandbox.core.data.PlayerDataListener;
+import org.thesandbox.core.data.database.BalanceSqlStore;
+import org.thesandbox.core.data.database.Database;
+import org.thesandbox.core.data.database.LegacySqlStore;
+import org.thesandbox.core.services.chat.ManageChatService;
+import org.thesandbox.core.services.chat.ShushService;
+import org.thesandbox.core.services.chat.StaffChatManager;
 import org.thesandbox.core.services.discord.DiscordBridge;
-import org.thesandbox.core.services.display.*;
-import org.thesandbox.core.services.economy.*;
+import org.thesandbox.core.services.discord.media.AnimatedMapService;
+import org.thesandbox.core.services.display.RankScoreboardManager;
+import org.thesandbox.core.services.economy.BalanceManager;
 import org.thesandbox.core.services.guilds.GuildManager;
 import org.thesandbox.core.services.items.FloatBoatItem;
 import org.thesandbox.core.services.items.util.Item;
 import org.thesandbox.core.services.items.util.ItemKeys;
+import org.thesandbox.core.services.listeners.*;
 import org.thesandbox.core.services.login.LoginMessages;
 import org.thesandbox.core.services.login.LoginService;
-import org.thesandbox.core.services.moderation.*;
+import org.thesandbox.core.services.moderation.CommandBlockManager;
+import org.thesandbox.core.services.moderation.CommandSpyManager;
+import org.thesandbox.core.services.moderation.PotionSpyService;
 import org.thesandbox.core.services.tags.TagService;
-import org.thesandbox.core.services.update.*;
-import org.thesandbox.core.services.world.*;
-import org.thesandbox.core.util.*;
-import org.thesandbox.core.util.config.*;
-import org.thesandbox.core.util.registry.*;
+import org.thesandbox.core.services.update.UpdateTarget;
+import org.thesandbox.core.services.world.AutoClearService;
+import org.thesandbox.core.services.world.AutoTpService;
+import org.thesandbox.core.services.world.EntityWiper;
+import org.thesandbox.core.util.FunctionsHolder;
+import org.thesandbox.core.util.Utils;
+import org.thesandbox.core.util.config.PluginConfigManager;
+import org.thesandbox.core.util.registry.CommandAutoRegistrar;
+import org.thesandbox.core.util.registry.ItemAutoRegistrar;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -74,6 +86,7 @@ public class TheSandboxCore extends JavaPlugin {
     private AutoTpService autoTpService;
     private ManageChatService manageChatService;
     private ItemKeys itemKeys;
+    private AnimatedMapService animatedMapService;
 
     // ==================== Getters ====================
 
@@ -297,6 +310,10 @@ public class TheSandboxCore extends JavaPlugin {
         );
         this.discord.start();
 
+        // Animated map service for GIF maps
+        this.animatedMapService = new AnimatedMapService(this);
+        this.discord.setAnimatedMapService(this.animatedMapService);
+
         // Services that depend on discord or shushService
         this.potionSpyService = new PotionSpyService(
             this,
@@ -469,6 +486,9 @@ public class TheSandboxCore extends JavaPlugin {
         });
         safely("stop discord", () -> {
             if (discord != null) discord.stop();
+        });
+        safely("stop animated map service", () -> {
+            if (animatedMapService != null) animatedMapService.close();
         });
         safely("login service shutdown", () -> {
             if (loginService != null) loginService.shutdown();
