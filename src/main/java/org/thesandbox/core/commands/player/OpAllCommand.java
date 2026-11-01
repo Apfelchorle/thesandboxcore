@@ -6,16 +6,21 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.commands.BaseCommand;
 
 import java.util.List;
 
 
 // fake ass command lel - usfl [02/09/2026] 15:13
-public class OpAllCommand implements ISubCommand {
+public class OpAllCommand extends BaseCommand {
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        String msg = sender.getName() + " - Opping all players on the server";
+        // sender.getName() can be null for console — guard against NPE
+        String senderName = sender.getName();
+        if (senderName == null) {
+            senderName = "Console";
+        }
+        String msg = senderName + " - Opping all players on the server";
         Bukkit.broadcast(Component.text(msg, TextColor.color(0, 187, 255)));
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.hasPermission("sandbox.default")) {

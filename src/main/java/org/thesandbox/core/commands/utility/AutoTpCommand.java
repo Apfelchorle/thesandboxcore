@@ -7,7 +7,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.services.world.AutoTpService;
 import org.thesandbox.core.util.colors.Colors;
 
@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
-public class AutoTpCommand implements ISubCommand, TabCompleter {
+public class AutoTpCommand extends BaseCommand implements TabCompleter {
 
     private final JavaPlugin plugin;
     private final AutoTpService service;

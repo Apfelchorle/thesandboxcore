@@ -5,7 +5,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.util.colors.Colors;
 
 import javax.sql.DataSource;
@@ -14,7 +14,7 @@ import java.sql.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class ClearInventoryCommand implements ISubCommand
+public class ClearInventoryCommand extends BaseCommand
 {
     private final JavaPlugin plugin;
     private final DataSource dataSource;

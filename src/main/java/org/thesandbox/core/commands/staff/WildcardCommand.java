@@ -5,8 +5,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 
 import java.util.*;
 
@@ -17,7 +17,7 @@ import java.util.*;
  * Note: the blocklist (wildcard.blocked-commands) only inspects the first token of the command.
  * Wrapper commands such as "execute ... run <blocked>" are not detected.
  */
-public class WildcardCommand implements ISubCommand {
+public class WildcardCommand extends BaseCommand {
     private final TheSandboxCore core;
 
     public WildcardCommand(TheSandboxCore core) {

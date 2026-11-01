@@ -9,8 +9,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.Arrays;
@@ -18,7 +18,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
-public class DebugStickCommand implements ISubCommand
+public class DebugStickCommand extends BaseCommand
 {
     private final JavaPlugin plugin;
 

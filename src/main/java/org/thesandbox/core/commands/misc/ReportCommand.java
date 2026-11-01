@@ -9,26 +9,25 @@ import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.thesandbox.core.services.discord.DiscordBridge;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.services.discord.DiscordBridge;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class ReportCommand implements ISubCommand
-{
+public class ReportCommand extends BaseCommand {
     private static final long COOLDOWN_MS = 5 * 60 * 1000L; // 5 minutes
     private final Map<String, Long> lastReport = new ConcurrentHashMap<>(); // reporterUUID:targetUUID -> time
 
     private final TheSandboxCore core;
 
-    public ReportCommand(TheSandboxCore core)
-    {
+    public ReportCommand(TheSandboxCore core) {
         this.core = core;
     }
 
@@ -129,14 +128,14 @@ public class ReportCommand implements ISubCommand
     {
         if (args.length == 1)
         {
-            String partial = args[0].toLowerCase(java.util.Locale.ROOT);
+            String partial = args[0].toLowerCase(Locale.ROOT);
             return Bukkit.getOnlinePlayers().stream()
                     .map(Player::getName)
-                    .filter(n -> n.toLowerCase(java.util.Locale.ROOT).startsWith(partial))
+                    .filter(n -> n.toLowerCase(Locale.ROOT).startsWith(partial))
                     .sorted(String.CASE_INSENSITIVE_ORDER)
                     .toList();
         }
-        return java.util.Collections.emptyList();
+        return List.of();
     }
 
     /* ================= helpers ================= */

@@ -6,23 +6,21 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class PluginControlCommand implements ISubCommand
-{
+public class PluginControlCommand extends BaseCommand {
     private final JavaPlugin plugin;
     private final Set<String> untouchable;
 
-    public PluginControlCommand(JavaPlugin plugin)
-    {
+    public PluginControlCommand(JavaPlugin plugin) {
         this.plugin = plugin;
         // Protect your core plugin from disable/reload
-        this.untouchable = new HashSet<>(Collections.singleton(plugin.getName()));
+        this.untouchable = Collections.singleton(plugin.getName());
         // If you want to protect more, add them here:
         // this.untouchable.addAll(Arrays.asList("LuckPerms", "Vault", "Essentials"));
     }
@@ -71,7 +69,7 @@ public class PluginControlCommand implements ISubCommand
             {
                 var meta = pl.getPluginMeta();
                 String version = meta.getVersion() == null ? "" : meta.getVersion().trim();
-                List<String> authors = meta.getAuthors() == null ? Collections.emptyList() : meta.getAuthors();
+                List<String> authors = meta.getAuthors() == null ? List.of() : meta.getAuthors();
 
                 String stateColor = pl.isEnabled() ? Colors.GREEN : Colors.RED;
                 String authorsJoined = authors.isEmpty() ? "Unknown" : String.join(", ", authors);
@@ -156,7 +154,7 @@ public class PluginControlCommand implements ISubCommand
     {
         if (!canUse(sender))
         {
-            return Collections.emptyList();
+            return List.of();
         }
 
         if (args.length == 1)
@@ -178,6 +176,6 @@ public class PluginControlCommand implements ISubCommand
                     .collect(Collectors.toList());
         }
 
-        return Collections.emptyList();
+        return List.of();
     }
 }

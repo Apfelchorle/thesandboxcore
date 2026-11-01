@@ -3,27 +3,20 @@ package org.thesandbox.core.commands.player;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.util.colors.Colors;
 
-import java.util.Collections;
 import java.util.List;
 
-public class GlowCommand implements ISubCommand {
-    private final JavaPlugin plugin;
-
-    public GlowCommand(JavaPlugin plugin) {
-        this.plugin = plugin;
-    }
+public class GlowCommand extends BaseCommand {
 
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "This command can only be used in-game."));
+        Player player = asPlayer(sender);
+        if (player == null) {
             return true;
         }
 
@@ -45,6 +38,6 @@ public class GlowCommand implements ISubCommand {
 
     @Override
     public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        return Collections.emptyList();
+        return List.of();
     }
 }

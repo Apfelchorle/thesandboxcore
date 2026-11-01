@@ -4,8 +4,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.commands.meta.CommandName;
 import org.thesandbox.core.util.colors.Colors;
 
@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Locale;
 
 @CommandName("devtoggle")
-public class DevToggleCommand implements ISubCommand {
+public class DevToggleCommand extends BaseCommand {
 
     private final TheSandboxCore plugin;
 
@@ -30,7 +30,7 @@ public class DevToggleCommand implements ISubCommand {
         }
 
         if (args.length < 1 || !args[0].equalsIgnoreCase("discord")) {
-            sendUsage(sender, label);
+            showUsage(sender, label);
             return true;
         }
 
@@ -40,7 +40,7 @@ public class DevToggleCommand implements ISubCommand {
         }
 
         if (args.length != 1) {
-            sendUsage(sender, label);
+            showUsage(sender, label);
             return true;
         }
 
@@ -50,7 +50,7 @@ public class DevToggleCommand implements ISubCommand {
         return true;
     }
 
-    private void sendUsage(CommandSender sender, String label) {
+    private void showUsage(CommandSender sender, String label) {
         sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " discord [status]"));
         sender.sendMessage(CommandMessages.command(Colors.GRAY + "Currently: " + statusText()));
     }

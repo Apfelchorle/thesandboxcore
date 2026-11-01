@@ -9,45 +9,32 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.SkullMeta;
-import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class SkullCommand implements ISubCommand {
-    private final JavaPlugin plugin;
-
-    public SkullCommand(JavaPlugin plugin) {
-        this.plugin = plugin;
-    }
+public class SkullCommand extends BaseCommand {
 
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        // Must be a player
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "Only players can use this command."));
+        Player player = asPlayer(sender);
+        if (player == null) {
             return true;
         }
 
-        String targetName;
-
-        if (args.length == 0) {
-            // /skull → give your own head
-            targetName = player.getName();
-        } else {
-            // /skull <username> → give that player's head
-            targetName = args[0];
-        }
-
-        // Resolve target as OfflinePlayer for skin data
+        String targetName = (args.length == 0) ? player.getName() : args[0];
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
 
-        // Create player head
+        // Guard against null name (never-played player)
+        if (target.getName() == null) {
+            sendError(sender, "Unknown player: " + targetName);
+            return true;
+        }
+
         ItemStack skull = new ItemStack(Material.PLAYER_HEAD, 1);
         SkullMeta meta = (SkullMeta) skull.getItemMeta();
         if (meta != null) {
@@ -56,12 +43,10 @@ public class SkullCommand implements ISubCommand {
             skull.setItemMeta(meta);
         }
 
-        // Try to add to inventory
         PlayerInventory inv = player.getInventory();
         Map<Integer, ItemStack> leftovers = inv.addItem(skull);
 
         if (!leftovers.isEmpty()) {
-            // Inventory full or partially full: drop at feet
             leftovers.values().forEach(item ->
                     player.getWorld().dropItemNaturally(player.getLocation(), item)
             );
@@ -80,17 +65,17 @@ public class SkullCommand implements ISubCommand {
             String prefix = args[0].toLowerCase();
             List<String> matches = new ArrayList<>();
 
-            Bukkit.getOnlinePlayers().forEach(p -> {
+            for (Player p : Bukkit.getOnlinePlayers()) {
                 String name = p.getName();
                 if (name.toLowerCase().startsWith(prefix)) {
                     matches.add(name);
                 }
-            });
+            }
 
-            Collections.sort(matches, String.CASE_INSENSITIVE_ORDER);
+            matches.sort(String.CASE_INSENSITIVE_ORDER);
             return matches;
         }
 
-        return Collections.emptyList();
+        return List.of();
     }
 }

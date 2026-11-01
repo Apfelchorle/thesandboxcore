@@ -9,6 +9,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.thesandbox.core.TheSandboxCore;
 
@@ -41,6 +42,8 @@ public class PlayerDataListener implements Listener {
         DEFAULTS.put(PlayerDataKeys.GENDER, "male");
         DEFAULTS.put(PlayerDataKeys.VANISHED, false);
         DEFAULTS.put(PlayerDataKeys.CHATFILTER, true);
+        DEFAULTS.put(PlayerDataKeys.LAST_IP, "");
+        DEFAULTS.put(PlayerDataKeys.LAST_RANK, "");
     }
 
     private final TheSandboxCore plugin;
@@ -51,6 +54,21 @@ public class PlayerDataListener implements Listener {
     public PlayerDataListener(TheSandboxCore plugin, DataManager dataManager) {
         this.plugin = plugin;
         this.dataManager = dataManager;
+    }
+
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        UUID uuid = player.getUniqueId();
+        String ip = getPlayerIp(player);
+        if (ip != null) {
+            set(uuid, PlayerDataKeys.LAST_IP, ip);
+        }
+        // Save the player's current rank so offline lookups show the last-known rank
+        String rank = getRankName(player);
+        if (rank != null && !rank.isEmpty()) {
+            set(uuid, PlayerDataKeys.LAST_RANK, rank);
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -242,6 +260,59 @@ public class PlayerDataListener implements Listener {
         } catch (NumberFormatException ignored) {
             return null;
         }
+    }
+
+    /**
+     * Extracts the IP address string from a player's socket connection.
+     */
+    private static String getPlayerIp(Player player) {
+        try {
+            java.net.InetSocketAddress socketAddress = player.getAddress();
+            if (socketAddress == null) return null;
+            java.net.InetAddress address = socketAddress.getAddress();
+            return address != null ? address.getHostAddress() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Gets the rank name string for a player based on their permissions.
+     */
+    private static String getRankName(Player player) {
+        if (player == null) return "";
+        if (player.hasPermission("sandbox.operator")) return "OPERATOR";
+        if (player.hasPermission("sandbox.admin")) return "ADMIN";
+        if (player.hasPermission("sandbox.staff")) return "STAFF";
+        if (player.hasPermission("sandbox.mb")) return "MB";
+        if (player.hasPermission("sandbox.vip")) return "VIP";
+        return "DEFAULT";
+    }
+
+    /**
+     * Returns the last known IP address for a player.
+     * For online players, returns the current connection IP.
+     * For offline players, returns the last saved IP from data store.
+     */
+    public String getLastIp(UUID uuid) {
+        Player online = Bukkit.getPlayer(uuid);
+        if (online != null) {
+            return getPlayerIp(online);
+        }
+        return get(uuid, PlayerDataKeys.LAST_IP, "");
+    }
+
+    /**
+     * Returns the last known rank name for a player.
+     * For online players, returns the current rank name.
+     * For offline players, returns the last saved rank from data store.
+     */
+    public String getLastRank(UUID uuid) {
+        Player online = Bukkit.getPlayer(uuid);
+        if (online != null) {
+            return getRankName(online);
+        }
+        return get(uuid, PlayerDataKeys.LAST_RANK, "");
     }
 
 }

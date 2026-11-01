@@ -6,8 +6,8 @@ import org.bukkit.SoundCategory;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.util.Utils;
 import org.thesandbox.core.util.colors.Colors;
 
@@ -15,7 +15,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class SayCommand implements ISubCommand
+public class SayCommand extends BaseCommand
 {
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args)

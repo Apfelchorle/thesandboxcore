@@ -12,16 +12,15 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-public class FreezeCommand implements ISubCommand, Listener
-{
+public class FreezeCommand extends BaseCommand implements Listener {
     // Global toggle (session only)
     private static boolean globalFreezeEnabled = false;
 
@@ -30,8 +29,7 @@ public class FreezeCommand implements ISubCommand, Listener
 
     private final JavaPlugin plugin;
 
-    public FreezeCommand(JavaPlugin plugin)
-    {
+    public FreezeCommand(JavaPlugin plugin) {
         this.plugin = plugin;
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }

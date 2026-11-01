@@ -9,21 +9,19 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class NickGradientCommand implements ISubCommand {
-    private final JavaPlugin plugin;
+public class NickGradientCommand extends BaseCommand {
     private final Essentials essentials;
     private final Random rng = new Random();
 
     public NickGradientCommand(JavaPlugin plugin) {
-        this.plugin = plugin;
         Essentials ess = null;
         try {
             ess = (Essentials) plugin.getServer().getPluginManager().getPlugin("Essentials");
@@ -34,8 +32,8 @@ public class NickGradientCommand implements ISubCommand {
 
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "This command can only be used in-game."));
+        Player player = asPlayer(sender);
+        if (player == null) {
             return true;
         }
 

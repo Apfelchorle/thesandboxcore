@@ -4,7 +4,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
-import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.Arrays;
@@ -12,7 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-public class CommandSpyCommand implements ISubCommand {
+public class CommandSpyCommand extends BaseCommand {
     private final TheSandboxCore plugin;
 
     public CommandSpyCommand(TheSandboxCore plugin) {

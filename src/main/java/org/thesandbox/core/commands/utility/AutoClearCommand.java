@@ -5,15 +5,14 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.services.world.AutoClearService;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.Collections;
 import java.util.List;
 
-public class AutoClearCommand implements ISubCommand
-{
+public class AutoClearCommand extends BaseCommand {
     private final AutoClearService service;
 
     public AutoClearCommand(AutoClearService service)

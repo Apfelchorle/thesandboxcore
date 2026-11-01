@@ -5,15 +5,15 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.ThrownPotion;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.services.moderation.PotionSpyService; // <-- UPDATED PACKAGE
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class PotionSpyCommand implements ISubCommand
+public class PotionSpyCommand extends BaseCommand
 {
     private final PotionSpyService service;
 

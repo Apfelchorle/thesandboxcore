@@ -6,8 +6,8 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.services.chat.ManageChatService;
 import org.thesandbox.core.util.colors.Colors;
 
@@ -20,7 +20,7 @@ import java.util.Locale;
  * - mute: toggles global mute, broadcasts in red.
  * - clear: clear chat for everyone EXCEPT players with "sandbox.staff", then broadcast in red.
  */
-public class ManageChatCommand implements ISubCommand, TabCompleter {
+public class ManageChatCommand extends BaseCommand implements TabCompleter {
 
     private final JavaPlugin plugin;
     private final ManageChatService service;

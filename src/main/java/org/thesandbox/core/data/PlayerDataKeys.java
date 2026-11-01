@@ -29,6 +29,10 @@ public final class PlayerDataKeys {
     public static final String VANISHED = "Vanished";
     // CHATFILTER
     public static final String CHATFILTER = "ChatFilterStatus";
+    // IP TRACKING
+    public static final String LAST_IP = "LastIp";
+    // RANK TRACKING
+    public static final String LAST_RANK = "LastRank";
 
     public static List<String> getAllKeys() {
         return List.of(
@@ -49,7 +53,9 @@ public final class PlayerDataKeys {
                 MARRIAGE_SPOUSE,
                 GENDER,
                 VANISHED,
-                CHATFILTER
+                CHATFILTER,
+                LAST_IP,
+                LAST_RANK
         );
     }
 

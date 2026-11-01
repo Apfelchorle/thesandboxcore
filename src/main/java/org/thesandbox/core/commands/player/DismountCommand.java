@@ -7,12 +7,12 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.services.items.FloatBoatItem;
 
 import java.util.List;
 
-public class DismountCommand implements ISubCommand {
+public class DismountCommand extends BaseCommand {
 
     private final FloatBoatItem floatBoatItem;
 
@@ -22,9 +22,8 @@ public class DismountCommand implements ISubCommand {
 
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
-
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage("Only players can use this command.");
+        Player player = asPlayer(sender);
+        if (player == null) {
             return true;
         }
 
@@ -35,7 +34,6 @@ public class DismountCommand implements ISubCommand {
         }
 
         boolean isFloatBoat = vehicle instanceof Boat boat && floatBoatItem.isFloatBoatPublic(boat);
-
         if (isFloatBoat) {
             FloatBoatItem.ALLOWED_DISMOUNTS.add(player.getUniqueId());
         }
@@ -44,7 +42,6 @@ public class DismountCommand implements ISubCommand {
         try {
             removed = vehicle.removePassenger(player);
         } finally {
-            // Memory Leak Prevention: Ensure player reference is cleaned up on failure or exception
             if (!removed && isFloatBoat) {
                 FloatBoatItem.ALLOWED_DISMOUNTS.remove(player.getUniqueId());
             }

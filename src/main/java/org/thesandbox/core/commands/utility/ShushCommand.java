@@ -4,15 +4,15 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
-public class ShushCommand implements ISubCommand {
+public class ShushCommand extends BaseCommand {
 
     private final TheSandboxCore plugin;
 

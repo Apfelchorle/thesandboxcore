@@ -9,15 +9,15 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class MobPurgeCommand implements ISubCommand
+public class MobPurgeCommand extends BaseCommand
 {
     private final JavaPlugin plugin;
 
@@ -89,12 +89,12 @@ public class MobPurgeCommand implements ISubCommand
         // Feedback to sender
         if (targetType != null)
         {
-            sender.sendMessage(CommandMessages.command(Colors.GRAY + "" + removed + " " + mobName
+            sender.sendMessage(CommandMessages.command(Colors.GRAY + removed + " " + mobName
                     + (removed == 1 ? "" : "s") + " removed."));
         }
         else
         {
-            sender.sendMessage(CommandMessages.command(Colors.GRAY + "" + removed + " mob" + (removed == 1 ? "" : "s") + " removed."));
+            sender.sendMessage(CommandMessages.command(Colors.GRAY + removed + " mob" + (removed == 1 ? "" : "s") + " removed."));
         }
 
         return true;

@@ -5,7 +5,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.services.login.LoginMessages;
 import org.thesandbox.core.util.colors.Colors;
 
@@ -22,7 +22,7 @@ import java.util.Locale;
  * {@code /loginmessage clear} and {@code /loginmessage set <message>}.
  * {@code %name%} and {@code %rank%} are expanded when the message is shown.</p>
  */
-public class LoginMessageCommand implements ISubCommand {
+public class LoginMessageCommand extends BaseCommand {
 
     private static final int MAX_LENGTH = 100;
     private static final List<String> SUBCOMMANDS = List.of("clear", "get", "set");

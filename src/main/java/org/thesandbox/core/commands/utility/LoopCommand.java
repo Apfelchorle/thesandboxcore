@@ -4,8 +4,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -17,7 +17,7 @@ import java.util.Locale;
  * The amount is capped (config: loop.max-iterations, default 1000) because the loop runs
  * synchronously on the main thread – an unbounded value would trip the server watchdog.
  */
-public class LoopCommand implements ISubCommand
+public class LoopCommand extends BaseCommand
 {
     private static final int DEFAULT_MAX = 1000;
 

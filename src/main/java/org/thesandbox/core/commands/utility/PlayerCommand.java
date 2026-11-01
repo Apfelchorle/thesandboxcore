@@ -3,16 +3,21 @@ package org.thesandbox.core.commands.utility;
 import com.earth2me.essentials.Essentials;
 import com.earth2me.essentials.User;
 import de.myzelyam.api.vanish.VanishAPI;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.data.PlayerDataListener;
+import org.thesandbox.core.services.login.LoginService;
 import org.thesandbox.core.util.colors.Colors;
+import org.thesandbox.core.util.colors.ComponentBuilder;
 
 import java.util.*;
 
@@ -21,12 +26,14 @@ import java.util.*;
  */
 public class PlayerCommand extends BaseCommand {
 
-    private static final List<String> SUBCOMMANDS = List.of("help", "list", "tp", "uuid");
+    private static final List<String> SUBCOMMANDS = List.of("help", "info", "list", "tp", "uuid");
 
     private final PlayerDataListener dataListener;
+    private final LoginService loginService;
 
-    public PlayerCommand(PlayerDataListener dataListener) {
+    public PlayerCommand(PlayerDataListener dataListener, LoginService loginService) {
         this.dataListener = dataListener;
+        this.loginService = loginService;
     }
 
     /**
@@ -47,6 +54,7 @@ public class PlayerCommand extends BaseCommand {
 
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "help" -> sendHelp(sender, label);
+            case "info" -> info(sender, label, args);
             case "list" -> listPlayers(sender);
             case "tp" -> teleport(sender, label, args);
             case "uuid" -> showUuid(sender, label, args);
@@ -58,10 +66,107 @@ public class PlayerCommand extends BaseCommand {
     private void sendHelp(CommandSender sender, String label) {
         send(sender, "&7&m--------------&r &dPlayer Utilities &7&m--------------");
         send(sender, "&d/" + label + " help &8- &7Show this help");
-        send(sender, "&d/" + label + " list &8- &7List online players");
+        send(sender, "&d/" + label + " info <player> &8- &7Show detailed player info &8(staff)");
+        send(sender, "&d/" + label + " list &8- &7List online players with details");
         send(sender, "&d/" + label + " tp <player> &8- &7Teleport to a player or their logout spot &8(staff)");
-        send(sender, "&d/" + label + " uuid [player|uuid] &8- &7Show a player's UUID");
+        send(sender, "&d/" + label + " uuid [player|uuid] &8- &7Show a player's UUID (click to copy)");
         send(sender, "&7&m-----------------------------------------------------");
+    }
+
+    /**
+     * Shows detailed player info with hover-to-reveal for sensitive data.
+     * IP is censored in the visible text but revealed on hover.
+     */
+    private void info(CommandSender sender, String label, String[] args) {
+        if (!hasStaffPermission(sender)) {
+            return;
+        }
+
+        if (args.length != 2) {
+            sendUsage(sender, "/" + label + " info <player>");
+            return;
+        }
+
+        OfflinePlayer target = findPlayer(sender, args[1]);
+        if (target == null) {
+            sendError(sender, "Player '" + args[1] + "' was not found. They must have joined before.");
+            return;
+        }
+
+        String targetName = target.getName() != null ? target.getName() : "(unknown)";
+        UUID uuid = target.getUniqueId();
+        boolean isOnline = target.isOnline();
+        Player onlinePlayer = isOnline ? target.getPlayer() : null;
+
+        // Build the info component
+        ComponentBuilder builder = ComponentBuilder.empty()
+                .append(ComponentBuilder.legacy("&7&m--------------&r &d" + targetName + " &7&m--------------")).newline();
+
+        // Name & status
+        String statusText = isOnline ? "&aOnline" : "&cOffline";
+        builder.append(ComponentBuilder.legacy("&7Name: ")).append(ComponentBuilder.legacy(targetName)).newline();
+        builder.append(ComponentBuilder.legacy("&7Status: ")).append(ComponentBuilder.legacy(statusText)).newline();
+
+        // UUID (click to copy)
+        Component uuidComp = ComponentBuilder.text(uuid.toString())
+                .gray()
+                .copyToClipboard(uuid.toString())
+                .hoverText("Click to copy UUID")
+                .build();
+        builder.append(ComponentBuilder.legacy("&7UUID: ")).append(uuidComp).newline();
+
+        // Rank - use saved rank for offline players
+        String savedRank = dataListener.getLastRank(uuid);
+        String rankDisplay;
+        String rankColor;
+        if (isOnline && onlinePlayer != null) {
+            LoginService.Rank rank = loginService.getRank(onlinePlayer);
+            rankDisplay = rank != null ? rank.displayName : "Player";
+            rankColor = rank != null ? rank.color : "&7";
+        } else if (savedRank != null && !savedRank.isEmpty()) {
+            LoginService.Rank rank = LoginService.Rank.valueOf(savedRank);
+            rankDisplay = rank.displayName;
+            rankColor = rank.color;
+        } else {
+            rankDisplay = "Player";
+            rankColor = "&7";
+        }
+        builder.append(ComponentBuilder.legacy("&7Rank: ")).append(ComponentBuilder.legacy(rankColor + rankDisplay)).newline();
+
+        // IP address (censored, shown on hover for staff only)
+        String ip = dataListener.getLastIp(uuid);
+        if (ip != null && !ip.isEmpty()) {
+            String censoredIp = censorIp(ip);
+            Component ipComp = ComponentBuilder.text(censoredIp)
+                    .gray()
+                    .hoverText("&7IP: " + ip)
+                    .build();
+            builder.append(ComponentBuilder.legacy("&7IP: ")).append(ipComp).newline();
+        } else {
+            builder.append(ComponentBuilder.legacy("&7IP: &7No data")).newline();
+        }
+
+        // Last logout location
+        Location lastLoc = dataListener.getLastLocation(uuid);
+        if (lastLoc != null) {
+            String locStr = String.format("&7%s (%.1f, %.1f, %.1f)",
+                    lastLoc.getWorld().getName(), lastLoc.getX(), lastLoc.getY(), lastLoc.getZ());
+            builder.append(ComponentBuilder.legacy("&7Last Logout: ")).append(ComponentBuilder.legacy(locStr)).newline();
+        } else {
+            builder.append(ComponentBuilder.legacy("&7Last Logout: &7No data")).newline();
+        }
+
+        // Online-specific info
+        if (isOnline && onlinePlayer != null) {
+            builder.append(ComponentBuilder.legacy("&7World: ")).append(ComponentBuilder.legacy(onlinePlayer.getWorld().getName())).newline();
+            builder.append(ComponentBuilder.legacy("&7Health: "))
+                    .append(ComponentBuilder.legacy(String.format("%.1f/%.1f", onlinePlayer.getHealth(), getMaxHealth(onlinePlayer)))).newline();
+            builder.append(ComponentBuilder.legacy("&7Game Mode: ")).append(ComponentBuilder.legacy(onlinePlayer.getGameMode().name())).newline();
+            builder.append(ComponentBuilder.legacy("&7Ping: ")).append(ComponentBuilder.legacy(onlinePlayer.getPing() + "ms")).newline();
+        }
+
+        builder.append(ComponentBuilder.legacy("&7&m-----------------------------------------------------"));
+        builder.sendTo(sender);
     }
 
     private void listPlayers(CommandSender sender) {
@@ -80,15 +185,95 @@ public class PlayerCommand extends BaseCommand {
         if (visible.isEmpty()) {
             send(sender, "&7No players are online.");
         } else {
-            List<String> names = new ArrayList<>(visible.size());
             for (Player player : visible) {
-                names.add(isVanished(player)
-                        ? "&f" + player.getName() + " &e(VANISHED)"
-                        : "&f" + player.getName());
+                ComponentBuilder builder = ComponentBuilder.empty();
+
+                // Build hover content with detailed info
+                ComponentBuilder hover = ComponentBuilder.empty()
+                        .append(ComponentBuilder.legacy("&e" + player.getName())).newline()
+                        .append(ComponentBuilder.legacy("&7UUID: ")).append(ComponentBuilder.legacy(player.getUniqueId().toString())).newline()
+                        .append(ComponentBuilder.legacy("&7Rank: ")).append(ComponentBuilder.legacy(getRankDisplay(player))).newline()
+                        .append(ComponentBuilder.legacy("&7World: ")).append(ComponentBuilder.legacy(player.getWorld().getName())).newline()
+                        .append(ComponentBuilder.legacy("&7Health: ")).append(ComponentBuilder.legacy(String.format("%.1f/%.1f", player.getHealth(), getMaxHealth(player)))).newline()
+                        .append(ComponentBuilder.legacy("&7Game Mode: ")).append(ComponentBuilder.legacy(player.getGameMode().name()));
+
+                if (viewerIsStaff) {
+                    String ip = dataListener.getLastIp(player.getUniqueId());
+                    if (ip != null && !ip.isEmpty()) {
+                        hover.newline().append(ComponentBuilder.legacy("&7IP: ")).append(ComponentBuilder.legacy(ip));
+                    }
+                }
+
+                // Build visible component
+                String vanishedTag = isVanished(player) ? " &e(VANISHED)" : "";
+                LoginService.Rank rank = loginService.getRank(player);
+                String rankColor = rank != null ? rank.color : "&7";
+
+                builder.append(ComponentBuilder.legacy(rankColor + player.getName() + vanishedTag))
+                        .hoverComponent(hover.build());
+
+                // Click to copy UUID
+                builder.copyToClipboard(player.getUniqueId().toString());
+
+                builder.newline().sendTo(sender);
             }
-            send(sender, String.join("&7, ", names));
         }
         send(sender, "&7&m-----------------------------------------------------");
+    }
+
+    private void showUuid(CommandSender sender, String label, String[] args) {
+        if (args.length > 2) {
+            sendUsage(sender, "/" + label + " uuid [player|uuid]");
+            return;
+        }
+
+        OfflinePlayer target;
+        if (args.length == 2) {
+            target = findPlayer(sender, args[1]);
+            if (target == null) {
+                sendError(sender, "Player '" + args[1] + "' was not found. They must have joined before.");
+                return;
+            }
+        } else if (sender instanceof Player player) {
+            target = player;
+        } else {
+            sendUsage(sender, "/" + label + " uuid <player|uuid>");
+            return;
+        }
+
+        String name = target.getName() != null ? target.getName() : "(unknown)";
+        String status = target.isOnline() ? "&aonline" : "&7offline";
+        UUID uuid = target.getUniqueId();
+
+        // Build a clickable component: shows name » UUID, click UUID to copy
+        ComponentBuilder builder = ComponentBuilder.empty()
+                .append(ComponentBuilder.legacy("&d" + name + " &8» "))
+                .append(ComponentBuilder.text(uuid.toString())
+                        .color(NamedTextColor.WHITE)
+                        .copyToClipboard(uuid.toString())
+                        .hoverText("Click to copy UUID")
+                        .build())
+                .append(ComponentBuilder.legacy(" &8(" + status + "&8)"));
+
+        builder.sendTo(sender);
+    }
+
+    /**
+     * Censors an IP address, showing only the first and last octet.
+     * e.g. "192.168.1.100" -> "192.*.*.100"
+     */
+    private static String censorIp(String ip) {
+        if (ip == null || ip.isEmpty()) return "*.*.*.*";
+        String[] parts = ip.split("\\.");
+        if (parts.length != 4) return "*.*.*.*";
+        return parts[0] + ".*.*." + parts[3];
+    }
+
+    /**
+     * Gets the max health of a player using the non-deprecated Attribute API.
+     */
+    private static double getMaxHealth(Player player) {
+        return player.getAttribute(Attribute.MAX_HEALTH).getBaseValue();
     }
 
     /**
@@ -146,29 +331,12 @@ public class PlayerCommand extends BaseCommand {
                 + (online ? "&a." : "&a's last logout location."));
     }
 
-    private void showUuid(CommandSender sender, String label, String[] args) {
-        if (args.length > 2) {
-            sendUsage(sender, "/" + label + " uuid [player|uuid]");
-            return;
-        }
-
-        OfflinePlayer target;
-        if (args.length == 2) {
-            target = findPlayer(sender, args[1]);
-            if (target == null) {
-                sendError(sender, "Player '" + args[1] + "' was not found. They must have joined before.");
-                return;
-            }
-        } else if (sender instanceof Player player) {
-            target = player;
-        } else {
-            sendUsage(sender, "/" + label + " uuid <player|uuid>");
-            return;
-        }
-
-        String name = target.getName() != null ? target.getName() : "(unknown)";
-        String status = target.isOnline() ? "&aonline" : "&7offline";
-        send(sender, "&d" + name + " &8» &f" + target.getUniqueId() + " &8(" + status + "&8)");
+    /**
+     * Gets the rank display string for a player.
+     */
+    private String getRankDisplay(Player player) {
+        LoginService.Rank rank = loginService.getRank(player);
+        return rank != null ? rank.color + rank.displayName : "&7Player";
     }
 
     private static void send(CommandSender sender, String message) {
@@ -231,7 +399,7 @@ public class PlayerCommand extends BaseCommand {
         }
 
         if (args.length == 2
-                && (args[0].equalsIgnoreCase("uuid") || args[0].equalsIgnoreCase("tp"))) {
+                && (args[0].equalsIgnoreCase("uuid") || args[0].equalsIgnoreCase("tp") || args[0].equalsIgnoreCase("info"))) {
             return offlinePlayerSelectorCompletions(args[1]);
         }
 

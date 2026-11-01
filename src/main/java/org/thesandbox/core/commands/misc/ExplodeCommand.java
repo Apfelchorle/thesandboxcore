@@ -1,6 +1,5 @@
 package org.thesandbox.core.commands.misc;
 
-import org.thesandbox.core.util.colors.Colors;
 import org.bukkit.*;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -9,19 +8,18 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.util.colors.Colors;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-public class ExplodeCommand implements ISubCommand
-{
+public class ExplodeCommand extends BaseCommand {
+
     private final JavaPlugin plugin;
 
-    public ExplodeCommand(JavaPlugin plugin)
-    {
+    public ExplodeCommand(JavaPlugin plugin) {
         this.plugin = plugin;
     }
 
@@ -61,7 +59,7 @@ public class ExplodeCommand implements ISubCommand
             }
             return out;
         }
-        return Collections.emptyList();
+        return List.of();
     }
 
     /* ---------------- internals ---------------- */

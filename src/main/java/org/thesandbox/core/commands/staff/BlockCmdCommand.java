@@ -6,7 +6,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.TheSandboxCore;
-import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.services.moderation.CommandBlockManager;
 import org.thesandbox.core.util.colors.Colors;
 
@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-public class BlockCmdCommand implements ISubCommand {
+public class BlockCmdCommand extends BaseCommand {
 
     // 5 minutes in millis
     private static final long BLOCK_DURATION_MS = 5L * 60L * 1000L;

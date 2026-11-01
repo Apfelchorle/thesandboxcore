@@ -5,15 +5,15 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class SudoCommand implements ISubCommand {
+public class SudoCommand extends BaseCommand {
     private final JavaPlugin plugin;
 
     public SudoCommand(JavaPlugin plugin) {

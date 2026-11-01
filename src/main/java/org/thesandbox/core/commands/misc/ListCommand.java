@@ -6,7 +6,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
-import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.services.login.LoginService;
 import org.thesandbox.core.util.colors.Colors;
 
@@ -14,8 +14,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
-public class ListCommand implements ISubCommand
-{
+public class ListCommand extends BaseCommand {
     private final TheSandboxCore core;
     private final LoginService login;
 
@@ -25,14 +24,8 @@ public class ListCommand implements ISubCommand
             LoginService.Rank.ADMIN,
             LoginService.Rank.STAFF
     );
-    private static final EnumSet<LoginService.Rank> PLAYER_RANKS = EnumSet.of(
-            LoginService.Rank.MB,
-            LoginService.Rank.VIP,
-            LoginService.Rank.DEFAULT
-    );
 
-    public ListCommand(TheSandboxCore core)
-    {
+    public ListCommand(TheSandboxCore core) {
         this.core = core;
         this.login = core.getLoginService();
     }
@@ -93,7 +86,7 @@ public class ListCommand implements ISubCommand
     @Override
     public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args)
     {
-        return java.util.Collections.emptyList(); // /list has no args
+        return List.of(); // /list has no args
     }
 
     /* ================= helpers ================= */

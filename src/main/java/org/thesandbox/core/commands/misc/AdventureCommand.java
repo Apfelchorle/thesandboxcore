@@ -1,26 +1,12 @@
 package org.thesandbox.core.commands.misc;
 
 import org.bukkit.GameMode;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandSender;
-import org.bukkit.plugin.java.JavaPlugin;
-import org.thesandbox.core.commands.utility.GameModeChangeHelper;
-import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.commands.utility.GamemodeWrapper;
 
-import java.util.List;
-
-public class AdventureCommand implements ISubCommand {
-
-    public AdventureCommand(JavaPlugin plugin) {
-    }
+public class AdventureCommand extends GamemodeWrapper {
 
     @Override
-    public boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        return GameModeChangeHelper.execute(sender, args, GameMode.ADVENTURE);
-    }
-
-    @Override
-    public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        return GameModeChangeHelper.tabComplete(sender, args);
+    protected GameMode gameMode() {
+        return GameMode.ADVENTURE;
     }
 }

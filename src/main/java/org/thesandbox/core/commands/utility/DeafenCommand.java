@@ -8,13 +8,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.commands.BaseCommand;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.SplittableRandom;
 
-public class DeafenCommand implements ISubCommand
+public class DeafenCommand extends BaseCommand
 {
     private static final double STEPS = 10.0;
     private static final SplittableRandom RANDOM = new SplittableRandom();

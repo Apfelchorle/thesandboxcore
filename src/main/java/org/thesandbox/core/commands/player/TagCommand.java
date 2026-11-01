@@ -13,8 +13,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.services.guilds.Guild;
 import org.thesandbox.core.services.guilds.GuildManager;
 import org.thesandbox.core.services.tags.TagService;
@@ -24,7 +24,7 @@ import org.thesandbox.core.util.colors.HexColorUtil;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
-public class TagCommand implements ISubCommand {
+public class TagCommand extends BaseCommand {
     private static final int PREFIX_PRIORITY = 200;
     private static final int MAX_VISIBLE_LEN = 30; // visible chars only (no color codes)
 

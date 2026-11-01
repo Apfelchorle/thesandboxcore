@@ -11,8 +11,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.services.login.LoginService;
 import org.thesandbox.core.util.colors.Colors;
 
@@ -21,7 +21,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class RankCommand implements ISubCommand {
+public class RankCommand extends BaseCommand {
     // All LP rank groups you use (lowercase)
     private static final Set<String> RANK_GROUPS = new HashSet<>(Arrays.asList(
             "operator", "administrator", "staff", "masterbuilder", "vip", "default"

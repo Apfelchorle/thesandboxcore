@@ -7,14 +7,13 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.util.colors.Colors;
 
-import java.util.Collections;
 import java.util.List;
 
-public class NickRainbowCommand implements ISubCommand {
+public class NickRainbowCommand extends BaseCommand {
     // Legacy rainbow cycle (bright & clear order)
     private static final String[] RAINBOW = new String[]{
             Colors.RED, Colors.GOLD, Colors.YELLOW,
@@ -22,11 +21,9 @@ public class NickRainbowCommand implements ISubCommand {
     };
     private static final int MIN_VISIBLE = 3;
     private static final int MAX_VISIBLE = 30;
-    private final JavaPlugin plugin;
     private final Essentials essentials;
 
     public NickRainbowCommand(JavaPlugin plugin) {
-        this.plugin = plugin;
         Essentials ess = null;
         try {
             ess = (Essentials) plugin.getServer().getPluginManager().getPlugin("Essentials");
@@ -37,8 +34,8 @@ public class NickRainbowCommand implements ISubCommand {
 
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "This command can only be used in-game."));
+        Player player = asPlayer(sender);
+        if (player == null) {
             return true;
         }
         if (essentials == null || !essentials.isEnabled()) {
@@ -116,8 +113,7 @@ public class NickRainbowCommand implements ISubCommand {
 
     @Override
     public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        // No static suggestions
-        return Collections.emptyList();
+        return List.of();
     }
 
     // ===== Helpers =====

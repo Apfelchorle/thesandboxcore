@@ -16,15 +16,15 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.thesandbox.core.TheSandboxCore;
-import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.commands.BaseCommand;
+import org.thesandbox.core.data.PlayerDataListener;
+import org.thesandbox.core.services.economy.BalanceManager;
 import org.thesandbox.core.services.items.*;
 import org.thesandbox.core.services.items.util.Item;
-import org.thesandbox.core.services.economy.BalanceManager;
-import org.thesandbox.core.data.PlayerDataListener;
 
 import java.util.*;
 
-public class ShopCommand implements Listener, ISubCommand {
+public class ShopCommand extends BaseCommand implements Listener {
 
     private final TheSandboxCore plugin;
     private final PlayerDataListener playerDataListener;

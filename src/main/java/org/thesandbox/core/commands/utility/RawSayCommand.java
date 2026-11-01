@@ -2,14 +2,14 @@ package org.thesandbox.core.commands.utility;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.Collections;
 import java.util.List;
 
-public class RawSayCommand implements ISubCommand
+public class RawSayCommand extends BaseCommand
 {
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args)

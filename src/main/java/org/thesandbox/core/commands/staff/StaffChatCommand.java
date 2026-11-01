@@ -5,17 +5,17 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
-import org.thesandbox.core.services.login.LoginService;
 import org.thesandbox.core.services.chat.StaffChatManager;
+import org.thesandbox.core.services.login.LoginService;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class StaffChatCommand implements ISubCommand {
+public class StaffChatCommand extends BaseCommand {
 
     private final TheSandboxCore plugin;
 

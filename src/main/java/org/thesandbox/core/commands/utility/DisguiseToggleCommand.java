@@ -9,14 +9,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.Collections;
 import java.util.List;
 
-public class DisguiseToggleCommand implements ISubCommand, Listener
+public class DisguiseToggleCommand extends BaseCommand implements Listener
 {
     // Global toggle: disguises enabled by default
     private static boolean disguisesEnabled = true;

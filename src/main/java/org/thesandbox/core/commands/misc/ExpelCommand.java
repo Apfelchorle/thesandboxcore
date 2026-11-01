@@ -5,31 +5,19 @@ import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
-import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-public class ExpelCommand implements ISubCommand
-{
-    private final JavaPlugin plugin;
-
-    public ExpelCommand(JavaPlugin plugin)
-    {
-        this.plugin = plugin;
-    }
+public class ExpelCommand extends BaseCommand {
 
     @Override
-    public boolean execute(CommandSender sender, Command command, String label, String[] args)
-    {
-        if (!(sender instanceof Player playerSender))
-        {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "This command can only be used in-game."));
+    public boolean execute(CommandSender sender, Command command, String label, String[] args) {
+        Player playerSender = asPlayer(sender);
+        if (playerSender == null) {
             return true;
         }
 
@@ -38,49 +26,44 @@ public class ExpelCommand implements ISubCommand
         double strength = 5.0;
 
         // Parse radius [1.0 .. 100.0]
-        if (args.length >= 1)
-        {
-            try
-            {
+        if (args.length >= 1) {
+            try {
                 radius = Math.max(1.0, Math.min(100.0, Double.parseDouble(args[0])));
+            } catch (NumberFormatException ignored) {
             }
-            catch (NumberFormatException ignored) { }
         }
 
         // Parse strength [0.0 .. 50.0]
-        if (args.length >= 2)
-        {
-            try
-            {
+        if (args.length >= 2) {
+            try {
                 strength = Math.max(0.0, Math.min(50.0, Double.parseDouble(args[1])));
+            } catch (NumberFormatException ignored) {
             }
-            catch (NumberFormatException ignored) { }
         }
 
         List<String> pushedPlayers = new ArrayList<>();
-
         final Vector senderPos = playerSender.getLocation().toVector();
         final World world = playerSender.getWorld();
 
-        for (Player target : world.getPlayers())
-        {
-            if (target.equals(playerSender))
+        for (Player target : world.getPlayers()) {
+            if (target.equals(playerSender)) {
                 continue;
+            }
 
             final Location targetLoc = target.getLocation();
             final Vector targetVec = targetLoc.toVector();
 
             boolean inRange = false;
-            try
-            {
+            try {
                 inRange = targetVec.distanceSquared(senderPos) <= (radius * radius);
+            } catch (IllegalArgumentException ignored) {
             }
-            catch (IllegalArgumentException ignored) { }
 
-            if (!inRange)
+            if (!inRange) {
                 continue;
+            }
 
-            // Harmless “pop” explosion (no fire, no block damage) — use best-available signature
+            // Harmless "pop" explosion (no fire, no block damage)
             try {
                 world.createExplosion(targetLoc, 0.0f, false, false);
             } catch (Throwable ignored) {
@@ -89,23 +72,18 @@ public class ExpelCommand implements ISubCommand
                 } catch (Throwable ignored2) {
                     try {
                         world.createExplosion(targetLoc, 0.0f);
-                    } catch (Throwable ignored3) { }
+                    } catch (Throwable ignored3) {
+                    }
                 }
             }
 
-            // Ensure not flying (replacement for FUtil.setFlying(..., false))
-            try {
-                target.setFlying(false);
-            } catch (Throwable ignored) { }
-            try {
-                target.setAllowFlight(false);
-            } catch (Throwable ignored) { }
+            // Ensure not flying
+            target.setFlying(false);
+            target.setAllowFlight(false);
 
             // Compute push vector away from sender
             Vector delta = targetVec.clone().subtract(senderPos);
-            if (delta.lengthSquared() < 1.0e-6)
-            {
-                // If on the same exact spot, nudge slightly to avoid NaN from normalize()
+            if (delta.lengthSquared() < 1.0e-6) {
                 delta = new Vector(0, 0.1, 0);
             }
             Vector velocity = delta.normalize().multiply(strength);
@@ -114,21 +92,18 @@ public class ExpelCommand implements ISubCommand
             pushedPlayers.add(target.getName());
         }
 
-        if (pushedPlayers.isEmpty())
-        {
-            playerSender.sendMessage(CommandMessages.error(Colors.RED + "No players pushed."));
-        }
-        else
-        {
-            playerSender.sendMessage(CommandMessages.command(Colors.GRAY + "Successfully pushed " + pushedPlayers.size() + " players: " + String.join(", ", pushedPlayers)));
+        if (pushedPlayers.isEmpty()) {
+            sendError(playerSender, "No players pushed.");
+        } else {
+            playerSender.sendMessage(Colors.component(Colors.GRAY + "Successfully pushed " + pushedPlayers.size()
+                    + " players: " + String.join(", ", pushedPlayers)));
         }
 
         return true;
     }
 
     @Override
-    public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args)
-    {
-        return Collections.emptyList();
+    public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        return List.of();
     }
 }

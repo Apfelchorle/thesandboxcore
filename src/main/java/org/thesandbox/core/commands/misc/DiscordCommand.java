@@ -5,25 +5,24 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.thesandbox.core.TheSandboxCore;
-import org.thesandbox.core.commands.ISubCommand;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.commands.BaseCommand;
 
 import java.util.List;
 
+public class DiscordCommand extends BaseCommand {
 
-public class DiscordCommand implements ISubCommand {
-    private final TheSandboxCore plugin;
+    private final JavaPlugin plugin;
 
-    public DiscordCommand(TheSandboxCore plugin)
-    {
+    public DiscordCommand(JavaPlugin plugin) {
         this.plugin = plugin;
     }
 
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        // you can tell what this does
         String inviteUrl = plugin.getConfig().getString("discord.invite-url", "value not set");
-        sender.sendMessage(Component.text("Discord Link: " + inviteUrl, NamedTextColor.BLUE).clickEvent(ClickEvent.openUrl(inviteUrl)));
+        sender.sendMessage(Component.text("Discord Link: " + inviteUrl, NamedTextColor.BLUE)
+                .clickEvent(ClickEvent.openUrl(inviteUrl)));
         return true;
     }
 

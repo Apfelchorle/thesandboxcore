@@ -7,23 +7,20 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
-public class NickCleanCommand implements ISubCommand {
+public class NickCleanCommand extends BaseCommand {
     // Blocked chat codes: &0 (black), &k (obfuscated), &m (strikethrough), &n (underline)
     private static final Pattern BLOCKED = Pattern.compile("(?i)[§&][0kmn]");
-    private final JavaPlugin plugin;
     private final Essentials essentials;
 
     public NickCleanCommand(JavaPlugin plugin) {
-        this.plugin = plugin;
         Essentials ess = null;
         try {
             ess = (Essentials) plugin.getServer().getPluginManager().getPlugin("Essentials");
@@ -98,9 +95,9 @@ public class NickCleanCommand implements ISubCommand {
                     out.add(p.getName());
                 }
             }
-            Collections.sort(out);
+            out.sort(String.CASE_INSENSITIVE_ORDER);
             return out;
         }
-        return Collections.emptyList();
+        return List.of();
     }
 }

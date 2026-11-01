@@ -9,8 +9,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.services.guilds.Guild;
 import org.thesandbox.core.services.guilds.GuildManager;
 import org.thesandbox.core.util.colors.Colors;
@@ -18,7 +18,7 @@ import org.thesandbox.core.util.colors.Colors;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public final class GuildCommand implements ISubCommand {
+public final class GuildCommand extends BaseCommand {
 
     private final JavaPlugin plugin;
     private final GuildManager guilds;

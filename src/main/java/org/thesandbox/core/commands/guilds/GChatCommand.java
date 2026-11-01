@@ -4,8 +4,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.commands.meta.CommandAliases;
 import org.thesandbox.core.commands.meta.CommandName;
 import org.thesandbox.core.services.guilds.GuildManager;
@@ -15,7 +15,7 @@ import java.util.List;
 
 @CommandName("gchat")
 @CommandAliases({"gc"})
-public final class GChatCommand implements ISubCommand {
+public final class GChatCommand extends BaseCommand {
     private final JavaPlugin plugin;
     private final GuildManager guilds;
 
