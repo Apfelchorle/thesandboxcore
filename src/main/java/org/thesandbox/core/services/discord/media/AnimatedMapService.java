@@ -201,9 +201,9 @@ public class AnimatedMapService implements AutoCloseable {
             frame.image().flush();
         }
 
-        // Create the map item
+        // Create the map item — use ItemFactory to get a proper MapMeta instance
         ItemStack mapItem = new ItemStack(Material.MAP);
-        MapMeta meta = (MapMeta) mapItem.getItemMeta();
+        MapMeta meta = (MapMeta) Bukkit.getItemFactory().getItemMeta(Material.MAP);
         if (meta == null) return null;
 
         meta.setMapView(mapView);

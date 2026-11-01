@@ -77,6 +77,7 @@ public class PlayerCommand extends BaseCommand {
     /**
      * Shows detailed player info with hover-to-reveal for sensitive data.
      * IP is censored in the visible text but revealed on hover.
+     * LiteBans queries are executed asynchronously to avoid main-thread blocking.
      */
     private void info(CommandSender sender, String label, String[] args) {
         if (!hasStaffPermission(sender)) {
@@ -99,14 +100,89 @@ public class PlayerCommand extends BaseCommand {
         boolean isOnline = target.isOnline();
         Player onlinePlayer = isOnline ? target.getPlayer() : null;
 
+        // Query LiteBans asynchronously to avoid main-thread blocking
+        Bukkit.getScheduler().runTaskAsynchronously(Bukkit.getPluginManager().getPlugin("TheSandboxCore"), () -> {
+            LiteBansStatus liteBansStatus = queryLiteBansAsync(uuid);
+
+            // Switch back to main thread to build and send the component
+            Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("TheSandboxCore"), () -> {
+                buildAndSendPlayerInfo(sender, targetName, uuid, isOnline, onlinePlayer, liteBansStatus);
+            });
+        });
+    }
+
+    /**
+     * Queries LiteBans asynchronously and returns the ban/mute status.
+     */
+    private LiteBansStatus queryLiteBansAsync(UUID uuid) {
+        if (!Bukkit.getPluginManager().isPluginEnabled("LiteBans")) {
+            return new LiteBansStatus(LiteBansStatus.StatusType.NOT_FOUND, null, null);
+        }
+
+        try {
+            Database db = Database.get();
+            if (db == null) {
+                return new LiteBansStatus(LiteBansStatus.StatusType.UNAVAILABLE, null, null);
+            }
+
+            String scope = Database.ANY_SERVER_SCOPE;
+            boolean isBanned = db.isPlayerBanned(uuid, scope);
+            boolean isMuted = db.isPlayerMuted(uuid, scope);
+
+            Entry ban = null;
+            Entry mute = null;
+
+            if (isBanned) {
+                ban = db.getBan(uuid, null, scope);
+            }
+            if (isMuted) {
+                mute = db.getMute(uuid, null, scope);
+            }
+
+            LiteBansStatus.StatusType type;
+            if (isBanned && isMuted) {
+                type = LiteBansStatus.StatusType.BANNED_AND_MUTED;
+            } else if (isBanned) {
+                type = LiteBansStatus.StatusType.BANNED;
+            } else if (isMuted) {
+                type = LiteBansStatus.StatusType.MUTED;
+            } else {
+                type = LiteBansStatus.StatusType.CLEAN;
+            }
+
+            return new LiteBansStatus(type, ban, mute);
+
+        } catch (Exception e) {
+            Bukkit.getLogger().warning("[TheSandboxCore] Failed to query LiteBans for " + uuid + ": " + e.getMessage());
+            return new LiteBansStatus(LiteBansStatus.StatusType.ERROR, null, null);
+        }
+    }
+
+    /**
+     * Builds and sends the player info component on the main thread.
+     */
+    private void buildAndSendPlayerInfo(CommandSender sender, String targetName, UUID uuid,
+                                        boolean isOnline, Player onlinePlayer, LiteBansStatus liteBansStatus) {
         // Build the info component
         ComponentBuilder builder = ComponentBuilder.empty()
                 .append(ComponentBuilder.legacy("&8&m--------------&r &6" + targetName + " &8&m--------------")).newline();
 
-        // Name & status
-        String statusText = isOnline ? "&aOnline" : "&cOffline";
+        // Name
         builder.append(ComponentBuilder.legacy("&7Name: ")).append(ComponentBuilder.legacy(targetName)).newline();
-        builder.append(ComponentBuilder.legacy("&7Status: ")).append(ComponentBuilder.legacy(statusText)).newline();
+
+        // Status: show ban status instead of online/offline if banned
+        if (liteBansStatus.type == LiteBansStatus.StatusType.BANNED || liteBansStatus.type == LiteBansStatus.StatusType.BANNED_AND_MUTED) {
+            Component statusComp = buildLiteBansStatusComponent(liteBansStatus);
+            builder.append(ComponentBuilder.legacy("&7Status: ")).append(statusComp).newline();
+        } else {
+            String statusText = isOnline ? "&aOnline" : "&cOffline";
+            if (liteBansStatus.type == LiteBansStatus.StatusType.MUTED) {
+                Component statusComp = buildLiteBansStatusComponent(liteBansStatus);
+                builder.append(ComponentBuilder.legacy("&7Status: ")).append(statusComp).newline();
+            } else {
+                builder.append(ComponentBuilder.legacy("&7Status: ")).append(ComponentBuilder.legacy(statusText)).newline();
+            }
+        }
 
         // UUID (click to copy)
         Component uuidComp = ComponentBuilder.text(uuid.toString())
@@ -125,17 +201,19 @@ public class PlayerCommand extends BaseCommand {
             rankDisplay = rank != null ? rank.displayName : "Player";
             rankColor = rank != null ? rank.color : "&7";
         } else if (savedRank != null && !savedRank.isEmpty()) {
-            LoginService.Rank rank = LoginService.Rank.valueOf(savedRank);
-            rankDisplay = rank.displayName;
-            rankColor = rank.color;
+            try {
+                LoginService.Rank rank = LoginService.Rank.valueOf(savedRank);
+                rankDisplay = rank.displayName;
+                rankColor = rank.color;
+            } catch (IllegalArgumentException e) {
+                rankDisplay = "Player";
+                rankColor = "&7";
+            }
         } else {
             rankDisplay = "Player";
             rankColor = "&7";
         }
         builder.append(ComponentBuilder.legacy("&7Rank: ")).append(ComponentBuilder.legacy(rankColor + rankDisplay)).newline();
-
-        // Ban/Mute status via LiteBans
-        appendLiteBansStatus(builder, uuid);
 
         // IP address (censored, shown on hover for staff only)
         String ip = dataListener.getLastIp(uuid);
@@ -174,87 +252,68 @@ public class PlayerCommand extends BaseCommand {
     }
 
     /**
-     * Appends LiteBans ban/mute status to the player info component.
-     * Shows active punishments with reason and duration revealed on hover.
+     * Builds the LiteBans status component with hover details.
      */
-    private void appendLiteBansStatus(ComponentBuilder builder, UUID uuid) {
-        if (!Bukkit.getPluginManager().isPluginEnabled("LiteBans")) {
-            builder.append(ComponentBuilder.legacy("&7Status: &7LiteBans not found")).newline();
-            return;
-        }
+    private Component buildLiteBansStatusComponent(LiteBansStatus status) {
+        // Build hover text with punishment details
+        ComponentBuilder hover = ComponentBuilder.empty();
+        boolean first = true;
 
-        try {
-            Database db = Database.get();
-            if (db == null) {
-                builder.append(ComponentBuilder.legacy("&7Status: &7LiteBans API unavailable")).newline();
-                return;
-            }
-
-            String scope = Database.ANY_SERVER_SCOPE;
-            boolean isBanned = db.isPlayerBanned(uuid, scope);
-            boolean isMuted = db.isPlayerMuted(uuid, scope);
-
-            if (!isBanned && !isMuted) {
-                builder.append(ComponentBuilder.legacy("&7Status: &aNo active punishments")).newline();
-                return;
-            }
-
-            // Build hover text with punishment details
-            ComponentBuilder hover = ComponentBuilder.empty();
-            boolean first = true;
-
-            if (isBanned) {
-                Entry ban = db.getBan(uuid, null, scope);
-                if (ban != null) {
-                    hover.append(ComponentBuilder.legacy("&cBANNED")).newline();
-                    hover.append(ComponentBuilder.legacy("&7Reason: ")).append(ComponentBuilder.legacy(ban.getReason())).newline();
-                    hover.append(ComponentBuilder.legacy("&7By: ")).append(ComponentBuilder.legacy(ban.getExecutorName())).newline();
-                    if (ban.isPermanent()) {
-                        hover.append(ComponentBuilder.legacy("&7Duration: &cPermanent"));
-                    } else {
-                        hover.append(ComponentBuilder.legacy("&7Duration: ")).append(ComponentBuilder.legacy(ban.getDurationString()));
-                        hover.newline().append(ComponentBuilder.legacy("&7Remaining: ")).append(ComponentBuilder.legacy(ban.getRemainingDurationString(System.currentTimeMillis() / 1000)));
-                    }
-                    first = false;
-                }
-            }
-
-            if (isMuted) {
-                if (!first) hover.newline().newline();
-                Entry mute = db.getMute(uuid, null, scope);
-                if (mute != null) {
-                    hover.append(ComponentBuilder.legacy("&9MUTED")).newline();
-                    hover.append(ComponentBuilder.legacy("&7Reason: ")).append(ComponentBuilder.legacy(mute.getReason())).newline();
-                    hover.append(ComponentBuilder.legacy("&7By: ")).append(ComponentBuilder.legacy(mute.getExecutorName()));
-                    if (mute.isPermanent()) {
-                        hover.append(ComponentBuilder.legacy("&7Duration: &9Permanent"));
-                    } else {
-                        hover.append(ComponentBuilder.legacy("&7Duration: ")).append(ComponentBuilder.legacy(mute.getDurationString()));
-                        hover.newline().append(ComponentBuilder.legacy("&7Remaining: ")).append(ComponentBuilder.legacy(mute.getRemainingDurationString(System.currentTimeMillis() / 1000)));
-                    }
-                }
-            }
-
-            // Build visible status text
-            String visibleStatus;
-            if (isBanned && isMuted) {
-                visibleStatus = "&cBANNED &9MUTED";
-            } else if (isBanned) {
-                visibleStatus = "&cBANNED";
+        if (status.ban != null) {
+            hover.append(ComponentBuilder.legacy("&cBANNED")).newline();
+            hover.append(ComponentBuilder.legacy("&7Reason: ")).append(ComponentBuilder.legacy(status.ban.getReason())).newline();
+            hover.append(ComponentBuilder.legacy("&7By: ")).append(ComponentBuilder.legacy(status.ban.getExecutorName())).newline();
+            if (status.ban.isPermanent()) {
+                hover.append(ComponentBuilder.legacy("&7Duration: &cPermanent"));
             } else {
-                visibleStatus = "&9MUTED";
+                hover.append(ComponentBuilder.legacy("&7Duration: ")).append(ComponentBuilder.legacy(status.ban.getDurationString()));
+                hover.newline().append(ComponentBuilder.legacy("&7Remaining: ")).append(ComponentBuilder.legacy(status.ban.getRemainingDurationString(System.currentTimeMillis() / 1000)));
             }
-
-            Component statusComp = ComponentBuilder.text(visibleStatus)
-                    .hoverComponent(hover.build())
-                    .build();
-            builder.append(ComponentBuilder.legacy("&7Status: ")).append(statusComp).newline();
-
-        } catch (Exception e) {
-            Bukkit.getLogger().warning("[TheSandboxCore] Failed to query LiteBans for " + uuid + ": " + e.getMessage());
-            builder.append(ComponentBuilder.legacy("&7Status: &7LiteBans error")).newline();
+            first = false;
         }
+
+        if (status.mute != null) {
+            if (!first) hover.newline().newline();
+            hover.append(ComponentBuilder.legacy("&9MUTED")).newline();
+            hover.append(ComponentBuilder.legacy("&7Reason: ")).append(ComponentBuilder.legacy(status.mute.getReason())).newline();
+            hover.append(ComponentBuilder.legacy("&7By: ")).append(ComponentBuilder.legacy(status.mute.getExecutorName()));
+            if (status.mute.isPermanent()) {
+                hover.append(ComponentBuilder.legacy("&7Duration: &9Permanent"));
+            } else {
+                hover.append(ComponentBuilder.legacy("&7Duration: ")).append(ComponentBuilder.legacy(status.mute.getDurationString()));
+                hover.newline().append(ComponentBuilder.legacy("&7Remaining: ")).append(ComponentBuilder.legacy(status.mute.getRemainingDurationString(System.currentTimeMillis() / 1000)));
+            }
+        }
+
+        // Build visible status text
+        String visibleStatus;
+        switch (status.type) {
+            case BANNED_AND_MUTED:
+                visibleStatus = "&cBANNED &9MUTED";
+                break;
+            case BANNED:
+                visibleStatus = "&cBANNED";
+                break;
+            case MUTED:
+                visibleStatus = "&9MUTED";
+                break;
+            default:
+                visibleStatus = "&7Unknown";
+                break;
+        }
+
+        return ComponentBuilder.text(visibleStatus)
+                .hoverComponent(hover.build())
+                .build();
     }
+
+    /**
+         * Holds the result of an async LiteBans query.
+         */
+        private record LiteBansStatus(StatusType type, Entry ban, Entry mute) {
+
+        enum StatusType {CLEAN, BANNED, MUTED, BANNED_AND_MUTED, NOT_FOUND, UNAVAILABLE, ERROR}
+        }
 
     /**
      * Gets the max health of a player using the non-deprecated Attribute API.
