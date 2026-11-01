@@ -93,6 +93,14 @@ dependencies {
         exclude group: 'org.slf4j', module: 'slf4j-simple'
         exclude group: 'club.minnced', module: 'opus-java'
     }
+
+    // Extra ImageIO readers for the Discord image-to-ASCII renderer.
+    implementation 'com.twelvemonkeys.imageio:imageio-jpeg:3.12.0'
+    implementation 'com.twelvemonkeys.imageio:imageio-webp:3.12.0'
+    implementation 'com.twelvemonkeys.imageio:imageio-tiff:3.12.0'
+    implementation 'com.twelvemonkeys.imageio:imageio-bmp:3.12.0'
+    implementation 'com.twelvemonkeys.imageio:imageio-psd:3.12.0'
+    implementation 'com.twelvemonkeys.imageio:imageio-tga:3.12.0'
 }
 
 tasks.withType(JavaCompile).configureEach {

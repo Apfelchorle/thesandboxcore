@@ -2,6 +2,7 @@ package org.thesandbox.core.util.colors;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
@@ -51,6 +52,24 @@ public final class Colors {
             DARK_RED, DARK_PURPLE, GOLD, GRAY,
             DARK_GRAY, BLUE, GREEN, AQUA,
             RED, LIGHT_PURPLE, YELLOW, WHITE
+    );
+    private static final List<NamedTextColor> LEGACY_NAMED_COLORS = List.of(
+            NamedTextColor.BLACK,
+            NamedTextColor.DARK_BLUE,
+            NamedTextColor.DARK_GREEN,
+            NamedTextColor.DARK_AQUA,
+            NamedTextColor.DARK_RED,
+            NamedTextColor.DARK_PURPLE,
+            NamedTextColor.GOLD,
+            NamedTextColor.GRAY,
+            NamedTextColor.DARK_GRAY,
+            NamedTextColor.BLUE,
+            NamedTextColor.GREEN,
+            NamedTextColor.AQUA,
+            NamedTextColor.RED,
+            NamedTextColor.LIGHT_PURPLE,
+            NamedTextColor.YELLOW,
+            NamedTextColor.WHITE
     );
     private static final Pattern SECTION_HEX = Pattern.compile("(?i)\u00a7#([0-9a-f]{6})");
     private static final Pattern AMP_HEX = Pattern.compile("(?i)&?#([0-9a-f]{6})");
@@ -110,6 +129,47 @@ public final class Colors {
             case 'e' -> NamedTextColor.YELLOW;
             default -> NamedTextColor.WHITE;
         };
+    }
+
+    /**
+     * Maps an RGB value to an Adventure true-colour component colour.
+     */
+    public static TextColor textColor(int rgb) {
+        return TextColor.color(
+                (rgb >> 16) & 0xFF,
+                (rgb >> 8) & 0xFF,
+                rgb & 0xFF
+        );
+    }
+
+    /**
+     * Finds the closest of Minecraft's 16 legacy chat colours.
+     */
+    public static NamedTextColor nearestLegacyColor(int rgb) {
+        int red = (rgb >> 16) & 0xFF;
+        int green = (rgb >> 8) & 0xFF;
+        int blue = rgb & 0xFF;
+
+        NamedTextColor best = NamedTextColor.WHITE;
+        long bestDistance = Long.MAX_VALUE;
+        for (NamedTextColor candidate : LEGACY_NAMED_COLORS) {
+            int candidateRgb = candidate.value();
+            int candidateRed = (candidateRgb >> 16) & 0xFF;
+            int candidateGreen = (candidateRgb >> 8) & 0xFF;
+            int candidateBlue = candidateRgb & 0xFF;
+
+            int dr = red - candidateRed;
+            int dg = green - candidateGreen;
+            int db = blue - candidateBlue;
+            long distance = (long) dr * dr * 3L
+                    + (long) dg * dg * 4L
+                    + (long) db * db * 2L;
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = candidate;
+            }
+        }
+        return best;
     }
 
     public static String plain(Component component) {

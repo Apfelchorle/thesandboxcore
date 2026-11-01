@@ -35,14 +35,14 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.thesandbox.core.TheSandboxCore;
-import org.thesandbox.core.services.discord.model.ReportRecord;
-import org.thesandbox.core.util.Utils;
-import org.thesandbox.core.services.listeners.ChatFilterEngine;
-import org.thesandbox.core.services.login.LoginService;
-import org.thesandbox.core.util.colors.Colors;
-import org.thesandbox.core.util.colors.HexColorUtil;
 import org.thesandbox.core.data.PlayerDataKeys;
 import org.thesandbox.core.data.PlayerDataListener;
+import org.thesandbox.core.services.discord.media.*;
+import org.thesandbox.core.services.discord.model.ReportRecord;
+import org.thesandbox.core.services.listeners.ChatFilterEngine;
+import org.thesandbox.core.services.login.LoginService;
+import org.thesandbox.core.util.Utils;
+import org.thesandbox.core.util.colors.Colors;
 
 import java.awt.Color;
 import java.io.File;
@@ -53,7 +53,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -79,6 +82,10 @@ public class DiscordBridge extends ListenerAdapter {
     private final Map<String, Deque<String>> byPlayer = new ConcurrentHashMap<>();
     private final PlayerDataListener playerDataListener;
     private final Map<Long, Long> lastSchemUploadMs = new ConcurrentHashMap<>();
+    private final Object mediaLock = new Object();
+    private final Map<String, CompletableFuture<Void>> mediaChains = new ConcurrentHashMap<>();
+    private volatile MediaCollector mediaCollector = new MediaCollector(MediaRenderSettings.disabled());
+    private volatile DiscordMediaRenderer mediaRenderer;
     // Channels
     private TextChannel staffChannel;
     private TextChannel schemuploadsChannel;
@@ -209,6 +216,7 @@ public class DiscordBridge extends ListenerAdapter {
             this.activityListener = new ServerActivityListener();
             Bukkit.getPluginManager().registerEvents(this.activityListener, plugin);
 
+            ensureMediaServices();
             ready = true;
 
             // ✅ Server start embed (to public chat channel)
@@ -223,51 +231,22 @@ public class DiscordBridge extends ListenerAdapter {
         }
     }
 
-    public void stop() {
-        unregisterBridgeListeners();
+    private void ensureMediaServices() {
+        synchronized (mediaLock) {
+            if (mediaRenderer != null) return;
 
-        JDA current;
-        synchronized (startLock) {
-            current = jda != null ? jda : pendingJda;
-            ready = false;
-        }
-
-        if (current != null) {
             try {
-                if (current == jda && current.getStatus() == JDA.Status.CONNECTED) {
-                    sendServerStopEmbedBlocking();
-                }
-            } catch (Exception e) {
-                plugin.getLogger().warning("[Discord] Failed to send stop embed: " + e.getMessage());
-            }
-
-            synchronized (startLock) {
-                jda = null;
-                pendingJda = null;
-            }
-
-            current.shutdownNow();
-            log("[JDA] Triggered Shutdown...");
-            try {
-                if (!current.awaitShutdown(java.time.Duration.ofSeconds(5))) {
-                    log("[JDA] Shutdown did not complete within 5 seconds.");
-                } else {
-                    log("[JDA] Shutdown complete.");
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log("[JDA] Shutdown wait interrupted.");
-            } catch (Exception e) {
-                dump(e, " [JDA] EXCEPTION : ");
+                MediaRenderSettings settings = MediaRenderSettings.from(plugin);
+                MediaCollector collector = new MediaCollector(settings);
+                DiscordMediaRenderer renderer = new DiscordMediaRenderer(plugin, settings);
+                this.mediaCollector = collector;
+                this.mediaRenderer = renderer;
+            } catch (Throwable throwable) {
+                plugin.getLogger().warning("[Discord] Image renderer unavailable: " + throwable.getMessage());
+                this.mediaCollector = new MediaCollector(MediaRenderSettings.disabled());
+                this.mediaRenderer = null;
             }
         }
-
-        schemuploadsChannel = null;
-        staffChannel = null;
-        logsChannel = null;
-        chatChannel = null;
-        reportsChannel = null;
-        archivedReportsChannel = null;
     }
 
     private void unregisterBridgeListeners() {
@@ -466,6 +445,79 @@ public class DiscordBridge extends ListenerAdapter {
         }
     }
 
+    public void stop() {
+        unregisterBridgeListeners();
+
+        JDA current;
+        synchronized (startLock) {
+            current = jda != null ? jda : pendingJda;
+            ready = false;
+        }
+
+        if (current != null) {
+            try {
+                if (current == jda && current.getStatus() == JDA.Status.CONNECTED) {
+                    sendServerStopEmbedBlocking();
+                }
+            } catch (Exception e) {
+                plugin.getLogger().warning("[Discord] Failed to send stop embed: " + e.getMessage());
+            }
+
+            synchronized (startLock) {
+                jda = null;
+                pendingJda = null;
+            }
+
+            current.shutdownNow();
+            log("[JDA] Triggered Shutdown...");
+            try {
+                if (!current.awaitShutdown(java.time.Duration.ofSeconds(5))) {
+                    log("[JDA] Shutdown did not complete within 5 seconds.");
+                } else {
+                    log("[JDA] Shutdown complete.");
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log("[JDA] Shutdown wait interrupted.");
+            } catch (Exception e) {
+                dump(e, " [JDA] EXCEPTION : ");
+            }
+        }
+
+        schemuploadsChannel = null;
+        staffChannel = null;
+        logsChannel = null;
+        chatChannel = null;
+        reportsChannel = null;
+        archivedReportsChannel = null;
+        closeMediaServices();
+    }
+
+    private TextChannel getStaffChannel() {
+        if (jda == null) return null;
+        if (staffChannel != null) return staffChannel;
+        String id = cfg("discord.channel-id", "discord.channel_id");
+        if (id == null || id.isEmpty()) return null;
+        staffChannel = jda.getTextChannelById(id);
+        if (staffChannel == null) plugin.getLogger().warning("[Discord] Staff channel not found: " + id);
+        return staffChannel;
+    }
+
+    private void closeMediaServices() {
+        synchronized (mediaLock) {
+            DiscordMediaRenderer renderer = this.mediaRenderer;
+            this.mediaRenderer = null;
+            this.mediaCollector = new MediaCollector(MediaRenderSettings.disabled());
+            if (renderer != null) {
+                try {
+                    renderer.close();
+                } catch (Throwable ignored) {
+                }
+            }
+        }
+        mediaChains.clear();
+    }
+
     /* ---------------------- Discord -> MC (staff & public) ---------------------- */
     @Override
     public void onMessageReceived(@NotNull MessageReceivedEvent event) {
@@ -510,74 +562,31 @@ public class DiscordBridge extends ListenerAdapter {
                     .replace("%message%", MESSAGE_TOKEN)
                     .replace("  ", " ");
 
-            // Collect media: attachments + direct URLs (any link now)
-            java.util.List<String> mediaUrls = new java.util.ArrayList<>();
-            List<Message.Attachment> atts = event.getMessage().getAttachments();
-            for (Message.Attachment att : atts) mediaUrls.add(att.getUrl());
-            mediaUrls.addAll(extractAllUrls(msg));
-            addEmbedMediaPlaceholders(event.getMessage(), mediaUrls);
+            MediaPlan mediaPlan = mediaCollector.collect(event.getMessage(), staff, true);
+            CompletableFuture<Optional<Component>> rendered = mediaRenderer == null
+                    ? CompletableFuture.completedFuture(Optional.empty())
+                    : mediaRenderer.render(mediaPlan);
 
-            if (mediaUrls.isEmpty()) {
-                String outAmpFull = template
-                        .replace("%role%", bracketedRole)
-                        .replace("%rolecolor%", roleColorCode == null ? "" : roleColorCode)
-                        .replace("%name%", name)
-                        .replace("%message%", msg)
-                        .replace("  ", " ");
+            enqueueMediaDelivery(staff.getId(), rendered, ascii -> {
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    if (!p.hasPermission("sandbox.staff")) continue;
 
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    for (Player p : Bukkit.getOnlinePlayers()) {
-                        if (!p.hasPermission("sandbox.staff")) continue;
-                        String perViewer = Utils.highlightDiscordMentionAmpersand(outAmpFull, p.getName(), "&f");
-                        boolean ping = !perViewer.equals(outAmpFull);
-                        p.sendMessage(HexColorUtil.translate(perViewer));
-                        if (ping) {
-                            try {
-                                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, SoundCategory.MASTER, 1337F, 0.9F);
-                            } catch (Throwable ignored) {
-                            }
+                    String perViewer = Utils.highlightDiscordMentionAmpersand(outAmpWithToken, p.getName(), "&f");
+                    int i = perViewer.indexOf(MESSAGE_TOKEN);
+                    String before = i >= 0 ? perViewer.substring(0, i) : perViewer;
+                    String after = i >= 0 ? perViewer.substring(i + MESSAGE_TOKEN.length()) : "";
+
+                    Component finalMsg = composeMessage(before, msg, after, mediaPlan, ascii, p.getName(), "&f");
+                    p.sendMessage(finalMsg);
+
+                    if (messageMentions(msg, p.getName())) {
+                        try {
+                            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, SoundCategory.MASTER, 1337F, 0.9F);
+                        } catch (Throwable ignored) {
                         }
                     }
-                });
-            } else {
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    for (Player p : Bukkit.getOnlinePlayers()) {
-                        if (!p.hasPermission("sandbox.staff")) continue;
-
-                        String perViewer = Utils.highlightDiscordMentionAmpersand(outAmpWithToken, p.getName(), "&f");
-                        int i = perViewer.indexOf(MESSAGE_TOKEN);
-                        String before = i >= 0 ? perViewer.substring(0, i) : perViewer;
-                        String after = i >= 0 ? perViewer.substring(i + MESSAGE_TOKEN.length()) : "";
-
-                        boolean ping = messageMentions(msg, p.getName());
-
-                        if (mediaUrls.isEmpty()) {
-                            String full = (i >= 0) ? (before + msg + after) : perViewer;
-                            p.sendMessage(HexColorUtil.translate(full));
-                        } else {
-                            String cleanMsg = stripAllUrls(msg).trim();
-                            Component messageComps = cleanMsg.isBlank()
-                                    ? Component.empty()
-                                    : legacy(cleanMsg + " ");
-                            Component mediaComps = clickableMediaTagOrLegacy("&e[Media]", firstClickableMediaUrl(mediaUrls));
-                            Component finalMsg = join(
-                                    legacy(before),
-                                    messageComps,
-                                    mediaComps,
-                                    legacy(after)
-                            );
-                            p.sendMessage(finalMsg);
-                        }
-
-                        if (ping) {
-                            try {
-                                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, SoundCategory.MASTER, 1337F, 0.9F);
-                            } catch (Throwable ignored) {
-                            }
-                        }
-                    }
-                });
-            }
+                }
+            });
             return;
         }
 
@@ -622,106 +631,133 @@ public class DiscordBridge extends ListenerAdapter {
                     .replace("%message%", MESSAGE_TOKEN)
                     .replace("  ", " ");
 
-            // Collect media: attachments + direct URLs (any link now)
-            java.util.List<String> mediaUrls = new java.util.ArrayList<>();
-            List<Message.Attachment> atts = event.getMessage().getAttachments();
-            for (Message.Attachment att : atts) mediaUrls.add(att.getUrl());
-            mediaUrls.addAll(extractAllUrls(msg));
-            addEmbedMediaPlaceholders(event.getMessage(), mediaUrls);
+            MediaPlan mediaPlan = mediaCollector.collect(event.getMessage(), chat, false);
+            CompletableFuture<Optional<Component>> rendered = mediaRenderer == null
+                    ? CompletableFuture.completedFuture(Optional.empty())
+                    : mediaRenderer.render(mediaPlan);
 
-            if (mediaUrls.isEmpty()) {
-                String formattedBase = template
-                        .replace("%role%", roleFormatted)
-                        .replace("%roletag%", roleFormatted)
-                        .replace("%rolecolor%", roleColorCode == null ? "" : roleColorCode)
-                        .replace("%user%", userColored)
-                        .replace("  ", " ");
+            enqueueMediaDelivery(chat.getId(), rendered, ascii -> {
+                for (Player p : Bukkit.getOnlinePlayers()) {
+                    boolean viewerWantsCensored = filterResult.triggered
+                            && playerDataListener.get(p.getUniqueId(), PlayerDataKeys.CHATFILTER, false);
+                    String viewerMsg = viewerWantsCensored ? filterResult.censoredPlain : msg;
 
-                String uncensoredFull = formattedBase.replace("%message%", msg);
-                String censoredFull = filterResult.triggered ? formattedBase.replace("%message%", filterResult.censoredPlain) : uncensoredFull;
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    for (Player p : Bukkit.getOnlinePlayers()) {
-                        boolean viewerWantsCensored = filterResult.triggered
-                                && playerDataListener.get(p.getUniqueId(), PlayerDataKeys.CHATFILTER, false);
+                    String perViewer = highlightDiscordMentionAmpersand(outAmpWithToken, p.getName());
+                    int i = perViewer.indexOf(MESSAGE_TOKEN);
+                    String before = i >= 0 ? perViewer.substring(0, i) : perViewer;
+                    String after = i >= 0 ? perViewer.substring(i + MESSAGE_TOKEN.length()) : "";
 
-                        String outAmpFullPerViewer = viewerWantsCensored ? censoredFull : uncensoredFull;
+                    Component finalMsg = composeMessage(before, viewerMsg, after, mediaPlan, ascii, p.getName(), "&r");
+                    p.sendMessage(finalMsg);
 
-                        String perViewer = highlightDiscordMentionAmpersand(outAmpFullPerViewer, p.getName());
-                        boolean ping = messageMentions(msg, p.getName());
-
-                        p.sendMessage(HexColorUtil.translate(perViewer));
-                        if (ping) {
-                            try {
-                                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, SoundCategory.MASTER, 1337F, 0.9F);
-                            } catch (Throwable ignored) {
-                            }
+                    if (messageMentions(msg, p.getName())) {
+                        try {
+                            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, SoundCategory.MASTER, 1337F, 0.9F);
+                        } catch (Throwable ignored) {
                         }
                     }
-                });
-            } else {
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    for (Player p : Bukkit.getOnlinePlayers()) {
-                        boolean viewerWantsCensored = filterResult.triggered
-                                && playerDataListener.get(p.getUniqueId(), PlayerDataKeys.CHATFILTER, false);
-                        String viewerMsg = viewerWantsCensored ? filterResult.censoredPlain : msg;
-
-                        String perViewer = highlightDiscordMentionAmpersand(outAmpWithToken, p.getName());
-                        int i = perViewer.indexOf(MESSAGE_TOKEN);
-                        String before = i >= 0 ? perViewer.substring(0, i) : perViewer;
-                        String after = i >= 0 ? perViewer.substring(i + MESSAGE_TOKEN.length()) : "";
-
-                        boolean ping = messageMentions(msg, p.getName());
-
-                        String cleanMsg = stripAllUrls(viewerMsg).trim();
-                        Component messageComps = cleanMsg.isBlank()
-                                ? Component.empty()
-                                : legacy(cleanMsg + " ");
-                        Component mediaComps = clickableMediaTagOrLegacy("&e[Media]", firstClickableMediaUrl(mediaUrls));
-                        Component finalMsg = join(
-                                legacy(before),
-                                messageComps,
-                                mediaComps,
-                                legacy(after)
-                        );
-                        p.sendMessage(finalMsg);
-
-                        if (ping) {
-                            try {
-                                p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, SoundCategory.MASTER, 1337F, 0.9F);
-                            } catch (Throwable ignored) {
-                            }
-                        }
-                    }
-                });
-            }
+                }
+            });
         }
     }
 
-    private TextChannel getStaffChannel() {
-        if (jda == null) return null;
-        if (staffChannel != null) return staffChannel;
-        String id = cfg("discord.channel-id", "discord.channel_id");
-        if (id == null || id.isEmpty()) return null;
-        staffChannel = jda.getTextChannelById(id);
-        if (staffChannel == null) plugin.getLogger().warning("[Discord] Staff channel not found: " + id);
-        return staffChannel;
-    }
+    private void enqueueMediaDelivery(
+            String channelKey,
+            CompletableFuture<Optional<Component>> rendered,
+            Consumer<Optional<Component>> sender
+    ) {
+        String key = channelKey == null || channelKey.isBlank() ? "default" : channelKey;
+        AtomicReference<CompletableFuture<Void>> created = new AtomicReference<>();
+        mediaChains.compute(key, (ignored, previous) -> {
+            CompletableFuture<Void> base = previous == null
+                    ? CompletableFuture.completedFuture(null)
+                    : previous;
+            CompletableFuture<Optional<Component>> resultFuture = rendered == null
+                    ? CompletableFuture.completedFuture(Optional.empty())
+                    : rendered;
 
-    private static void addEmbedMediaPlaceholders(Message message, java.util.List<String> mediaUrls) {
-        if (message == null) return;
-        for (MessageEmbed embed : message.getEmbeds()) {
-            if (embed.getImage() != null && embed.getImage().getUrl() != null) {
-                mediaUrls.add(embed.getImage().getUrl());
-            } else if (embed.getThumbnail() != null && embed.getThumbnail().getUrl() != null) {
-                mediaUrls.add(embed.getThumbnail().getUrl());
-            } else if (embed.getVideoInfo() != null && embed.getVideoInfo().getUrl() != null) {
-                mediaUrls.add(embed.getVideoInfo().getUrl());
-            } else if (embed.getUrl() != null) {
-                mediaUrls.add(embed.getUrl());
-            }
+            CompletableFuture<Void> next = base
+                    .handle((unused, failure) -> null)
+                    .thenCompose(unused -> resultFuture)
+                    .handle((ascii, failure) -> {
+                        Optional<Component> result = failure == null && ascii != null
+                                ? ascii
+                                : Optional.empty();
+
+                        if (plugin.isEnabled()) {
+                            try {
+                                Bukkit.getScheduler().runTask(plugin, () -> {
+                                    if (!plugin.isEnabled()) return;
+                                    try {
+                                        sender.accept(result);
+                                    } catch (Throwable throwable) {
+                                        plugin.getLogger().warning(
+                                                "[Discord] Failed to deliver rendered message: " + throwable.getMessage()
+                                        );
+                                    }
+                                });
+                            } catch (Throwable schedulingFailure) {
+                            }
+                        }
+                        return null;
+                    });
+
+            created.set(next);
+            return next;
+        });
+
+        CompletableFuture<Void> next = created.get();
+        if (next != null) {
+            next.whenComplete((done, failure) -> mediaChains.remove(key, next));
         }
     }
-    //
+
+    private static Component composeMessage(
+            String beforeAmp,
+            String messageText,
+            String afterAmp,
+            MediaPlan plan,
+            Optional<Component> ascii,
+            String playerName,
+            String mentionColor
+    ) {
+        String clean = stripAllUrls(messageText == null ? "" : messageText).trim();
+        String highlighted = clean.isBlank()
+                ? ""
+                : Utils.highlightDiscordMentionAmpersand(clean, playerName, mentionColor);
+
+        Component message = highlighted.isBlank() ? Component.empty() : legacy(highlighted);
+        Component head = join(legacy(beforeAmp), message);
+        Component tail = legacy(afterAmp);
+
+        if (ascii != null && ascii.isPresent()) {
+            Component art = MinecraftAsciiComponent.clickable(ascii.get(), plan.jumpUrl());
+            Component out = Colors.plain(head).isBlank()
+                    ? art
+                    : head.append(Component.newline()).append(art);
+
+            if (plan.extraCount() > 0) {
+                out = out.append(Component.newline()).append(
+                        clickableMediaTagOrLegacy(
+                                "&7[+" + plan.extraCount() + " media]",
+                                plan.jumpUrl()
+                        )
+                );
+            }
+
+            return Colors.plain(tail).isBlank()
+                    ? out.append(tail)
+                    : out.append(Component.newline()).append(tail);
+        }
+
+        if (plan.hasMedia()) {
+            Component media = clickableMediaTagOrLegacy("&e[Media]", plan.fallbackUrl());
+            if (!clean.isBlank()) head = head.append(Component.space());
+            head = head.append(media);
+        }
+
+        return head.append(tail);
+    }
 
     private static boolean messageMentions(String content, String mcName) {
         return Utils.messageMentions(content, mcName);

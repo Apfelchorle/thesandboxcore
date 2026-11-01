@@ -14,9 +14,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jspecify.annotations.NonNull;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.data.PlayerDataListener;
 import org.thesandbox.core.services.login.LoginService;
 import org.thesandbox.core.util.colors.HexColorUtil;
-import org.thesandbox.core.data.PlayerDataListener;
 
 import java.awt.Color;
 import java.util.*;
@@ -490,7 +490,7 @@ public class Utils {
         String lower = url.toLowerCase(Locale.ROOT);
         return (
                 lower.matches(
-                        ".*\\.(png|jpe?g|gif|webp|bmp|mp4|mov|webm|m4v)(\\?.*)?$"
+                        ".*\\.(png|apng|jpe?g|jfif|gif|webp|bmp|tiff?|ico|cur|psd|tga|avif|mp4|mov|webm|m4v)(\\?.*)?$"
                 ) ||
                         lower.contains("cdn.discordapp.com/attachments/") ||
                         lower.contains("media.discordapp.net/attachments/") ||
