@@ -21,6 +21,7 @@ public final class GenericDataKeys {
     public static final String CMD_MSGS_ERROR = "&c&lError &8» &c";
     public static final String CMD_MSGS_USAGE = "&c&lUsage &8» &c";
     public static final String CMD_MSGS_COMMAND = "&7&lCommand &8» &7";
+    public static final String CMD_MSGS_SUCCESS = "&a&lSuccess &8» &a";
 
     // Frequent
 

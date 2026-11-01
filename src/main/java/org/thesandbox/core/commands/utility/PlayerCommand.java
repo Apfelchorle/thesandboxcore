@@ -3,6 +3,8 @@ package org.thesandbox.core.commands.utility;
 import com.earth2me.essentials.Essentials;
 import com.earth2me.essentials.User;
 import de.myzelyam.api.vanish.VanishAPI;
+import litebans.api.Database;
+import litebans.api.Entry;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
@@ -16,7 +18,6 @@ import org.bukkit.plugin.Plugin;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.data.PlayerDataListener;
 import org.thesandbox.core.services.login.LoginService;
-import org.thesandbox.core.util.colors.Colors;
 import org.thesandbox.core.util.colors.ComponentBuilder;
 
 import java.util.*;
@@ -64,13 +65,13 @@ public class PlayerCommand extends BaseCommand {
     }
 
     private void sendHelp(CommandSender sender, String label) {
-        send(sender, "&7&m--------------&r &dPlayer Utilities &7&m--------------");
-        send(sender, "&d/" + label + " help &8- &7Show this help");
-        send(sender, "&d/" + label + " info <player> &8- &7Show detailed player info &8(staff)");
-        send(sender, "&d/" + label + " list &8- &7List online players with details");
-        send(sender, "&d/" + label + " tp <player> &8- &7Teleport to a player or their logout spot &8(staff)");
-        send(sender, "&d/" + label + " uuid [player|uuid] &8- &7Show a player's UUID (click to copy)");
-        send(sender, "&7&m-----------------------------------------------------");
+        send(sender, "&8&m--------------&r &6Player Utilities &8&m--------------");
+        send(sender, "&e/" + label + " help &8- &7Show this help");
+        send(sender, "&e/" + label + " info <player> &8- &7Show detailed player info &8(staff)");
+        send(sender, "&e/" + label + " list &8- &7List online players with details");
+        send(sender, "&e/" + label + " tp <player> &8- &7Teleport to a player or their logout spot &8(staff)");
+        send(sender, "&e/" + label + " uuid [player|uuid] &8- &7Show a player's UUID (click to copy)");
+        send(sender, "&8&m-----------------------------------------------------");
     }
 
     /**
@@ -100,7 +101,7 @@ public class PlayerCommand extends BaseCommand {
 
         // Build the info component
         ComponentBuilder builder = ComponentBuilder.empty()
-                .append(ComponentBuilder.legacy("&7&m--------------&r &d" + targetName + " &7&m--------------")).newline();
+                .append(ComponentBuilder.legacy("&8&m--------------&r &6" + targetName + " &8&m--------------")).newline();
 
         // Name & status
         String statusText = isOnline ? "&aOnline" : "&cOffline";
@@ -132,6 +133,9 @@ public class PlayerCommand extends BaseCommand {
             rankColor = "&7";
         }
         builder.append(ComponentBuilder.legacy("&7Rank: ")).append(ComponentBuilder.legacy(rankColor + rankDisplay)).newline();
+
+        // Ban/Mute status via LiteBans
+        appendLiteBansStatus(builder, uuid);
 
         // IP address (censored, shown on hover for staff only)
         String ip = dataListener.getLastIp(uuid);
@@ -165,8 +169,109 @@ public class PlayerCommand extends BaseCommand {
             builder.append(ComponentBuilder.legacy("&7Ping: ")).append(ComponentBuilder.legacy(onlinePlayer.getPing() + "ms")).newline();
         }
 
-        builder.append(ComponentBuilder.legacy("&7&m-----------------------------------------------------"));
+        builder.append(ComponentBuilder.legacy("&8&m-----------------------------------------------------"));
         builder.sendTo(sender);
+    }
+
+    /**
+     * Appends LiteBans ban/mute status to the player info component.
+     * Shows active punishments with reason and duration revealed on hover.
+     */
+    private void appendLiteBansStatus(ComponentBuilder builder, UUID uuid) {
+        if (!Bukkit.getPluginManager().isPluginEnabled("LiteBans")) {
+            builder.append(ComponentBuilder.legacy("&7Status: &7LiteBans not found")).newline();
+            return;
+        }
+
+        try {
+            Database db = Database.get();
+            if (db == null) {
+                builder.append(ComponentBuilder.legacy("&7Status: &7LiteBans API unavailable")).newline();
+                return;
+            }
+
+            String scope = Database.ANY_SERVER_SCOPE;
+            boolean isBanned = db.isPlayerBanned(uuid, scope);
+            boolean isMuted = db.isPlayerMuted(uuid, scope);
+
+            if (!isBanned && !isMuted) {
+                builder.append(ComponentBuilder.legacy("&7Status: &aNo active punishments")).newline();
+                return;
+            }
+
+            // Build hover text with punishment details
+            ComponentBuilder hover = ComponentBuilder.empty();
+            boolean first = true;
+
+            if (isBanned) {
+                Entry ban = db.getBan(uuid, null, scope);
+                if (ban != null) {
+                    hover.append(ComponentBuilder.legacy("&cBANNED")).newline();
+                    hover.append(ComponentBuilder.legacy("&7Reason: ")).append(ComponentBuilder.legacy(ban.getReason())).newline();
+                    hover.append(ComponentBuilder.legacy("&7By: ")).append(ComponentBuilder.legacy(ban.getExecutorName())).newline();
+                    if (ban.isPermanent()) {
+                        hover.append(ComponentBuilder.legacy("&7Duration: &cPermanent"));
+                    } else {
+                        hover.append(ComponentBuilder.legacy("&7Duration: ")).append(ComponentBuilder.legacy(ban.getDurationString()));
+                        hover.newline().append(ComponentBuilder.legacy("&7Remaining: ")).append(ComponentBuilder.legacy(ban.getRemainingDurationString(System.currentTimeMillis() / 1000)));
+                    }
+                    first = false;
+                }
+            }
+
+            if (isMuted) {
+                if (!first) hover.newline().newline();
+                Entry mute = db.getMute(uuid, null, scope);
+                if (mute != null) {
+                    hover.append(ComponentBuilder.legacy("&9MUTED")).newline();
+                    hover.append(ComponentBuilder.legacy("&7Reason: ")).append(ComponentBuilder.legacy(mute.getReason())).newline();
+                    hover.append(ComponentBuilder.legacy("&7By: ")).append(ComponentBuilder.legacy(mute.getExecutorName()));
+                    if (mute.isPermanent()) {
+                        hover.append(ComponentBuilder.legacy("&7Duration: &9Permanent"));
+                    } else {
+                        hover.append(ComponentBuilder.legacy("&7Duration: ")).append(ComponentBuilder.legacy(mute.getDurationString()));
+                        hover.newline().append(ComponentBuilder.legacy("&7Remaining: ")).append(ComponentBuilder.legacy(mute.getRemainingDurationString(System.currentTimeMillis() / 1000)));
+                    }
+                }
+            }
+
+            // Build visible status text
+            String visibleStatus;
+            if (isBanned && isMuted) {
+                visibleStatus = "&cBANNED &9MUTED";
+            } else if (isBanned) {
+                visibleStatus = "&cBANNED";
+            } else {
+                visibleStatus = "&9MUTED";
+            }
+
+            Component statusComp = ComponentBuilder.text(visibleStatus)
+                    .hoverComponent(hover.build())
+                    .build();
+            builder.append(ComponentBuilder.legacy("&7Status: ")).append(statusComp).newline();
+
+        } catch (Exception e) {
+            Bukkit.getLogger().warning("[TheSandboxCore] Failed to query LiteBans for " + uuid + ": " + e.getMessage());
+            builder.append(ComponentBuilder.legacy("&7Status: &7LiteBans error")).newline();
+        }
+    }
+
+    /**
+     * Gets the max health of a player using the non-deprecated Attribute API.
+     */
+    private static double getMaxHealth(Player player) {
+        return player.getAttribute(Attribute.MAX_HEALTH).getBaseValue();
+    }
+
+    /**
+     * Censors an IP address, showing only the first and last octet.
+     * e.g. "192.168.1.100" -> "192.*.*.100"
+     */
+    private static String censorIp(String ip) {
+        if (ip == null || ip.isEmpty()) return "*.*.*.*";
+        String[] parts = ip.split("\\.");
+        if (parts.length != 4) return "*.*.*.*";
+        return parts[0] + ".*.*." + parts[3];
     }
 
     private void listPlayers(CommandSender sender) {
@@ -181,7 +286,7 @@ public class PlayerCommand extends BaseCommand {
         }
         visible.sort(Comparator.comparing(Player::getName, String.CASE_INSENSITIVE_ORDER));
 
-        send(sender, "&7&m----------&r &dOnline Players (" + visible.size() + ") &7&m----------");
+        send(sender, "&8&m----------&r &6Online Players (" + visible.size() + ") &8&m----------");
         if (visible.isEmpty()) {
             send(sender, "&7No players are online.");
         } else {
@@ -247,7 +352,7 @@ public class PlayerCommand extends BaseCommand {
 
         // Build a clickable component: shows name » UUID, click UUID to copy
         ComponentBuilder builder = ComponentBuilder.empty()
-                .append(ComponentBuilder.legacy("&d" + name + " &8» "))
+                .append(ComponentBuilder.legacy("&6" + name + " &8» "))
                 .append(ComponentBuilder.text(uuid.toString())
                         .color(NamedTextColor.WHITE)
                         .copyToClipboard(uuid.toString())
@@ -256,24 +361,6 @@ public class PlayerCommand extends BaseCommand {
                 .append(ComponentBuilder.legacy(" &8(" + status + "&8)"));
 
         builder.sendTo(sender);
-    }
-
-    /**
-     * Censors an IP address, showing only the first and last octet.
-     * e.g. "192.168.1.100" -> "192.*.*.100"
-     */
-    private static String censorIp(String ip) {
-        if (ip == null || ip.isEmpty()) return "*.*.*.*";
-        String[] parts = ip.split("\\.");
-        if (parts.length != 4) return "*.*.*.*";
-        return parts[0] + ".*.*." + parts[3];
-    }
-
-    /**
-     * Gets the max health of a player using the non-deprecated Attribute API.
-     */
-    private static double getMaxHealth(Player player) {
-        return player.getAttribute(Attribute.MAX_HEALTH).getBaseValue();
     }
 
     /**
@@ -337,10 +424,6 @@ public class PlayerCommand extends BaseCommand {
     private String getRankDisplay(Player player) {
         LoginService.Rank rank = loginService.getRank(player);
         return rank != null ? rank.color + rank.displayName : "&7Player";
-    }
-
-    private static void send(CommandSender sender, String message) {
-        sender.sendMessage(Colors.color(message));
     }
 
     private boolean isVanished(Player player) {

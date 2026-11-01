@@ -35,6 +35,10 @@ public final class CommandMessages
         return apply(GenericDataKeys.CMD_MSGS_INFO, message, false);
     }
 
+    public static String success(String message) {
+        return apply(GenericDataKeys.CMD_MSGS_SUCCESS, message, false);
+    }
+
     public static String apply(String prefix, String message, boolean usage)
     {
         String body = message == null ? "" : stripLeadingColor(message);

@@ -50,6 +50,22 @@ public abstract class BaseCommand implements ISubCommand {
         sender.sendMessage(CommandMessages.command(message));
     }
 
+    protected void sendSuccess(CommandSender sender, String message) {
+        sender.sendMessage(CommandMessages.success(message));
+    }
+
+    protected void sendInformation(CommandSender sender, String message) {
+        sender.sendMessage(CommandMessages.information(message));
+    }
+
+    /**
+     * Send a plain message with legacy color codes resolved.
+     * Use for general-purpose output that doesn't need a prefix.
+     */
+    protected void send(CommandSender sender, String message) {
+        sender.sendMessage(org.thesandbox.core.util.colors.Colors.component(message));
+    }
+
     protected void sendUsage(CommandSender sender, String usage) {
         sender.sendMessage(CommandMessages.usage(usage));
     }

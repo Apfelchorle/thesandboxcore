@@ -60,10 +60,10 @@ public class ListCommand extends BaseCommand {
         int totalShown = staffLines.size() + playerLines.size();
 
         // Header
-        send(sender, "&7&m--------------------&r &dOnline (" + totalShown + ") &7&m--------------------");
+        send(sender, "&8&m--------------------&r &6Online (" + totalShown + ") &8&m--------------------");
 
         // Staff section (Operator, Admin, Staff)
-        send(sender, ("&dStaff&r &7- &d" + staffLines.size()));
+        send(sender, ("&eStaff &7- &e" + staffLines.size()));
         if (staffLines.isEmpty()) {
             send(sender, ("&7- &7No staff online."));
         } else {
@@ -71,7 +71,7 @@ public class ListCommand extends BaseCommand {
         }
 
         // Players section (Master Builder, VIP, Player)
-        send(sender, ("&dPlayers &8- &d" + playerLines.size()));
+        send(sender, ("&ePlayers &7- &e" + playerLines.size()));
         if (playerLines.isEmpty()) {
             send(sender, ("&7- &7No players online."));
         } else {
@@ -108,9 +108,6 @@ public class ListCommand extends BaseCommand {
         };
     }
 
-    private static void send(CommandSender s, String msg) {
-        s.sendMessage(color(msg));
-    }
 
     private boolean isVanished(Player p)
     {

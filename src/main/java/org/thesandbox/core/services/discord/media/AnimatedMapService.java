@@ -177,8 +177,12 @@ public class AnimatedMapService implements AutoCloseable {
         // Create the animated renderer
         AnimatedMapRenderer renderer = new AnimatedMapRenderer(frames);
 
-        // Create a virtual MapView
-        MapView mapView = Bukkit.createMap(null); // null = virtual, not tied to a world
+        // Create a virtual MapView — Paper requires a non-null world; use the player's world
+        if (player.getWorld() == null) {
+            plugin.getLogger().warning("[GifMap] Player " + player.getName() + " has no world — cannot create map.");
+            return null;
+        }
+        MapView mapView = Bukkit.createMap(player.getWorld());
         mapView.setLocked(true);
         mapView.setScale(MapView.Scale.CLOSEST);
         mapView.setTrackingPosition(false);
