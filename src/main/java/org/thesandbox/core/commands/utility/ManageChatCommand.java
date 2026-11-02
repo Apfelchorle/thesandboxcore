@@ -44,10 +44,10 @@ public class ManageChatCommand extends BaseCommand implements TabCompleter {
             case "mute": {
                 if (!service.isMuted()) {
                     service.mute();
-                    Colors.broadcast(CommandMessages.server(Colors.RED + sender.getName() + " - Muting the chat"));
+                    Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.RED + sender.getName() + " - Muting the chat"));
                 } else {
                     service.unmute();
-                    Colors.broadcast(CommandMessages.server(Colors.RED + sender.getName() + " - Unmuting the chat"));
+                    Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.RED + sender.getName() + " - Unmuting the chat"));
                 }
                 return true;
             }
@@ -57,14 +57,14 @@ public class ManageChatCommand extends BaseCommand implements TabCompleter {
                     if (p.hasPermission("sandbox.staff")) continue;
                     p.sendMessage(Component.text("\n".repeat(100)));
                 }
-                Colors.broadcast(CommandMessages.server(Colors.RED + sender.getName() + " - Cleared the chat"));
+                Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.RED + sender.getName() + " - Cleared the chat"));
                 return true;
             }
             case "forceclear": {
                 for (Player p : Bukkit.getOnlinePlayers()) {
                     p.sendMessage(Component.text("\n".repeat(100)));
                 }
-                Colors.broadcast(CommandMessages.server("&c" + sender.getName() + " - Force Cleared the chat"));
+                Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, "&c" + sender.getName() + " - Force Cleared the chat"));
                 return true;
             }
             default: {

@@ -64,23 +64,23 @@ public class OrbitCommand extends BaseCommand {
         if (orbitTasks.containsKey(tid)) {
             stopOrbit(target);
             if (!sender.equals(target)) {
-                target.sendMessage(CommandMessages.command(Colors.YELLOW + "You are now descending back into the world."));
+                sendCommand(target, Colors.YELLOW + "You are now descending back into the world.");
                 target.setGameMode(GameMode.CREATIVE);
-                target.sendMessage(CommandMessages.command(Colors.GRAY + "Your gamemode was updated to CREATIVE."));
+                sendCommand(target, Colors.GRAY + "Your gamemode was updated to CREATIVE.");
             }
-            Colors.broadcast(CommandMessages.server(Colors.AQUA + actor + " - Stopped orbiting " + target.getName()));
+            Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.AQUA + actor + " - Stopped orbiting " + target.getName()));
             return true;
         }
 
         // Toggle ON
         target.setGameMode(GameMode.SURVIVAL);
-        target.sendMessage(CommandMessages.command(Colors.GRAY + "Your gamemode was updated to SURVIVAL."));
+        sendCommand(target, Colors.GRAY + "Your gamemode was updated to SURVIVAL.");
         startOrbit(target);
 
-        Colors.broadcast(CommandMessages.server(Colors.AQUA + actor + " - Orbiting " + target.getName()));
+        Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.AQUA + actor + " - Orbiting " + target.getName()));
 
         if (!sender.equals(target)) {
-            target.sendMessage(CommandMessages.command(Colors.GOLD + "BLAST OFF!"));
+            sendCommand(target, Colors.GOLD + "BLAST OFF!");
         }
         return true;
     }

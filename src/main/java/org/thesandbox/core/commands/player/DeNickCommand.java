@@ -29,12 +29,12 @@ public class DeNickCommand extends BaseCommand {
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
         if (essentials == null || !essentials.isEnabled()) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "Essentials is not installed or not enabled. Cannot remove nicknames."));
+            sendError(sender, Colors.RED + "Essentials is not installed or not enabled. Cannot remove nicknames.");
             return true;
         }
 
         final String who = (sender instanceof Player) ? sender.getName() : "CONSOLE";
-        Colors.broadcast(CommandMessages.server(Colors.RED + who + " - Removing all online nicknames"));
+        Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.RED + who + " - Removing all online nicknames"));
 
         for (Player target : Bukkit.getOnlinePlayers()) {
             try {
@@ -45,11 +45,11 @@ public class DeNickCommand extends BaseCommand {
                     try {
                         target.playerListName(Component.text(target.getName()));
                     } catch (Throwable ignored) {
-                        target.sendMessage(CommandMessages.command(Colors.RED + "Your nickname has been cleared by a staff member."));
+                        sendCommand(target, Colors.RED + "Your nickname has been cleared by a staff member.");
                     }
                 }
             } catch (Throwable t) {
-                sender.sendMessage(CommandMessages.error(Colors.RED + "Failed to clear nickname for: " + target.getName()));
+                sendError(sender, Colors.RED + "Failed to clear nickname for: " + target.getName());
             }
         }
 

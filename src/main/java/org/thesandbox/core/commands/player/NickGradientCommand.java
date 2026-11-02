@@ -38,12 +38,12 @@ public class NickGradientCommand extends BaseCommand {
         }
 
         if (essentials == null || !essentials.isEnabled()) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "Essentials is not enabled on this server."));
+            sendError(sender, Colors.RED + "Essentials is not enabled on this server.");
             return true;
         }
 
         if (args.length != 3) {
-            sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <hex|random> <hex|random> <nick>"));
+            sendUsage(sender, Colors.RED + "Usage: /" + label + " <hex|random> <hex|random> <nick>");
             return true;
         }
 
@@ -51,7 +51,7 @@ public class NickGradientCommand extends BaseCommand {
 
         // Length check
         if (nickRaw.length() < 3 || nickRaw.length() > 30) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "Your nickname must be between 3 and 30 characters long."));
+            sendError(sender, Colors.RED + "Your nickname must be between 3 and 30 characters long.");
             return true;
         }
 
@@ -60,7 +60,7 @@ public class NickGradientCommand extends BaseCommand {
             if (p == player) continue;
             String strippedDisplay = Colors.strip(Colors.plain(p.displayName()));
             if (p.getName().equalsIgnoreCase(nickRaw) || (strippedDisplay != null && strippedDisplay.trim().equalsIgnoreCase(nickRaw))) {
-                sender.sendMessage(CommandMessages.error(Colors.RED + "That nickname is already in use."));
+                sendError(sender, Colors.RED + "That nickname is already in use.");
                 return true;
             }
         }
@@ -76,7 +76,7 @@ public class NickGradientCommand extends BaseCommand {
             showFrom = isRandomToken(args[0]);
             showTo = isRandomToken(args[1]);
         } catch (IllegalArgumentException ex) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "Invalid hex values. Use #RRGGBB or 'random'."));
+            sendError(sender, Colors.RED + "Invalid hex values. Use #RRGGBB or 'random'.");
             return true;
         }
 
@@ -95,7 +95,7 @@ public class NickGradientCommand extends BaseCommand {
         // Save via Essentials
         User user = essentials.getUser(player);
         if (user == null) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "Could not access your Essentials data."));
+            sendError(sender, Colors.RED + "Could not access your Essentials data.");
             return true;
         }
         user.setNickname(outputNick);
@@ -105,7 +105,7 @@ public class NickGradientCommand extends BaseCommand {
         if (showFrom) suffix.append(" (From: ").append(toHex(awt1)).append(")");
         if (showTo) suffix.append(" (To: ").append(toHex(awt2)).append(")");
 
-        sender.sendMessage(CommandMessages.command(Colors.YELLOW + "Your nickname is now: '" + outputNick + Colors.YELLOW + "'" + Colors.GRAY + suffix));
+        sendCommand(sender, Colors.YELLOW + "Your nickname is now: '" + outputNick + Colors.YELLOW + "'" + Colors.GRAY + suffix);
         return true;
     }
 

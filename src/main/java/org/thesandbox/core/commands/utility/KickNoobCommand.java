@@ -27,7 +27,7 @@ public class KickNoobCommand extends BaseCommand
         final String who = (sender instanceof Player) ? sender.getName() : "CONSOLE";
 
         // Broadcast admin action
-        Colors.broadcast(CommandMessages.server(Colors.RED + who + " - Kicking all non-staff users"));
+        Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.RED + who + " - Kicking all non-staff users"));
 
         int kicked = 0;
         for (Player p : Bukkit.getOnlinePlayers())
@@ -37,12 +37,12 @@ public class KickNoobCommand extends BaseCommand
                 continue;
 
             try {
-                p.kick(Colors.component(CommandMessages.server(Colors.RED + "All non-staff were kicked by " + who + ".")));
+                p.kick(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.RED + "All non-staff were kicked by " + who + "."));
                 kicked++;
             } catch (Throwable ignored) {}
         }
 
-        sender.sendMessage(CommandMessages.command(Colors.GRAY + "Kicked " + kicked + " non-staff player(s)."));
+        sendCommand(sender, Colors.GRAY + "Kicked " + kicked + " non-staff player(s).");
         return true;
     }
 

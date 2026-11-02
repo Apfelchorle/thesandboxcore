@@ -1,6 +1,7 @@
 package org.thesandbox.core.commands.misc;
 
 import org.bukkit.Bukkit;
+import net.kyori.adventure.text.Component;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.Plugin;
@@ -31,7 +32,7 @@ public class PluginControlCommand extends BaseCommand {
         return sender.hasPermission("sandbox.staff") || sender.isOp();
     }
 
-    private void msg(CommandSender sender, String message)
+    private void msg(CommandSender sender, Component message)
     {
         sender.sendMessage(message);
     }
@@ -57,7 +58,7 @@ public class PluginControlCommand extends BaseCommand {
     {
         if (!canUse(sender))
         {
-            msg(sender, CommandMessages.error(Colors.RED + "You don't have permission to use this."));
+            msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + "You don't have permission to use this."));
             return true;
         }
 
@@ -75,7 +76,7 @@ public class PluginControlCommand extends BaseCommand {
                 String authorsJoined = authors.isEmpty() ? "Unknown" : String.join(", ", authors);
 
                 msg(sender,
-                        CommandMessages.command(Colors.GRAY + "- " + stateColor + pl.getName()
+                        org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, Colors.GRAY + "- " + stateColor + pl.getName()
                                 + Colors.GOLD + (version.isEmpty() ? "" : " v" + version)
                                 + Colors.GRAY + " by " + authorsJoined));
             }
@@ -89,7 +90,7 @@ public class PluginControlCommand extends BaseCommand {
 
             if (target == null)
             {
-                msg(sender, CommandMessages.error(Colors.RED + "Plugin not found: " + args[1]));
+                msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + "Plugin not found: " + args[1]));
                 return true;
             }
 
@@ -98,17 +99,17 @@ public class PluginControlCommand extends BaseCommand {
                 case "enable" -> {
                     if (target.isEnabled())
                     {
-                        msg(sender, CommandMessages.error(Colors.GRAY + target.getName() + " is already enabled."));
+                        msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.GRAY + target.getName() + " is already enabled."));
                         return true;
                     }
                     pm.enablePlugin(target);
                     if (target.isEnabled())
                     {
-                        msg(sender, CommandMessages.command(Colors.GREEN + target.getName() + " is now enabled!"));
+                        msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, Colors.GREEN + target.getName() + " is now enabled!"));
                     }
                     else
                     {
-                        msg(sender, CommandMessages.error(Colors.RED + "Failed to enable " + target.getName() + "."));
+                        msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + "Failed to enable " + target.getName() + "."));
                     }
                     return true;
                 }
@@ -116,36 +117,36 @@ public class PluginControlCommand extends BaseCommand {
                 case "disable" -> {
                     if (!target.isEnabled())
                     {
-                        msg(sender, CommandMessages.error(target.getName() + " is already disabled!"));
+                        msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, target.getName() + " is already disabled!"));
                         return true;
                     }
                     if (untouchable.contains(target.getName()))
                     {
-                        msg(sender, CommandMessages.error(Colors.RED + target.getName() + " cannot be disabled!"));
+                        msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + target.getName() + " cannot be disabled!"));
                         return true;
                     }
                     pm.disablePlugin(target);
-                    msg(sender, CommandMessages.command(Colors.YELLOW + target.getName() + " is now disabled!"));
+                    msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, Colors.YELLOW + target.getName() + " is now disabled!"));
                     return true;
                 }
 
                 case "reload" -> {
                     if (untouchable.contains(target.getName()))
                     {
-                        msg(sender, CommandMessages.error(Colors.RED + target.getName() + " cannot be reloaded!"));
+                        msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + target.getName() + " cannot be reloaded!"));
                         return true;
                     }
                     // Note: reloading arbitrary plugins can be risky.
                     pm.disablePlugin(target);
                     pm.enablePlugin(target);
-                    msg(sender, CommandMessages.command(Colors.GREEN + target.getName() + " has been reloaded!"));
+                    msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, Colors.GREEN + target.getName() + " has been reloaded!"));
                     return true;
                 }
             }
         }
 
         // Usage message
-        msg(sender, CommandMessages.usage(Colors.RED + "Usage: /" + label + " <enable|disable|reload> <plugin> | list"));
+        msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.USAGE, Colors.RED + "Usage: /" + label + " <enable|disable|reload> <plugin> | list"));
         return true;
     }
 

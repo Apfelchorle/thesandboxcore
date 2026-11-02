@@ -43,7 +43,7 @@ public class PotionCommand extends BaseCommand
     public boolean execute(CommandSender sender, Command command, String label, String[] args)
     {
         if (args.length < 1) {
-            sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <list | clearall | clear [target] | add <type> <durationTicks> <amplifier> [target]>"));
+            sendUsage(sender, Colors.RED + "Usage: /" + label + " <list | clearall | clear [target] | add <type> <durationTicks> <amplifier> [target]>");
             return true;
         }
 
@@ -51,21 +51,21 @@ public class PotionCommand extends BaseCommand
 
         // /potion list
         if (args.length == 1 && sub.equals("list")) {
-            sender.sendMessage(CommandMessages.command(Colors.YELLOW + "Potion effect types: " + String.join(", ", allEffectNames())));
+            sendCommand(sender, Colors.YELLOW + "Potion effect types: " + String.join(", ", allEffectNames()));
             return true;
         }
 
         // /potion clearall
         if (args.length == 1 && sub.equals("clearall")) {
             if (!(hasMod(sender) || !(sender instanceof Player))) {
-                sender.sendMessage(CommandMessages.error(Colors.RED + "You must be a staff member!"));
+                sendError(sender, Colors.RED + "You must be a staff member!");
                 return true;
             }
-            Colors.broadcast(CommandMessages.server(Colors.RED + sender.getName() + " - Clearing potion effects from all online players"));
+            Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.RED + sender.getName() + " - Clearing potion effects from all online players"));
             for (Player p : Bukkit.getOnlinePlayers()) {
                 for (PotionEffect eff : new ArrayList<>(p.getActivePotionEffects())) {
                     p.removePotionEffect(eff.getType());
-                    p.sendMessage(CommandMessages.command(Colors.GRAY + "Your potion effects have been removed by a staff member."));
+                    sendCommand(p, Colors.GRAY + "Your potion effects have been removed by a staff member.");
                 }
             }
             return true;
@@ -78,19 +78,19 @@ public class PotionCommand extends BaseCommand
             if (args.length >= 2) {
                 target = resolveOnlinePlayer(args[1]);
                 if (target == null) {
-                    sender.sendMessage(CommandMessages.error(Colors.RED + "Player not found: " + args[1]));
+                    sendError(sender, Colors.RED + "Player not found: " + args[1]);
                     return true;
                 }
                 // clearing OTHERS requires sandbox.staff (console allowed)
                 boolean isSelf = (sender instanceof Player sp) && sp.getUniqueId().equals(target.getUniqueId());
                 if (!isSelf && !(hasMod(sender) || !(sender instanceof Player))) {
-                    sender.sendMessage(CommandMessages.error(Colors.RED + "You must be a staff member!"));
+                    sendError(sender, Colors.RED + "You must be a staff member!");
                     return true;
                 }
             } else {
                 // no target: act on self (console must specify a target)
                 if (!(sender instanceof Player sp)) {
-                    sender.sendMessage(CommandMessages.error(Colors.RED + "From console, specify a target: /" + label + " clear <player>"));
+                    sendError(sender, Colors.RED + "From console, specify a target: /" + label + " clear <player>");
                     return true;
                 }
                 target = sp;
@@ -99,7 +99,7 @@ public class PotionCommand extends BaseCommand
             for (PotionEffect eff : new ArrayList<>(target.getActivePotionEffects())) {
                 target.removePotionEffect(eff.getType());
             }
-            sender.sendMessage(CommandMessages.command(Colors.GRAY + "Cleared potion effects " +
+            sender.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, Colors.GRAY + "Cleared potion effects " +
                     ((sender instanceof Player sp) && sp.getUniqueId().equals(target.getUniqueId())
                             ? "from yourself." : "from " + target.getName() + ".")));
             return true;
@@ -108,13 +108,13 @@ public class PotionCommand extends BaseCommand
         // /potion add <type> <duration> <amplifier> [target]
         if (sub.equals("add")) {
             if (args.length < 4) {
-                sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " add <type> <durationTicks> <amplifier> [target]"));
+                sendUsage(sender, Colors.RED + "Usage: /" + label + " add <type> <durationTicks> <amplifier> [target]");
                 return true;
             }
 
             PotionEffectType type = matchEffectType(args[1]);
             if (type == null) {
-                sender.sendMessage(CommandMessages.error(Colors.RED + "Invalid potion effect: " + args[1]));
+                sendError(sender, Colors.RED + "Invalid potion effect: " + args[1]);
                 return true;
             }
 
@@ -123,14 +123,14 @@ public class PotionCommand extends BaseCommand
                 duration = Math.min(Integer.parseInt(args[2]), 100000);
                 if (duration < 0) throw new NumberFormatException();
             } catch (NumberFormatException nfe) {
-                sender.sendMessage(CommandMessages.error(Colors.RED + "Invalid duration (ticks): " + args[2]));
+                sendError(sender, Colors.RED + "Invalid duration (ticks): " + args[2]);
                 return true;
             }
             try {
                 amplifier = Math.min(Integer.parseInt(args[3]), 100000);
                 if (amplifier < 0) throw new NumberFormatException();
             } catch (NumberFormatException nfe) {
-                sender.sendMessage(CommandMessages.error(Colors.RED + "Invalid amplifier: " + args[3]));
+                sendError(sender, Colors.RED + "Invalid amplifier: " + args[3]);
                 return true;
             }
 
@@ -138,19 +138,19 @@ public class PotionCommand extends BaseCommand
             if (args.length >= 5) {
                 target = resolveOnlinePlayer(args[4]);
                 if (target == null) {
-                    sender.sendMessage(CommandMessages.error(Colors.RED + "Player not found: " + args[4]));
+                    sendError(sender, Colors.RED + "Player not found: " + args[4]);
                     return true;
                 }
                 // applying to OTHERS requires sandbox.staff (console allowed)
                 boolean isSelf = (sender instanceof Player sp) && sp.getUniqueId().equals(target.getUniqueId());
                 if (!isSelf && !(hasMod(sender) || !(sender instanceof Player))) {
-                    sender.sendMessage(CommandMessages.error(Colors.RED + "You must be a staff member!"));
+                    sendError(sender, Colors.RED + "You must be a staff member!");
                     return true;
                 }
             } else {
                 // self
                 if (!(sender instanceof Player sp)) {
-                    sender.sendMessage(CommandMessages.error(Colors.RED + "From console, specify a target: /" + label + " add <type> <duration> <amplifier> <player>"));
+                    sendError(sender, Colors.RED + "From console, specify a target: /" + label + " add <type> <duration> <amplifier> <player>");
                     return true;
                 }
                 target = sp;
@@ -163,7 +163,7 @@ public class PotionCommand extends BaseCommand
                 // Some servers return false only if nothing changed; still inform user.
             }
 
-            sender.sendMessage(CommandMessages.command(Colors.YELLOW + "Added effect " + Colors.GREEN + asEffectName(type) + Colors.YELLOW +
+            sender.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, Colors.YELLOW + "Added effect " + Colors.GREEN + asEffectName(type) + Colors.YELLOW +
                     " (duration " + duration + "t, amp " + amplifier + ") " +
                     (((sender instanceof Player sp) && sp.getUniqueId().equals(target.getUniqueId()))
                             ? "to yourself." : "to " + target.getName() + ".")));
@@ -171,7 +171,7 @@ public class PotionCommand extends BaseCommand
         }
 
         // unknown subcommand
-        sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <list | clearall | clear [target] | add <type> <duration> <amplifier> [target]>"));
+        sendUsage(sender, Colors.RED + "Usage: /" + label + " <list | clearall | clear [target] | add <type> <duration> <amplifier> [target]>");
         return true;
     }
 

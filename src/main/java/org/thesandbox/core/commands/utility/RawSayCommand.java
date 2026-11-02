@@ -1,5 +1,6 @@
 package org.thesandbox.core.commands.utility;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.thesandbox.core.commands.BaseCommand;
@@ -16,7 +17,7 @@ public class RawSayCommand extends BaseCommand
     {
         if (args.length == 0)
         {
-            sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <message>"));
+            sendUsage(sender, Colors.RED + "Usage: /" + label + " <message>");
             return true;
         }
 
@@ -24,7 +25,7 @@ public class RawSayCommand extends BaseCommand
         String message = Colors.color(String.join(" ", args));
 
         // Broadcast to all players (console will also see it in server log)
-        Colors.broadcast(CommandMessages.server("") + message);
+        Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, message));
         return true;
     }
 

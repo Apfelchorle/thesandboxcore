@@ -36,34 +36,34 @@ public class ReportCommand extends BaseCommand {
     {
         if (!(sender instanceof Player reporter))
         {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "Only players can use /" + label + "."));
+            sendError(sender, Colors.RED + "Only players can use /" + label + ".");
             return true;
         }
 
         if (args.length < 2)
         {
-            reporter.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <user> <reason>"));
+            sendUsage(reporter, Colors.RED + "Usage: /" + label + " <user> <reason>");
             return true;
         }
 
         Player target = Bukkit.getPlayer(args[0]);
         if (target == null)
         {
-            reporter.sendMessage(CommandMessages.error(Colors.RED + "That player is not online."));
+            sendError(reporter, Colors.RED + "That player is not online.");
             return true;
         }
 
         // No self-reports
         if (reporter.getUniqueId().equals(target.getUniqueId()))
         {
-            reporter.sendMessage(CommandMessages.error("You cannot report yourself."));
+            sendError(reporter, "You cannot report yourself.");
             return true;
         }
 
         // Disallow reporting staff members
         if (target.hasPermission("sandbox.staff"))
         {
-            reporter.sendMessage(CommandMessages.error("You cannot report a staff member. If you need to report a staff member, " +
+            reporter.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, "You cannot report a staff member. If you need to report a staff member, " +
                     "open a \"Staff Report\" ticket in our Discord server. https://discord.the-sandbox.org"));
             return true;
         }
@@ -71,7 +71,7 @@ public class ReportCommand extends BaseCommand {
         String reason = String.join(" ", Arrays.copyOfRange(args, 1, args.length)).trim();
         if (reason.isEmpty())
         {
-            reporter.sendMessage(CommandMessages.error(Colors.RED + "Please provide a reason."));
+            sendError(reporter, Colors.RED + "Please provide a reason.");
             return true;
         }
 
@@ -80,13 +80,13 @@ public class ReportCommand extends BaseCommand {
         long now = System.currentTimeMillis();
         Long last = lastReport.get(key);
         if (last != null && (now - last) < COOLDOWN_MS) {
-            reporter.sendMessage(CommandMessages.error("You have already submitted a report on this player."));
+            sendError(reporter, "You have already submitted a report on this player.");
             return true;
         }
         lastReport.put(key, now);
 
         // Acknowledge to reporter
-        reporter.sendMessage(CommandMessages.command("Your report has been logged. Thank you for keeping our server safe."));
+        sendCommand(reporter, "Your report has been logged. Thank you for keeping our server safe.");
 
         // Prepare details for in-game notice + Discord embed
         Location loc = target.getLocation();
@@ -117,7 +117,7 @@ public class ReportCommand extends BaseCommand {
         }
 
         // Log to console
-        Bukkit.getConsoleSender().sendMessage(CommandMessages.server(reporter.getName() + " reported " + target.getName()
+        Bukkit.getConsoleSender().sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, reporter.getName() + " reported " + target.getName()
                 + " for: (" + reason + ")."));
 
         return true;

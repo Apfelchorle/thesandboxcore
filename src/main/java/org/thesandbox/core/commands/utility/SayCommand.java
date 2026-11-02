@@ -22,7 +22,7 @@ public class SayCommand extends BaseCommand
     {
         if (args.length == 0)
         {
-            sender.sendMessage(CommandMessages.usage("&4" + "Usage: /" + label + " <message>"));
+            sendUsage(sender, "&4" + "Usage: /" + label + " <message>");
             return true;
         }
 
@@ -57,7 +57,7 @@ public class SayCommand extends BaseCommand
                     Colors.YELLOW, Colors.LIGHT_PURPLE);
 
             // Send message (baseline magenta remains unless sender’s & codes override it)
-            viewer.sendMessage(CommandMessages.server("") + prefix + perViewer);
+            viewer.sendMessage(org.thesandbox.core.commands.MessageService.plain(org.thesandbox.core.commands.MessageService.legacy(org.thesandbox.core.commands.MessageService.Prefix.SERVER, "") + prefix + perViewer));
 
             // Play sound if @everyone OR their @Name OR their bare Name was mentioned
             if (pingEveryone
@@ -70,7 +70,7 @@ public class SayCommand extends BaseCommand
         }
 
         // Also log to console (with color)
-        Bukkit.getConsoleSender().sendMessage(CommandMessages.server("") + prefix + coloredMessage);
+        Bukkit.getConsoleSender().sendMessage(org.thesandbox.core.commands.MessageService.plain(org.thesandbox.core.commands.MessageService.legacy(org.thesandbox.core.commands.MessageService.Prefix.SERVER, "") + prefix + coloredMessage));
         return true;
     }
 

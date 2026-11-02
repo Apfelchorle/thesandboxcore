@@ -23,19 +23,19 @@ public class SudoCommand extends BaseCommand {
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <player> <command>"));
+            sendUsage(sender, Colors.RED + "Usage: /" + label + " <player> <command>");
             return true;
         }
 
         Player target = Bukkit.getPlayerExact(args[0]);
         if (target == null) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "Player not found: " + args[0]));
+            sendError(sender, Colors.RED + "Player not found: " + args[0]);
             return true;
         }
 
         // Permission hierarchy enforcement
         if (!canControl(sender, target)) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "You cannot send commands as a player of equal or higher rank!"));
+            sendError(sender, Colors.RED + "You cannot send commands as a player of equal or higher rank!");
             return true;
         }
 
@@ -45,15 +45,15 @@ public class SudoCommand extends BaseCommand {
             cmd = cmd.substring(1);
         }
         if (cmd.isEmpty()) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "You must specify a command to run."));
+            sendError(sender, Colors.RED + "You must specify a command to run.");
             return true;
         }
 
         boolean ok = Bukkit.dispatchCommand(target, cmd);
         if (ok) {
-            sender.sendMessage(CommandMessages.command(Colors.GRAY + "Successfully sent the following command: \"" + cmd + "\" as " + target.getName()));
+            sendCommand(sender, Colors.GRAY + "Successfully sent the following command: \"" + cmd + "\" as " + target.getName());
         } else {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "Failed to run command as " + target.getName() + "."));
+            sendError(sender, Colors.RED + "Failed to run command as " + target.getName() + ".");
         }
 
         return true;

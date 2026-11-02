@@ -1,0 +1,69 @@
+# ============================================================
+#  TheSandboxCore configuration
+# ============================================================
+# This file is created on first start. Existing servers keep their
+# current config.yml; missing keys fall back to the defaults in code.
+# ============================================================
+
+config-version: 2
+
+# ------------------------------------------------------------
+# Database
+# ------------------------------------------------------------
+# TLS is enabled by default. If your MySQL server does not support
+# TLS, set use-ssl to false (traffic will be unencrypted).
+mysql:
+  sandbox:
+    host: ""
+    port: 3306
+    database: ""
+    user: ""
+    password: ""
+    use-ssl: true
+    require-ssl: false
+    allow-public-key-retrieval: false
+
+# ------------------------------------------------------------
+# Discord bridge
+# ------------------------------------------------------------
+discord:
+  enabled: false
+  invite-url: ""
+  # Keep tokens out of this file where possible; use a secrets manager
+  # or environment variable and paste the value at deploy time.
+  token: ""
+  chat-bridge:
+    enabled: true
+
+# ------------------------------------------------------------
+# Updates
+# ------------------------------------------------------------
+update:
+  # Downloads are verified against the SHA-256 digest published by
+  # GitHub. Only enable this if a repository does not publish digests.
+  allow-unverified: false
+
+# ------------------------------------------------------------
+# Trusted UUIDs
+# ------------------------------------------------------------
+# /opme only works for players whose UUID is listed here AND who have
+# the sandbox.opme permission. Name-based fallbacks are intentionally
+# disabled because cracked servers allow name impersonation.
+trusted-uuids: []
+
+# ------------------------------------------------------------
+# Chat filter
+# ------------------------------------------------------------
+chatfilter:
+  blocked-words: []
+  regex: false
+
+# ------------------------------------------------------------
+# Command limits
+# ------------------------------------------------------------
+loop:
+  max-iterations: 1000
+
+slowrestart:
+  max-seconds: 3600
+  default-seconds: 60

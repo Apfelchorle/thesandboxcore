@@ -35,20 +35,20 @@ public class WorldCommand extends BaseCommand
     {
         if (!(sender instanceof Player player))
         {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "This command can only be used in-game."));
+            sendError(sender, Colors.RED + "This command can only be used in-game.");
             return true;
         }
 
         if (args.length < 1)
         {
-            player.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <" + String.join("|", ALLOWED_WORLDS) + ">"));
+            sendUsage(player, Colors.RED + "Usage: /" + label + " <" + String.join("|", ALLOWED_WORLDS) + ">");
             return true;
         }
 
         String requested = args[0].toLowerCase();
         if (!ALLOWED_WORLDS.contains(requested))
         {
-            player.sendMessage(CommandMessages.error(Colors.RED + "Unknown world: " + requested));
+            sendError(player, Colors.RED + "Unknown world: " + requested);
             return true;
         }
 
@@ -56,7 +56,7 @@ public class WorldCommand extends BaseCommand
 
         if (world == null)
         {
-            player.sendMessage(CommandMessages.error(Colors.RED + "That world does not exist."));
+            sendError(player, Colors.RED + "That world does not exist.");
             return true;
         }
 
@@ -64,11 +64,11 @@ public class WorldCommand extends BaseCommand
         boolean success = player.teleport(world.getSpawnLocation());
         if (success)
         {
-            player.sendMessage(CommandMessages.command(Colors.GRAY + "Teleporting you to " + requested + "."));
+            sendCommand(player, Colors.GRAY + "Teleporting you to " + requested + ".");
         }
         else
         {
-            player.sendMessage(CommandMessages.error(Colors.RED + "Failed to teleport."));
+            sendError(player, Colors.RED + "Failed to teleport.");
         }
 
         return true;

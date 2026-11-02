@@ -50,9 +50,9 @@ public class SkullCommand extends BaseCommand {
             leftovers.values().forEach(item ->
                     player.getWorld().dropItemNaturally(player.getLocation(), item)
             );
-            player.sendMessage(CommandMessages.command(Colors.YELLOW + "Your inventory was full, so the skull was dropped at your feet."));
+            sendCommand(player, Colors.YELLOW + "Your inventory was full, so the skull was dropped at your feet.");
         } else {
-            player.sendMessage(CommandMessages.command(Colors.GREEN + "You have been given " +
+            player.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, Colors.GREEN + "You have been given " +
                     Colors.GOLD + target.getName() + "'s head" + Colors.GREEN + "."));
         }
 

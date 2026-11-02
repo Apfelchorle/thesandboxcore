@@ -1,5 +1,6 @@
 package org.thesandbox.core.commands.misc;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.thesandbox.core.TheSandboxCore;
@@ -37,9 +38,9 @@ public class MediaToggleCommand extends BaseCommand {
         discord.setMediaRenderEnabled(!currentlyEnabled);
         boolean newState = discord.isMediaRenderEnabled();
 
-        String status = newState
-                ? CommandMessages.information("Discord media-to-ASCII rendering is now ENABLED.")
-                : CommandMessages.information("Discord media-to-ASCII rendering is now DISABLED.");
+        Component status = newState
+                ? org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.INFO, "Discord media-to-ASCII rendering is now ENABLED.")
+                : org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.INFO, "Discord media-to-ASCII rendering is now DISABLED.");
         sender.sendMessage(status);
 
         return true;

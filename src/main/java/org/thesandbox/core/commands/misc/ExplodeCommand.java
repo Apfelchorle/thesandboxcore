@@ -28,14 +28,14 @@ public class ExplodeCommand extends BaseCommand {
     {
         if (args.length < 1)
         {
-            sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <player>"));
+            sendUsage(sender, Colors.RED + "Usage: /" + label + " <player>");
             return true;
         }
 
         Player target = Bukkit.getPlayerExact(args[0]);
         if (target == null)
         {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "Player not found: " + args[0]));
+            sendError(sender, Colors.RED + "Player not found: " + args[0]);
             return true;
         }
 
@@ -123,7 +123,7 @@ public class ExplodeCommand extends BaseCommand {
                     catch (Throwable ignored2) { target.damage(1000.0); }
                 }
 
-                executor.sendMessage(CommandMessages.command(Colors.GRAY + "Exploded " + target.getName() + "."));
+                sendCommand(executor, Colors.GRAY + "Exploded " + target.getName() + ".");
 
                 cancel();
             }

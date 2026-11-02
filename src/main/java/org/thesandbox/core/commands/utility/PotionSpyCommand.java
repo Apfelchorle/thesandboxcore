@@ -1,6 +1,7 @@
 package org.thesandbox.core.commands.utility;
 
 import org.bukkit.Bukkit;
+import net.kyori.adventure.text.Component;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -22,7 +23,8 @@ public class PotionSpyCommand extends BaseCommand
         this.service = service;
     }
 
-    private void msg(CommandSender s, String m) { s.sendMessage(m); }
+    private void msg(CommandSender s, 
+Component m) { s.sendMessage(m); }
 
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args)
@@ -30,11 +32,11 @@ public class PotionSpyCommand extends BaseCommand
         if (args.length == 0)
         {
             if (!(sender instanceof Player p)) {
-                msg(sender, CommandMessages.error(Colors.RED + "Only players can toggle PotionSpy."));
+                msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + "Only players can toggle PotionSpy."));
                 return true;
             }
             boolean state = service.toggle(p.getUniqueId());
-            msg(sender, CommandMessages.command("PotionSpy is now " + (state ? Colors.GREEN + "enabled" : Colors.RED + "disabled") + Colors.RESET + "."));
+            msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, "PotionSpy is now " + (state ? Colors.GREEN + "enabled" : Colors.RED + "disabled") + Colors.RESET + "."));
             return true;
         }
 
@@ -42,20 +44,20 @@ public class PotionSpyCommand extends BaseCommand
         {
             case "on", "enable" -> {
                 if (!(sender instanceof Player p)) {
-                    msg(sender, CommandMessages.error(Colors.RED + "Only players can enable PotionSpy."));
+                    msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + "Only players can enable PotionSpy."));
                     return true;
                 }
                 service.setEnabled(p.getUniqueId(), true);
-                msg(sender, CommandMessages.command("PotionSpy is now " + Colors.GREEN + "enabled" + Colors.RESET + "."));
+                msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, "PotionSpy is now " + Colors.GREEN + "enabled" + Colors.RESET + "."));
                 return true;
             }
             case "off", "disable" -> {
                 if (!(sender instanceof Player p)) {
-                    msg(sender, CommandMessages.error(Colors.RED + "Only players can disable PotionSpy."));
+                    msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + "Only players can disable PotionSpy."));
                     return true;
                 }
                 service.setEnabled(p.getUniqueId(), false);
-                msg(sender, CommandMessages.command("PotionSpy is now " + Colors.RED + "disabled" + Colors.RESET + "."));
+                msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, "PotionSpy is now " + Colors.RED + "disabled" + Colors.RESET + "."));
                 return true;
             }
             case "history" -> {
@@ -63,15 +65,15 @@ public class PotionSpyCommand extends BaseCommand
                 if (args.length == 3)
                 {
                     Player target = Bukkit.getPlayer(args[1]);
-                    if (target == null) { msg(sender, CommandMessages.error("Please specify a valid online player.")); return true; }
+                    if (target == null) { msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, "Please specify a valid online player.")); return true; }
 
                     List<Map.Entry<ThrownPotion, Long>> list = new ArrayList<>(service.getPlayerThrownPotions(target));
-                    if (list.isEmpty()) { msg(sender, CommandMessages.command("That player has not thrown any potions yet.")); return true; }
+                    if (list.isEmpty()) { msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, "That player has not thrown any potions yet.")); return true; }
 
                     Collections.reverse(list);
                     int lastPage = (int)Math.ceil(list.size() / 5.0);
                     Integer page = parsePositiveInt(args[2]);
-                    if (page == null || page < 1 || page > lastPage) { msg(sender, CommandMessages.error("Please specify a valid page between 1 and " + lastPage + ".")); return true; }
+                    if (page == null || page < 1 || page > lastPage) { msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, "Please specify a valid page between 1 and " + lastPage + ".")); return true; }
 
                     sendHistory(sender, list, page, lastPage, "History for " + target.getName());
                     return true;
@@ -80,25 +82,25 @@ public class PotionSpyCommand extends BaseCommand
                 {
                     // treat as global history page
                     List<Map.Entry<ThrownPotion, Long>> list = new ArrayList<>(service.getAllThrownPotions());
-                    if (list.isEmpty()) { msg(sender, CommandMessages.command("No potions have been thrown yet.")); return true; }
+                    if (list.isEmpty()) { msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, "No potions have been thrown yet.")); return true; }
 
                     Collections.reverse(list);
                     int lastPage = (int)Math.ceil(list.size() / 5.0);
                     Integer page = parsePositiveInt(args[1]);
-                    if (page == null || page < 1 || page > lastPage) { msg(sender, CommandMessages.error("Please specify a valid page between 1 and " + lastPage + ".")); return true; }
+                    if (page == null || page < 1 || page > lastPage) { msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, "Please specify a valid page between 1 and " + lastPage + ".")); return true; }
 
                     sendHistory(sender, list, page, lastPage, "Global History");
                     return true;
                 }
                 else
                 {
-                    msg(sender, CommandMessages.usage(Colors.RED + "Usage: /" + label + " history [player] <page>"));
+                    msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.USAGE, Colors.RED + "Usage: /" + label + " history [player] <page>"));
                     return true;
                 }
             }
         }
 
-        msg(sender, CommandMessages.usage(Colors.RED + "Usage: /" + label + " <on|off|history>"));
+        msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.USAGE, Colors.RED + "Usage: /" + label + " <on|off|history>"));
         return true;
     }
 
@@ -109,7 +111,7 @@ public class PotionSpyCommand extends BaseCommand
         int to = Math.min(from + pageSize, entries.size());
         List<Map.Entry<ThrownPotion, Long>> slice = entries.subList(from, to);
 
-        sender.sendMessage(CommandMessages.command(Colors.DARK_GRAY + "------------------ " + Colors.YELLOW + "PotionSpy: " + title + Colors.DARK_GRAY + " ------------------"));
+        sendCommand(sender, Colors.DARK_GRAY + "------------------ " + Colors.YELLOW + "PotionSpy: " + title + Colors.DARK_GRAY + " ------------------");
         for (Map.Entry<ThrownPotion, Long> e : slice)
         {
             ThrownPotion p = e.getKey();
@@ -125,9 +127,9 @@ public class PotionSpyCommand extends BaseCommand
                     + " in world '" + Colors.YELLOW + p.getWorld().getName() + Colors.RESET + "' about "
                     + Colors.YELLOW + timeAgo(e.getValue(), System.currentTimeMillis()) + Colors.RESET + " ago"
                     + (troll ? Colors.RED + " (most likely troll potion/potions)" : "") + ".";
-            sender.sendMessage(CommandMessages.command(line));
+            sendCommand(sender, line);
         }
-        sender.sendMessage(CommandMessages.command(Colors.DARK_GRAY + "-------------------- " + Colors.YELLOW + page + " / " + lastPage + Colors.DARK_GRAY + " --------------------"));
+        sendCommand(sender, Colors.DARK_GRAY + "-------------------- " + Colors.YELLOW + page + " / " + lastPage + Colors.DARK_GRAY + " --------------------");
     }
 
     private Integer parsePositiveInt(String s) { try { return Integer.parseInt(s); } catch (NumberFormatException e) { return null; } }

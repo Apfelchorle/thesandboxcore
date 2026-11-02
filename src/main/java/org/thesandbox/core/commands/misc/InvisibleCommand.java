@@ -27,8 +27,8 @@ public class InvisibleCommand extends BaseCommand {
             }
 
             String who = (sender instanceof Player) ? sender.getName() : "CONSOLE";
-            Colors.broadcast(CommandMessages.server(Colors.RED + who + " - Clearing all players of invisibility potion effects"));
-            sender.sendMessage(CommandMessages.command(Colors.YELLOW + "Cleared invisibility from " + cleared + " player(s)."));
+            Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.RED + who + " - Clearing all players of invisibility potion effects"));
+            sendCommand(sender, Colors.YELLOW + "Cleared invisibility from " + cleared + " player(s).");
             return true;
         }
 
@@ -45,9 +45,9 @@ public class InvisibleCommand extends BaseCommand {
         }
 
         if (invisible.isEmpty()) {
-            sender.sendMessage(CommandMessages.command(Colors.GREEN + "There are no invisible players."));
+            sendCommand(sender, Colors.GREEN + "There are no invisible players.");
         } else {
-            sender.sendMessage(CommandMessages.command(Colors.GRAY + "Invisible players: " + Colors.GRAY + String.join(", ", invisible)));
+            sendCommand(sender, Colors.GRAY + "Invisible players: " + Colors.GRAY + String.join(", ", invisible));
         }
         return true;
     }

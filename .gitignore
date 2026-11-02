@@ -4,7 +4,8 @@ bin/main
 .idea/
 *.iml
 out/
-src/main/resources/config.yml
+# src/main/resources/config.yml is intentionally tracked as the default template.
+# Server owners overwrite it on first run; keep placeholders secret-free.
 bin/
 .zed/
 *.rar

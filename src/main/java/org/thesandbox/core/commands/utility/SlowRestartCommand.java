@@ -252,9 +252,7 @@ public class SlowRestartCommand extends BaseCommand {
 
     private static void broadcast(String message) {
         Bukkit.broadcast(
-            LegacyComponentSerializer.legacySection().deserialize(
-                CommandMessages.server(message)
-            )
+            org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, message)
         );
     }
 

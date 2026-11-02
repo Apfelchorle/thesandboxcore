@@ -32,7 +32,7 @@ public class NickCleanCommand extends BaseCommand {
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
         if (essentials == null || !essentials.isEnabled()) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "Essentials is not available; cannot clean nicknames."));
+            sendError(sender, Colors.RED + "Essentials is not available; cannot clean nicknames.");
             return true;
         }
 
@@ -41,22 +41,22 @@ public class NickCleanCommand extends BaseCommand {
         if (args.length >= 1) {
             Player target = Bukkit.getPlayerExact(args[0]);
             if (target == null) {
-                sender.sendMessage(CommandMessages.error(Colors.RED + "Player not found: " + args[0]));
+                sendError(sender, Colors.RED + "Player not found: " + args[0]);
                 return true;
             }
 
-            Colors.broadcast(CommandMessages.server(Colors.RED + who + " - Cleaning " + target.getName() + "'s nickname"));
+            Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.RED + who + " - Cleaning " + target.getName() + "'s nickname"));
             cleanOne(sender, target);
             return true;
         }
 
         // No args: clean everyone
-        Colors.broadcast(CommandMessages.server(Colors.RED + who + " - Cleaning all nicknames"));
+        Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.RED + who + " - Cleaning all nicknames"));
         int changed = 0;
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (cleanOne(sender, p)) changed++;
         }
-        sender.sendMessage(CommandMessages.command(Colors.GRAY + "Finished cleaning nicknames. " + changed + " change" + (changed == 1 ? "" : "s") + " applied."));
+        sendCommand(sender, Colors.GRAY + "Finished cleaning nicknames. " + changed + " change" + (changed == 1 ? "" : "s") + " applied.");
         return true;
     }
 
@@ -78,7 +78,7 @@ public class NickCleanCommand extends BaseCommand {
                 user.setNickname(cleaned);
             }
 
-            sender.sendMessage(CommandMessages.command(Colors.RESET + player.getName() + ": \"" + orig + Colors.RESET
+            sender.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, Colors.RESET + player.getName() + ": \"" + orig + Colors.RESET
                     + "\" -> \"" + cleaned + Colors.RESET + "\"."));
             return true;
         }

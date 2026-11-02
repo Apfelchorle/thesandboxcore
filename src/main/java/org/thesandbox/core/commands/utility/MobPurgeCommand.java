@@ -41,14 +41,14 @@ public class MobPurgeCommand extends BaseCommand
             }
             catch (IllegalArgumentException e)
             {
-                sender.sendMessage(CommandMessages.error(Colors.RED + args[0] + " is not a valid mob type."));
+                sendError(sender, Colors.RED + args[0] + " is not a valid mob type.");
                 return true;
             }
 
             // Validate that it's actually a mob (living & spawnable) and not players
             if (!isMobType(targetType))
             {
-                sender.sendMessage(CommandMessages.error(Colors.RED + formatName(targetType.name()) + " is an entity, but not a mob. /entitywipe is for entities."));
+                sendError(sender, Colors.RED + formatName(targetType.name()) + " is an entity, but not a mob. /entitywipe is for entities.");
                 return true;
             }
 
@@ -57,7 +57,7 @@ public class MobPurgeCommand extends BaseCommand
 
         // Broadcast admin action in red
         String who = (sender instanceof Player) ? sender.getName() : "CONSOLE";
-        Colors.broadcast(CommandMessages.server(Colors.RED + who + " - Purging all "
+        Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.RED + who + " - Purging all "
                 + (targetType != null ? mobName + "s" : "mobs")));
 
         // Do the purge
@@ -89,12 +89,12 @@ public class MobPurgeCommand extends BaseCommand
         // Feedback to sender
         if (targetType != null)
         {
-            sender.sendMessage(CommandMessages.command(Colors.GRAY + removed + " " + mobName
+            sender.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, Colors.GRAY + removed + " " + mobName
                     + (removed == 1 ? "" : "s") + " removed."));
         }
         else
         {
-            sender.sendMessage(CommandMessages.command(Colors.GRAY + removed + " mob" + (removed == 1 ? "" : "s") + " removed."));
+            sendCommand(sender, Colors.GRAY + removed + " mob" + (removed == 1 ? "" : "s") + " removed.");
         }
 
         return true;

@@ -28,7 +28,7 @@ public class StaffChatCommand extends BaseCommand {
         // Console: broadcast whatever is typed to staff chat
         if (sender instanceof ConsoleCommandSender) {
             if (args.length == 0) {
-                sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <message>"));
+                sendUsage(sender, Colors.RED + "Usage: /" + label + " <message>");
                 return true;
             }
             String msg = String.join(" ", args);
@@ -47,39 +47,39 @@ public class StaffChatCommand extends BaseCommand {
         if (!(sender instanceof Player p)) return true;
 
         if (!p.hasPermission("sandbox.staff")) {
-            p.sendMessage(CommandMessages.error(Colors.RED + "You don't have permission to use staff chat."));
+            sendError(p, Colors.RED + "You don't have permission to use staff chat.");
             return true;
         }
 
         // /sc hide on|off
         if (args.length >= 1 && "hide".equalsIgnoreCase(args[0])) {
             if (args.length < 2) {
-                p.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " hide <on|off>"));
+                sendUsage(p, Colors.RED + "Usage: /" + label + " hide <on|off>");
                 return true;
             }
             String v = args[1].toLowerCase(Locale.ENGLISH);
             if (!v.equals("on") && !v.equals("off")) {
-                p.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " hide <on|off>"));
+                sendUsage(p, Colors.RED + "Usage: /" + label + " hide <on|off>");
                 return true;
             }
             boolean hidden = v.equals("on");
             plugin.getStaffChatManager().setStaffChatHidden(p, hidden);
             if (hidden) {
-                p.sendMessage(CommandMessages.command(Colors.GRAY + "You will no longer receive staff chat (and cannot speak in it). Use /" + label + " hide off to re-enable."));
+                sendCommand(p, Colors.GRAY + "You will no longer receive staff chat (and cannot speak in it). Use /" + label + " hide off to re-enable.");
             } else {
-                p.sendMessage(CommandMessages.command(Colors.GREEN + "You will now receive staff chat."));
+                sendCommand(p, Colors.GREEN + "You will now receive staff chat.");
             }
             return true;
         }
 
         // Block sending if hidden
         if (plugin.getStaffChatManager().isStaffChatHidden(p.getUniqueId())) {
-            p.sendMessage(CommandMessages.error(Colors.RED + "You have staff chat hidden. Use /" + label + " hide off to talk again."));
+            sendError(p, Colors.RED + "You have staff chat hidden. Use /" + label + " hide off to talk again.");
             return true;
         }
 
         if (args.length == 0) {
-            p.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <message>"));
+            sendUsage(p, Colors.RED + "Usage: /" + label + " <message>");
             return true;
         }
 

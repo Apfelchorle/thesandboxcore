@@ -22,16 +22,16 @@ public final class GameModeChangeHelper {
 
         if (args.length == 0) {
             if (!(sender instanceof Player player)) {
-                sender.sendMessage(CommandMessages.error(Colors.RED + "Only players can change their own gamemode."));
+                sender.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + "Only players can change their own gamemode."));
                 return true;
             }
             player.setGameMode(mode);
-            player.sendMessage(CommandMessages.command(Colors.GRAY + "Your gamemode was set to " + modeName + "."));
+            player.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, Colors.GRAY + "Your gamemode was set to " + modeName + "."));
             return true;
         }
 
         if (!sender.hasPermission("sandbox.staff")) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "No permission."));
+            sender.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + "No permission."));
             return true;
         }
 
@@ -39,7 +39,7 @@ public final class GameModeChangeHelper {
             for (Player target : Bukkit.getOnlinePlayers()) {
                 target.setGameMode(mode);
             }
-            Colors.broadcast(CommandMessages.server(Colors.RED + sender.getName()
+            Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.RED + sender.getName()
                     + " changed everyone's gamemode to " + modeName + "."));
             return true;
         }
@@ -49,14 +49,14 @@ public final class GameModeChangeHelper {
             target = Bukkit.getPlayer(args[0]);
         }
         if (target == null) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "Player not found."));
+            sender.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + "Player not found."));
             return true;
         }
 
         target.setGameMode(mode);
-        Colors.broadcast(CommandMessages.server(Colors.RED + sender.getName()
+        Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.RED + sender.getName()
                 + " changed " + target.getName() + "'s gamemode to " + modeName + "."));
-        sender.sendMessage(CommandMessages.command(Colors.GRAY + "Set " + target.getName() + "'s gamemode to " + modeName + "."));
+        sender.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, Colors.GRAY + "Set " + target.getName() + "'s gamemode to " + modeName + "."));
         return true;
     }
 

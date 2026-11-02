@@ -32,7 +32,7 @@ public class GlowCommand extends BaseCommand {
             nowGlowing = true;
         }
 
-        player.sendMessage(CommandMessages.command(Colors.GRAY + "You " + (nowGlowing ? "now" : "no longer") + " have the glowing outline effect."));
+        sendCommand(player, Colors.GRAY + "You " + (nowGlowing ? "now" : "no longer") + " have the glowing outline effect.");
         return true;
     }
 

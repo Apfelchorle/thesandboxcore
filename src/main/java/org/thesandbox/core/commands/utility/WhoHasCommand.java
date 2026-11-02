@@ -27,7 +27,7 @@ public class WhoHasCommand extends BaseCommand
     {
         if (args.length < 1)
         {
-            sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <item> [clear]"));
+            sendUsage(sender, Colors.RED + "Usage: /" + label + " <item> [clear]");
             return true;
         }
 
@@ -37,7 +37,7 @@ public class WhoHasCommand extends BaseCommand
 
         if (material == null)
         {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "Invalid item: " + materialName));
+            sendError(sender, Colors.RED + "Invalid item: " + materialName);
             return true;
         }
 
@@ -46,12 +46,12 @@ public class WhoHasCommand extends BaseCommand
         {
             if (!sender.hasPermission("sandbox.staff"))
             {
-                sender.sendMessage(CommandMessages.error(Colors.RED + "You do not have permission to clear inventories."));
+                sendError(sender, Colors.RED + "You do not have permission to clear inventories.");
                 return true;
             }
 
             final String actor = (sender instanceof Player p) ? p.getName() : "CONSOLE";
-            Colors.broadcast(CommandMessages.server(Colors.AQUA + actor + " - Clearing all inventories of " + material.name()));
+            Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.AQUA + actor + " - Clearing all inventories of " + material.name()));
 
             for (final Player target : Bukkit.getOnlinePlayers())
             {
@@ -79,11 +79,11 @@ public class WhoHasCommand extends BaseCommand
 
         if (players.isEmpty())
         {
-            sender.sendMessage(CommandMessages.command(Colors.GRAY + "There are no players with " + material.name()));
+            sendCommand(sender, Colors.GRAY + "There are no players with " + material.name());
         }
         else
         {
-            sender.sendMessage(CommandMessages.command(Colors.GRAY + "Players with " + material.name() + ": "
+            sender.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, Colors.GRAY + "Players with " + material.name() + ": "
                     + Colors.RED + String.join(", ", players)));
         }
 

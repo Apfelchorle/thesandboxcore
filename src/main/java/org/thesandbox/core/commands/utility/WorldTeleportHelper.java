@@ -19,20 +19,20 @@ final class WorldTeleportHelper {
 
     static boolean teleport(CommandSender sender, String worldName, String displayName) {
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "This command can only be used in-game."));
+            sender.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + "This command can only be used in-game."));
             return true;
         }
 
         World world = resolveWorld(worldName);
         if (world == null) {
-            player.sendMessage(CommandMessages.error(Colors.RED + displayName + " is not loaded."));
+            player.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + displayName + " is not loaded."));
             return true;
         }
 
         if (player.teleport(world.getSpawnLocation())) {
-            player.sendMessage(CommandMessages.command(Colors.GRAY + "Teleporting you to the " + displayName.toLowerCase() + "."));
+            player.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, Colors.GRAY + "Teleporting you to the " + displayName.toLowerCase() + "."));
         } else {
-            player.sendMessage(CommandMessages.error(Colors.RED + "Failed to teleport."));
+            player.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + "Failed to teleport."));
         }
         return true;
     }

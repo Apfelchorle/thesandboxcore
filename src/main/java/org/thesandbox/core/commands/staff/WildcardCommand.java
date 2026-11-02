@@ -27,12 +27,12 @@ public class WildcardCommand extends BaseCommand {
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage(CommandMessages.error("This command cannot be used from console."));
+            sendError(sender, "This command cannot be used from console.");
             return true;
         }
 
         if (args.length == 0) {
-            sender.sendMessage(CommandMessages.usage("Usage: /" + label + " <command...> [use '?' as the player placeholder]"));
+            sendUsage(sender, "Usage: /" + label + " <command...> [use '?' as the player placeholder]");
             return true;
         }
 
@@ -43,7 +43,7 @@ public class WildcardCommand extends BaseCommand {
         int colon = baseName.indexOf(':');
         if (colon >= 0) baseName = baseName.substring(colon + 1);
         if (baseName.isEmpty()) {
-            sender.sendMessage(CommandMessages.error("Please provide a command to run."));
+            sendError(sender, "Please provide a command to run.");
             return true;
         }
 
@@ -52,7 +52,7 @@ public class WildcardCommand extends BaseCommand {
         // Never allow wildcard to run itself (would multiply by player count per level).
         if (names.contains("wildcard") || names.contains(command.getName().toLowerCase(Locale.ENGLISH))
                 || names.contains(label.toLowerCase(Locale.ENGLISH))) {
-            sender.sendMessage(CommandMessages.error("Refusing to run /" + label + " from itself."));
+            sendError(sender, "Refusing to run /" + label + " from itself.");
             return true;
         }
 
@@ -64,7 +64,7 @@ public class WildcardCommand extends BaseCommand {
                 int bc = bb.indexOf(':');
                 if (bc >= 0) bb = bb.substring(bc + 1);
                 if (names.contains(bb)) {
-                    sender.sendMessage(CommandMessages.error("I applaud you for trying."));
+                    sendError(sender, "I applaud you for trying.");
                     return true;
                 }
             }
@@ -83,12 +83,12 @@ public class WildcardCommand extends BaseCommand {
                     ? template.replace("?", target.getName())
                     : template + " " + target.getName();
 
-            sender.sendMessage(CommandMessages.command("Running: /" + run));
+            sendCommand(sender, "Running: /" + run);
             Bukkit.dispatchCommand(sender, run);
             ran++;
         }
 
-        sender.sendMessage(CommandMessages.command("Ran the command for " + ran + " player(s)."));
+        sendCommand(sender, "Ran the command for " + ran + " player(s).");
         return true;
     }
 

@@ -32,7 +32,7 @@ public class DebugStickCommand extends BaseCommand
     {
         if (!(sender instanceof Player player))
         {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "This command can only be used in-game."));
+            sendError(sender, Colors.RED + "This command can only be used in-game.");
             return true;
         }
 
@@ -58,11 +58,11 @@ public class DebugStickCommand extends BaseCommand
         if (!leftovers.isEmpty())
         {
             player.getWorld().dropItemNaturally(player.getLocation(), item);
-            player.sendMessage(CommandMessages.command(Colors.RED + "Your inventory is full; dropped the item at your feet."));
+            sendCommand(player, Colors.RED + "Your inventory is full; dropped the item at your feet.");
         }
         else
         {
-            player.sendMessage(CommandMessages.command(Colors.GREEN + "You received a Debug Stick."));
+            sendCommand(player, Colors.GREEN + "You received a Debug Stick.");
         }
 
         return true;

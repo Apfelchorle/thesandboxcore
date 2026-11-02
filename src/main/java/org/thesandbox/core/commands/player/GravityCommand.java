@@ -22,7 +22,7 @@ public class GravityCommand extends BaseCommand {
         boolean newState = !player.hasGravity();
         player.setGravity(newState);
 
-        player.sendMessage(CommandMessages.command((newState ? Colors.GREEN : Colors.RED) +
+        player.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, (newState ? Colors.GREEN : Colors.RED) +
                 (newState ? "Enabled your gravity!" : "Disabled your gravity!")));
         return true;
     }

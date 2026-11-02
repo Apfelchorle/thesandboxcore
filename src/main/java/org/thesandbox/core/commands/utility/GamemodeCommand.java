@@ -28,14 +28,14 @@ public class GamemodeCommand extends BaseCommand
     {
         if (args.length < 1)
         {
-            sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <gamemode> [player]"));
+            sendUsage(sender, Colors.RED + "Usage: /" + label + " <gamemode> [player]");
             return true;
         }
 
         GameMode mode = parseGamemode(args[0]);
         if (mode == null)
         {
-            sender.sendMessage(CommandMessages.error(Colors.RED +
+            sender.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED +
                     "Unknown gamemode. Use: survival/s, creative/c, adventure/a, spectator/sp"));
             return true;
         }
@@ -45,19 +45,19 @@ public class GamemodeCommand extends BaseCommand
         {
             if (!(sender instanceof Player player))
             {
-                sender.sendMessage(CommandMessages.error(Colors.RED + "CONSOLE must specify a target player."));
+                sendError(sender, Colors.RED + "CONSOLE must specify a target player.");
                 return true;
             }
 
             player.setGameMode(mode);
-            player.sendMessage(CommandMessages.command(Colors.GRAY + "Your gamemode has been set to " + mode.name() + "."));
+            sendCommand(player, Colors.GRAY + "Your gamemode has been set to " + mode.name() + ".");
             return true;
         }
 
         // Targeted change: /gamemode <mode> <player>
         if (!sender.hasPermission("sandbox.staff"))
         {
-            sender.sendMessage(CommandMessages.error(Colors.RED +
+            sender.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED +
                     "You do not have permission to change other players' gamemodes."));
             return true;
         }
@@ -65,7 +65,7 @@ public class GamemodeCommand extends BaseCommand
         Player target = Bukkit.getPlayer(args[1]);
         if (target == null)
         {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "Player not found."));
+            sendError(sender, Colors.RED + "Player not found.");
             return true;
         }
 
@@ -80,21 +80,21 @@ public class GamemodeCommand extends BaseCommand
         {
             // This case shouldn't normally happen here (self-change uses args.length == 1),
             // but handle gracefully anyway.
-            target.sendMessage(CommandMessages.command(Colors.GRAY + "Your gamemode has been set to " + modeName + "."));
+            sendCommand(target, Colors.GRAY + "Your gamemode has been set to " + modeName + ".");
         }
         else
         {
-            target.sendMessage(CommandMessages.command(Colors.GRAY + "Your gamemode has been set to " +
+            target.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, Colors.GRAY + "Your gamemode has been set to " +
                     modeName + " by " + senderName + "."));
         }
 
         // Sender feedback
         if (sender instanceof Player && !((Player) sender).getUniqueId().equals(target.getUniqueId()))
         {
-            sender.sendMessage(CommandMessages.command(Colors.GRAY + "Set " + targetName + " to " + modeName + " mode."));
+            sendCommand(sender, Colors.GRAY + "Set " + targetName + " to " + modeName + " mode.");
 
             // Broadcast only when a *player* changes another user's gamemode
-            Colors.broadcast(CommandMessages.server(Colors.AQUA + senderName +
+            Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.AQUA + senderName +
                     " -  Changing " + targetName + "'s gamemode to " + modeName));
         }
         else
@@ -103,7 +103,7 @@ public class GamemodeCommand extends BaseCommand
             // but still a message back to console.
             if (!(sender instanceof Player))
             {
-                sender.sendMessage(CommandMessages.command(Colors.GRAY + "Set " + targetName + " to " + modeName + " mode."));
+                sendCommand(sender, Colors.GRAY + "Set " + targetName + " to " + modeName + " mode.");
             }
         }
 

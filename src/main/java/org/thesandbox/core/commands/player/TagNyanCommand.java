@@ -44,7 +44,7 @@ public class TagNyanCommand extends BaseCommand {
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player p)) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "Only players can use /" + label + "."));
+            sendError(sender, Colors.RED + "Only players can use /" + label + ".");
             return true;
         }
 
@@ -57,7 +57,7 @@ public class TagNyanCommand extends BaseCommand {
                 UserManager um = lp.getUserManager();
                 User user = um.loadUser(p.getUniqueId()).get(5, TimeUnit.SECONDS);
                 if (user == null) {
-                    p.sendMessage(CommandMessages.error(Colors.RED + "LuckPerms user not found."));
+                    sendError(p, Colors.RED + "LuckPerms user not found.");
                     return;
                 }
 
@@ -67,7 +67,7 @@ public class TagNyanCommand extends BaseCommand {
                     if (!p.hasPermission("sandbox.mb")) {
                         String blocked = firstBlacklistedTerm(input);
                         if (blocked != null) {
-                            p.sendMessage(CommandMessages.error(Colors.RED + "That tag contains a blocked term: " + Colors.YELLOW + blocked));
+                            sendError(p, Colors.RED + "That tag contains a blocked term: " + Colors.YELLOW + blocked);
                             return;
                         }
                     }
@@ -78,21 +78,21 @@ public class TagNyanCommand extends BaseCommand {
                     // No args -> use current tag at managed priority
                     String current = currentPrefixAtPriority(user, PREFIX_PRIORITY);
                     if (current == null || current.isEmpty()) {
-                        p.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /tagnyan <tag>"));
+                        sendUsage(p, Colors.RED + "Usage: /tagnyan <tag>");
                         return;
                     }
                     baseVisible = stripAllColors(current).trim();
                 }
 
                 if (baseVisible.isEmpty()) {
-                    p.sendMessage(CommandMessages.error(Colors.RED + "Your tag text has no visible characters."));
+                    sendError(p, Colors.RED + "Your tag text has no visible characters.");
                     return;
                 }
 
                 // Visible-length enforcement
                 int visibleLen = baseVisible.length();
                 if (visibleLen > MAX_VISIBLE_LEN) {
-                    p.sendMessage(CommandMessages.error(Colors.RED + "That tag is too long (" + visibleLen + "/" + MAX_VISIBLE_LEN + "). Shorten it."));
+                    sendError(p, Colors.RED + "That tag is too long (" + visibleLen + "/" + MAX_VISIBLE_LEN + "). Shorten it.");
                     return;
                 }
 
@@ -105,12 +105,12 @@ public class TagNyanCommand extends BaseCommand {
                 um.saveUser(user).get(5, TimeUnit.SECONDS);
                 user.getCachedData().invalidate();
 
-                p.sendMessage(CommandMessages.command(Colors.GREEN + "Nyan tag applied (session-only)."));
+                sendCommand(p, Colors.GREEN + "Nyan tag applied (session-only).");
                 String nameToShow = getEssentialsNickOrName(p);
-                p.sendMessage(CommandMessages.command(Colors.GRAY + "Preview: " + finalPrefix + Colors.RESET + nameToShow));
-                p.sendMessage(CommandMessages.command(Colors.LIGHT_PURPLE + "Want to save your tag? Run " + Colors.RED + "/tag save" + Colors.LIGHT_PURPLE + " to persist your current tag."));
+                sendCommand(p, Colors.GRAY + "Preview: " + finalPrefix + Colors.RESET + nameToShow);
+                sendCommand(p, Colors.LIGHT_PURPLE + "Want to save your tag? Run " + Colors.RED + "/tag save" + Colors.LIGHT_PURPLE + " to persist your current tag.");
             } catch (Exception e) {
-                p.sendMessage(CommandMessages.error(Colors.RED + "Error: " + e.getMessage()));
+                sendError(p, Colors.RED + "Error: " + e.getMessage());
             }
         });
 

@@ -34,7 +34,7 @@ public class DisguiseToggleCommand extends BaseCommand implements Listener
     {
 
         if (!Bukkit.getPluginManager().isPluginEnabled("LibsDisguises")) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "LibsDisguises is not installed or not enabled."));
+            sendError(sender, Colors.RED + "LibsDisguises is not installed or not enabled.");
             return true;
         }
 
@@ -42,7 +42,7 @@ public class DisguiseToggleCommand extends BaseCommand implements Listener
 
         String who = (sender instanceof Player) ? sender.getName() : "CONSOLE";
         String verb = disguisesEnabled ? "Enabling" : "Disabling";
-        Colors.broadcast(CommandMessages.server(Colors.RED + who + " - " + verb + " disguises"));
+        Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.RED + who + " - " + verb + " disguises"));
 
         // If we just disabled disguises, clear them immediately
         if (!disguisesEnabled) {
@@ -66,7 +66,7 @@ public class DisguiseToggleCommand extends BaseCommand implements Listener
             event.setCancelled(true);
 
             if (event.getEntity() instanceof Player) {
-                event.getEntity().sendMessage(CommandMessages.error(Colors.RED + "Disguises are currently disabled."));
+                event.getEntity().sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + "Disguises are currently disabled."));
             }
         }
     }

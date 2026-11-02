@@ -29,13 +29,13 @@ public final class GChatCommand extends BaseCommand {
         if (!(sender instanceof Player p)) return true;
 
         if (!guilds.isInGuild(p.getUniqueId())) {
-            p.sendMessage(Colors.c(CommandMessages.error("&cYou are not in a guild.")));
+            sendError(p, "&cYou are not in a guild.");
             return true;
         }
 
         if (args.length == 0) {
             guilds.toggleGuildChat(p.getUniqueId());
-            p.sendMessage(Colors.c(CommandMessages.command("&aGuild chat: " + (guilds.isGuildChatToggled(p.getUniqueId()) ? "&2ON" : "&cOFF"))));
+            sendCommand(p, "&aGuild chat: " + (guilds.isGuildChatToggled(p.getUniqueId()) ? "&2ON" : "&cOFF"));
             return true;
         }
 

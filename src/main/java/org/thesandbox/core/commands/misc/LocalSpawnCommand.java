@@ -21,7 +21,7 @@ public class LocalSpawnCommand extends BaseCommand {
 
         Location spawn = player.getWorld().getSpawnLocation();
         player.teleport(spawn);
-        player.sendMessage(CommandMessages.command(Colors.YELLOW + "Teleported to spawnpoint for world \""
+        player.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, Colors.YELLOW + "Teleported to spawnpoint for world \""
                 + player.getWorld().getName() + "\"."));
         return true;
     }

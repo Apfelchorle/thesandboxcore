@@ -33,13 +33,13 @@ public class LoopCommand extends BaseCommand
     {
         if (!sender.hasPermission("sandbox.superuser"))
         {
-            sender.sendMessage(CommandMessages.error("Only superusers can use /" + label + "."));
+            sendError(sender, "Only superusers can use /" + label + ".");
             return true;
         }
 
         if (args.length < 2)
         {
-            sender.sendMessage(CommandMessages.usage("Usage: /" + label + " <amount> <command>"));
+            sendUsage(sender, "Usage: /" + label + " <amount> <command>");
             return true;
         }
 
@@ -51,17 +51,17 @@ public class LoopCommand extends BaseCommand
         }
         catch (NumberFormatException ex)
         {
-            sender.sendMessage(CommandMessages.error("Invalid amount: " + args[0]));
+            sendError(sender, "Invalid amount: " + args[0]);
             return true;
         }
         if (amount < 1)
         {
-            sender.sendMessage(CommandMessages.error("Amount must be a positive integer."));
+            sendError(sender, "Amount must be a positive integer.");
             return true;
         }
         if (amount > max)
         {
-            sender.sendMessage(CommandMessages.error("Amount is too high (max " + max + ")."));
+            sendError(sender, "Amount is too high (max " + max + ").");
             return true;
         }
 
@@ -72,7 +72,7 @@ public class LoopCommand extends BaseCommand
         }
         if (toRun.isEmpty())
         {
-            sender.sendMessage(CommandMessages.error("Please provide a command to run."));
+            sendError(sender, "Please provide a command to run.");
             return true;
         }
 
@@ -82,11 +82,11 @@ public class LoopCommand extends BaseCommand
         if (colon >= 0) base = base.substring(colon + 1);
         if (base.equals(label.toLowerCase(Locale.ENGLISH)) || base.equals(command.getName().toLowerCase(Locale.ENGLISH)) || base.equals("loop"))
         {
-            sender.sendMessage(CommandMessages.error("Refusing to loop the /loop command."));
+            sendError(sender, "Refusing to loop the /loop command.");
             return true;
         }
 
-        sender.sendMessage(CommandMessages.command("Looping " + amount + "x: /" + toRun));
+        sendCommand(sender, "Looping " + amount + "x: /" + toRun);
 
         int failed = 0;
         for (int i = 0; i < amount; i++)
@@ -95,7 +95,7 @@ public class LoopCommand extends BaseCommand
             if (!Bukkit.dispatchCommand(sender, toRun)) failed++;
         }
 
-        sender.sendMessage(CommandMessages.command("Finished looping" + (failed > 0 ? " (" + failed + " run(s) reported failure)." : ".")));
+        sendCommand(sender, "Finished looping" + (failed > 0 ? " (" + failed + " run(s) reported failure)." : "."));
         return true;
     }
 

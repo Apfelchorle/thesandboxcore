@@ -23,7 +23,7 @@ public class ShushCommand extends BaseCommand {
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player p)) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "Only players can use /" + label + "."));
+            sendError(sender, Colors.RED + "Only players can use /" + label + ".");
             return true;
         }
 
@@ -35,28 +35,28 @@ public class ShushCommand extends BaseCommand {
             if ("on".equals(a)) toggle = true;
             else if ("off".equals(a)) toggle = false;
             else {
-                p.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " [on|off]"));
+                sendUsage(p, Colors.RED + "Usage: /" + label + " [on|off]");
                 return true;
             }
         } else {
-            p.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " [on|off]"));
+            sendUsage(p, Colors.RED + "Usage: /" + label + " [on|off]");
             return true;
         }
 
         if (toggle) {
             if (plugin.getShushService().isEnabled(p.getUniqueId())) {
-                p.sendMessage(CommandMessages.error(Colors.RED + "Shush mode is already enabled."));
+                sendError(p, Colors.RED + "Shush mode is already enabled.");
                 return true;
             }
             plugin.getShushService().enable(p);
-            p.sendMessage(CommandMessages.command(Colors.RED + "Shush mode is enabled, you will not receive staff notifications."));
+            sendCommand(p, Colors.RED + "Shush mode is enabled, you will not receive staff notifications.");
         } else {
             if (!plugin.getShushService().isEnabled(p.getUniqueId())) {
-                p.sendMessage(CommandMessages.error(Colors.RED + "Shush mode is already disabled."));
+                sendError(p, Colors.RED + "Shush mode is already disabled.");
                 return true;
             }
             plugin.getShushService().disable(p);
-            p.sendMessage(CommandMessages.command(Colors.GREEN + "Shush mode disabled. Your previous spy/chat settings have been restored."));
+            sendCommand(p, Colors.GREEN + "Shush mode disabled. Your previous spy/chat settings have been restored.");
         }
         return true;
     }

@@ -83,7 +83,7 @@ public class HealCommand extends BaseCommand
         if (target.isDead() || target.getHealth() <= 0.0D)
         {
             if (tellSender)
-                actor.sendMessage(CommandMessages.error(Colors.RED + target.getName() + " cannot be healed while dead."));
+                sendError(actor, Colors.RED + target.getName() + " cannot be healed while dead.");
             return false;
         }
 
@@ -112,7 +112,7 @@ public class HealCommand extends BaseCommand
             }
         } catch (Throwable ignored) {}
 
-        if (tellTarget) target.sendMessage(CommandMessages.command(Colors.GREEN + "You have been healed!"));
+        if (tellTarget) sendCommand(target, Colors.GREEN + "You have been healed!");
 
         return true;
     }

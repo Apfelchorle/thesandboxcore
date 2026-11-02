@@ -39,13 +39,13 @@ public class NickRainbowCommand extends BaseCommand {
             return true;
         }
         if (essentials == null || !essentials.isEnabled()) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "Essentials is not enabled on this server."));
+            sendError(sender, Colors.RED + "Essentials is not enabled on this server.");
             return true;
         }
 
         User user = essentials.getUser(player);
         if (user == null) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "Could not access your Essentials data."));
+            sendError(sender, Colors.RED + "Could not access your Essentials data.");
             return true;
         }
 
@@ -73,12 +73,12 @@ public class NickRainbowCommand extends BaseCommand {
 
         // Validate allowed characters and visible length
         if (!visible.matches("^[a-zA-Z0-9_]+$")) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "That nickname contains invalid characters. Allowed: A-Z, a-z, 0-9, _"));
+            sendError(sender, Colors.RED + "That nickname contains invalid characters. Allowed: A-Z, a-z, 0-9, _");
             return true;
         }
         int vlen = visible.length();
         if (vlen < MIN_VISIBLE || vlen > MAX_VISIBLE) {
-            sender.sendMessage(CommandMessages.error(Colors.RED + "Your nickname must be between " + MIN_VISIBLE + " and " + MAX_VISIBLE + " visible characters."));
+            sendError(sender, Colors.RED + "Your nickname must be between " + MIN_VISIBLE + " and " + MAX_VISIBLE + " visible characters.");
             return true;
         }
 
@@ -95,7 +95,7 @@ public class NickRainbowCommand extends BaseCommand {
             if (p.getName().equalsIgnoreCase(visible)
                     || (otherDisplay != null && otherDisplay.trim().equalsIgnoreCase(visible))
                     || (otherNick != null && Colors.strip(otherNick).trim().equalsIgnoreCase(visible))) {
-                sender.sendMessage(CommandMessages.error(Colors.RED + "That nickname is already in use."));
+                sendError(sender, Colors.RED + "That nickname is already in use.");
                 return true;
             }
         }
@@ -107,7 +107,7 @@ public class NickRainbowCommand extends BaseCommand {
         String finalNick = rainbowNick + Colors.WHITE;
 
         user.setNickname(finalNick);
-        sender.sendMessage(CommandMessages.command(Colors.GREEN + "Your nickname is now: " + finalNick));
+        sendCommand(sender, Colors.GREEN + "Your nickname is now: " + finalNick);
         return true;
     }
 
