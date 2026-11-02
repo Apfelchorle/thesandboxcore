@@ -350,7 +350,7 @@ public class PlayerCommand extends BaseCommand {
                         .append(ComponentBuilder.legacy("&7Game Mode: ")).append(ComponentBuilder.legacy(player.getGameMode().name()));
 
                 if (viewerIsStaff) {
-                    String ip = dataListener.getLastIp(player.getUniqueId());
+                    String ip = Utils.censorIp(dataListener.getLastIp(player.getUniqueId()));
                     if (ip != null && !ip.isEmpty()) {
                         hover.newline().append(ComponentBuilder.legacy("&7IP: ")).append(ComponentBuilder.legacy(ip));
                     }
