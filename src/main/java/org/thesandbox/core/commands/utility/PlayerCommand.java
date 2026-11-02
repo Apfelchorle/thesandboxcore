@@ -217,15 +217,15 @@ public class PlayerCommand extends BaseCommand {
         builder.append(ComponentBuilder.legacy("&7Rank: ")).append(ComponentBuilder.legacy(rankColor + rankDisplay)).newline();
 
         // IP address (censored at capture; old rows are censored for display too)
-        String ip = dataListener.getLastIp(uuid);
-        if (ip != null && !ip.isEmpty()) {
-            Component ipComp = ComponentBuilder.text(Utils.censorIp(ip))
-                    .gray()
-                    .build();
-            builder.append(ComponentBuilder.legacy("&7IP: ")).append(ipComp).newline();
-        } else {
-            builder.append(ComponentBuilder.legacy("&7IP: &7No data")).newline();
-        }
+//        String ip = dataListener.getLastIp(uuid);
+//        if (ip != null && !ip.isEmpty()) {
+//            Component ipComp = ComponentBuilder.text(Utils.censorIp(ip))
+//                    .gray()
+//                    .build();
+//            builder.append(ComponentBuilder.legacy("&7IP: ")).append(ipComp).newline();
+//        } else {
+//            builder.append(ComponentBuilder.legacy("&7IP: &7No data")).newline();
+//        }
 
         // Last logout location
         Location lastLoc = dataListener.getLastLocation(uuid);
@@ -301,7 +301,7 @@ public class PlayerCommand extends BaseCommand {
                 break;
         }
 
-        return ComponentBuilder.text(visibleStatus)
+        return ComponentBuilder.legacy(visibleStatus)
                 .hoverComponent(hover.build())
                 .build();
     }
@@ -349,12 +349,12 @@ public class PlayerCommand extends BaseCommand {
                         .append(ComponentBuilder.legacy("&7Health: ")).append(ComponentBuilder.legacy(String.format("%.1f/%.1f", player.getHealth(), getMaxHealth(player)))).newline()
                         .append(ComponentBuilder.legacy("&7Game Mode: ")).append(ComponentBuilder.legacy(player.getGameMode().name()));
 
-                if (viewerIsStaff) {
-                    String ip = Utils.censorIp(dataListener.getLastIp(player.getUniqueId()));
-                    if (ip != null && !ip.isEmpty()) {
-                        hover.newline().append(ComponentBuilder.legacy("&7IP: ")).append(ComponentBuilder.legacy(ip));
-                    }
-                }
+//                if (viewerIsStaff) {
+//                    String ip = Utils.censorIp(dataListener.getLastIp(player.getUniqueId()));
+//                    if (ip != null && !ip.isEmpty()) {
+//                        hover.newline().append(ComponentBuilder.legacy("&7IP: ")).append(ComponentBuilder.legacy(ip));
+//                    }
+//                }
 
                 // Build visible component
                 String vanishedTag = isVanished(player) ? " &e(VANISHED)" : "";
