@@ -177,8 +177,17 @@ public class AnimatedMapService implements AutoCloseable {
         // Create the animated renderer
         AnimatedMapRenderer renderer = new AnimatedMapRenderer(frames);
 
+        // A filled map is required for MapMeta and MapView support.
+        ItemStack mapItem = new ItemStack(Material.FILLED_MAP);
+        if (!(mapItem.getItemMeta() instanceof MapMeta meta)) {
+            renderer.dispose();
+            plugin.getLogger().warning("[GifMap] Filled map did not provide MapMeta — cannot create animated map.");
+            return null;
+        }
+
         // Create a virtual MapView — Paper requires a non-null world; use the player's world
         if (player.getWorld() == null) {
+            renderer.dispose();
             plugin.getLogger().warning("[GifMap] Player " + player.getName() + " has no world — cannot create map.");
             return null;
         }
@@ -191,20 +200,10 @@ public class AnimatedMapService implements AutoCloseable {
         mapView.getRenderers().clear();
         mapView.addRenderer(renderer);
 
-        // Track the map
-        AnimatedMapEntry entry = new AnimatedMapEntry(mapView, renderer);
-        entry.holders.add(player.getUniqueId());
-        activeMaps.put(mapView.getId(), entry);
-
         // Dispose original frame images to save memory (renderer has resized copies)
         for (GifFrameDecoder.Frame frame : frames) {
             frame.image().flush();
         }
-
-        // Create the map item — use ItemFactory to get a proper MapMeta instance
-        ItemStack mapItem = new ItemStack(Material.MAP);
-        MapMeta meta = (MapMeta) Bukkit.getItemFactory().getItemMeta(Material.MAP);
-        if (meta == null) return null;
 
         meta.setMapView(mapView);
         meta.displayName(Component.text("Animated GIF", NamedTextColor.GOLD));
@@ -213,6 +212,11 @@ public class AnimatedMapService implements AutoCloseable {
                 Component.text("Right-click to view animation", NamedTextColor.GRAY)
         ));
         mapItem.setItemMeta(meta);
+
+        // Track the map once its item has been successfully configured.
+        AnimatedMapEntry entry = new AnimatedMapEntry(mapView, renderer);
+        entry.holders.add(player.getUniqueId());
+        activeMaps.put(mapView.getId(), entry);
 
         debug("Created animated map " + mapView.getId() + " with " + frames.size() + " frames for " + player.getName());
         return mapItem;
@@ -226,11 +230,8 @@ public class AnimatedMapService implements AutoCloseable {
 
         // Find all maps held by this player
         for (ItemStack hand : player.getInventory().getContents()) {
-            if (hand == null || hand.getType() != Material.MAP) continue;
-            if (!hand.hasItemMeta()) continue;
-
-            MapMeta meta = (MapMeta) hand.getItemMeta();
-            if (meta == null || !meta.hasMapView()) continue;
+            if (hand == null || hand.getType() != Material.FILLED_MAP) continue;
+            if (!(hand.getItemMeta() instanceof MapMeta meta) || !meta.hasMapView()) continue;
 
             MapView mapView = meta.getMapView();
             removeHolder(mapView.getId(), uuid);
