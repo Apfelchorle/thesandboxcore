@@ -1,66 +1,61 @@
 package org.thesandbox.core.commands;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import org.thesandbox.core.data.GenericDataKeys;
+/**
+ * Backwards-compatible facade over {@link MessageService}.
+ *
+ * <p>Existing commands speak in legacy strings, so these methods still return
+ * Strings. They now read their prefixes from {@code messages.yml}, which gives
+ * every command one theme without touching hundreds of call sites.</p>
+ */
+public final class CommandMessages {
 
-public final class CommandMessages
-{
-    private CommandMessages()
-    {
+    private CommandMessages() {
         throw new UnsupportedOperationException("Utility class");
     }
 
-    public static String command(String message)
-    {
-        return apply(GenericDataKeys.CMD_MSGS_COMMAND, message, false);
+    public static String command(String message) {
+        return MessageService.legacy(MessageService.Prefix.COMMAND, message);
     }
 
-    public static String error(String message)
-    {
-        return apply(GenericDataKeys.CMD_MSGS_ERROR, message, false);
+    public static String error(String message) {
+        return MessageService.legacy(MessageService.Prefix.ERROR, message);
     }
 
-    public static String usage(String message)
-    {
-        return apply(GenericDataKeys.CMD_MSGS_USAGE, message, true);
+    public static String usage(String message) {
+        return MessageService.legacy(MessageService.Prefix.USAGE, usageBody(message));
     }
 
-    public static String server(String message)
-    {
-        return apply(GenericDataKeys.CMD_MSGS_SERVER, message, false);
+    public static String server(String message) {
+        return MessageService.legacy(MessageService.Prefix.SERVER, message);
     }
 
     public static String information(String message) {
-        return apply(GenericDataKeys.CMD_MSGS_INFO, message, false);
+        return MessageService.legacy(MessageService.Prefix.INFO, message);
     }
 
     public static String success(String message) {
-        return apply(GenericDataKeys.CMD_MSGS_SUCCESS, message, false);
+        return MessageService.legacy(MessageService.Prefix.SUCCESS, message);
     }
 
-    public static String apply(String prefix, String message, boolean usage)
-    {
+    /**
+     * Removes a leading {@code Usage:}/{@code Usage: } so the themed prefix is
+     * not followed by a redundant label.
+     */
+    public static String usageBody(String message) {
         String body = message == null ? "" : stripLeadingColor(message);
-        if (usage)
-        {
-            if (body.regionMatches(true, 0, "Usage: ", 0, 7))
-            {
-                body = body.substring(7);
-            }
-            else if (body.regionMatches(true, 0, "Usage:", 0, 6))
-            {
-                body = body.substring(6).stripLeading();
-            }
+        if (body.regionMatches(true, 0, "Usage: ", 0, 7)) {
+            return body.substring(7);
         }
-
-        // Serializes to section-formatted String (§c) while supporting legacy hex (&#ffffff)
-        Component comp = LegacyComponentSerializer.legacyAmpersand().deserialize(prefix + body);
-        return LegacyComponentSerializer.legacySection().serialize(comp);
+        if (body.regionMatches(true, 0, "Usage:", 0, 6)) {
+            return body.substring(6).stripLeading();
+        }
+        return body;
     }
 
-    public static String stripLeadingColor(String input)
-    {
+    /**
+     * Removes leading legacy colour/formatting codes from a string.
+     */
+    public static String stripLeadingColor(String input) {
         if (input == null || input.isEmpty()) {
             return "";
         }
@@ -68,57 +63,46 @@ public final class CommandMessages
         String value = input;
         boolean changed = true;
 
-        while (changed && !value.isEmpty())
-        {
+        while (changed && !value.isEmpty()) {
             changed = false;
 
             if (value.length() >= 14 && (value.charAt(0) == '§' || value.charAt(0) == '&')
-                    && Character.toLowerCase(value.charAt(1)) == 'x')
-            {
+                    && Character.toLowerCase(value.charAt(1)) == 'x') {
                 char marker = value.charAt(0);
                 boolean valid = true;
-                for (int i = 2; i < 14; i += 2)
-                {
-                    if (value.charAt(i) != marker || !isHex(value.charAt(i + 1)))
-                    {
+                for (int i = 2; i < 14; i += 2) {
+                    if (value.charAt(i) != marker || !isHex(value.charAt(i + 1))) {
                         valid = false;
                         break;
                     }
                 }
-                if (valid)
-                {
+                if (valid) {
                     value = value.substring(14);
                     changed = true;
                     continue;
                 }
             }
 
-            // Standard Hex (&#ffffff or §#ffffff)
-            if (value.length() >= 8 && (value.startsWith("&#") || value.startsWith("§#")))
-            {
+            // Standard hex (&#ffffff or §#ffffff)
+            if (value.length() >= 8 && (value.startsWith("&#") || value.startsWith("§#"))) {
                 boolean valid = true;
-                for (int i = 2; i < 8; i++)
-                {
-                    if (!isHex(value.charAt(i)))
-                    {
+                for (int i = 2; i < 8; i++) {
+                    if (!isHex(value.charAt(i))) {
                         valid = false;
                         break;
                     }
                 }
-                if (valid)
-                {
+                if (valid) {
                     value = value.substring(8);
                     changed = true;
                     continue;
                 }
             }
 
-            // Standard legacy color/formatting codes (&0-&f, &k-&o, &r)
-            if (value.length() >= 2 && (value.charAt(0) == '§' || value.charAt(0) == '&'))
-            {
+            // Standard legacy colour/formatting codes (&0-&f, &k-&o, &r)
+            if (value.length() >= 2 && (value.charAt(0) == '§' || value.charAt(0) == '&')) {
                 char code = Character.toLowerCase(value.charAt(1));
-                if (isFormattingOrColor(code))
-                {
+                if (isFormattingOrColor(code)) {
                     value = value.substring(2);
                     changed = true;
                 }
@@ -135,8 +119,7 @@ public final class CommandMessages
                 || code == 'r';
     }
 
-    public static boolean isHex(char c)
-    {
+    public static boolean isHex(char c) {
         c = Character.toLowerCase(c);
         return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
     }

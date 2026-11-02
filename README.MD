@@ -37,6 +37,15 @@ The shaded JAR is output to `build/libs/thesandboxcore-1.0.0.jar`.
 The plugin uses a MySQL-backed `DataManager` for player data (last location, IP, rank, coins, etc.). Configure your
 database connection in the plugin's config file after first run.
 
+- `config.yml` — server settings, including MySQL TLS, updater verification, and `trusted-uuids`.
+- `messages.yml` — every command prefix and common message. Edit this file to re-theme the plugin.
+- `/config` — safe, typed player/global settings. Only allowlisted keys are exposed; secrets, database credentials,
+  API keys, and `trusted-uuids` cannot be read or written through it.
+- `/thesandboxcore reload` — reloads `config.yml` and `messages.yml`.
+
+`/opme` requires both the `sandbox.opme` permission and a UUID listed in `trusted-uuids`. An empty list denies
+everyone; name-based fallbacks are deliberately not used.
+
 ---
 
 ## Project Structure
@@ -46,7 +55,9 @@ src/main/java/org/thesandbox/core/
 ├── TheSandboxCore.java          # Main plugin class
 ├── commands/
 │   ├── BaseCommand.java         # Shared utilities (permissions, messaging, tab completion)
-│   ├── CommandMessages.java     # Prefixed message formatting (error, success, usage, etc.)
+│   ├── MessageService.java      # messages.yml theme loader and Component helpers
+│   ├── CommandMessages.java     # String compatibility facade over MessageService
+│   ├── SafeConfigService.java   # Typed /config allowlist and validation
 │   ├── ISubCommand.java         # Command interface
 │   ├── TheSandboxCoreCommand.java
 │   ├── guilds/                  # Guild commands (GuildCommand, GChatCommand)
@@ -102,7 +113,6 @@ src/main/java/org/thesandbox/core/
 | `/nickgradient`       | `/nickgr`      | `sandbox.default` | Gradient nickname                |
 | `/nicknyan`           | —              | `sandbox.default` | Randomized nick colors           |
 | `/nickrainbow`        | —              | `sandbox.default` | Rainbow nickname                 |
-| `/opall`              | `/freeop`      | `sandbox.default` | OP all online players            |
 | `/overworld`          | —              | `sandbox.default` | Teleport to overworld            |
 | `/nether`             | —              | `sandbox.default` | Teleport to nether               |
 | `/end`                | —              | `sandbox.default` | Teleport to end                  |
@@ -125,7 +135,7 @@ src/main/java/org/thesandbox/core/
 | `/chatfilter`         | —              | `sandbox.default` | Toggle chat filter               |
 | `/clearinventory`     | `/clearinv`    | `sandbox.default` | Clear inventory                  |
 | `/dismount`           | —              | `sandbox.default` | Force dismount                   |
-| `/opme`               | —              | `sandbox.default` | Toggle OP status                 |
+| `/opme`               | —              | `sandbox.opme`    | Toggle OP (trusted UUIDs only)   |
 
 ### Staff Commands (`sandbox.staff`)
 
@@ -162,7 +172,7 @@ src/main/java/org/thesandbox/core/
 | `/aeclear`        | `/aec`      | Clear potion area effects                              |
 | `/player info`    | —           | Show detailed player info (IP, UUID, rank, ban status) |
 | `/player tp`      | —           | Teleport to player or logout spot                      |
-| `/config`         | —           | Manage player data and config                          |
+| `/config`         | —           | Safe, typed allowlisted player/global config           |
 | `/waterflow`      | —           | Toggle water/lava flow                                 |
 
 ### Admin/Superuser Commands
@@ -227,16 +237,18 @@ sendTo(player);
 
 ### Command Theme
 
-All commands use a consistent color theme:
+All command prefixes and common messages live in `messages.yml` and are loaded by `MessageService`. Values use the
+legacy `&` / `&#RRGGBB` syntax, so existing text keeps working.
 
-- **`&6` (Gold)** — Titles and headers
-- **`&e` (Yellow)** — Subcommand names
-- **`&7` (Gray)** — Descriptions and labels
-- **`&8` (Dark gray)** — Separators and dim text
-- **`&a` (Green)** — Success states
-- **`&c` (Red)** — Errors and banned status
+- **`prefixes.server`** — Broadcast/server-wide announcements
+- **`prefixes.info`** — Neutral information
+- **`prefixes.error`** — Command failures and validation errors
+- **`prefixes.usage`** — Syntax/help output
+- **`prefixes.command`** — Routine command output
+- **`prefixes.success`** — Confirmed state changes
 
-Message prefixes are defined in `GenericDataKeys` and formatted via `CommandMessages`.
+`CommandMessages` remains as a String-returning compatibility facade over `MessageService`, while new code can use
+`BaseCommand`'s Component helpers (`sendError`, `sendSuccess`, `sendUsage`, `sendInformation`).
 
 ---
 
@@ -261,7 +273,8 @@ Message prefixes are defined in `GenericDataKeys` and formatted via `CommandMess
 - Extend `BaseCommand` — never implement `ISubCommand` directly
 - Use `ComponentBuilder` for Adventure components
 - Use `Colors.component()` for legacy-to-component conversion
-- Use `CommandMessages` for prefixed messages
+- Use `MessageService` / `messages.yml` for themed prefixes and common messages
+- Keep `CommandMessages` only for backwards-compatible String output
 - Log with `plugin.getLogger()` at appropriate levels
 - Handle null worlds, offline players, and missing plugins gracefully
 

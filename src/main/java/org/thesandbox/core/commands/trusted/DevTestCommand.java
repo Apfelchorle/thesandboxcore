@@ -1,5 +1,6 @@
 package org.thesandbox.core.commands.trusted;
 
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -35,7 +36,7 @@ public class DevTestCommand extends BaseCommand {
                     .name();
             Utils.SendMessage(plr, "You are Epical! (" + rank + ")", NamedTextColor.DARK_PURPLE);
         } else {
-            sender.sendMessage("You are Epical! (CONSOLE)");
+            sender.sendMessage(Component.text("You are Epical! (CONSOLE)", NamedTextColor.DARK_PURPLE));
         }
         Utils.sendASCII("Wee woo wee woo weee woo");
     }

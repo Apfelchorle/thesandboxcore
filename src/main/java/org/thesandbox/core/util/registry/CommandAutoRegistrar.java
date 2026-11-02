@@ -123,7 +123,10 @@ public final class CommandAutoRegistrar {
                 } catch (Throwable t) {
                     plugin.getLogger().log(java.util.logging.Level.SEVERE,
                             "[CommandAutoRegistrar] Error running /" + label, t);
-                    sender.sendMessage("§cAn internal error occurred while executing /" + label + ".");
+                    sender.sendMessage(org.thesandbox.core.commands.MessageService.component(
+                            org.thesandbox.core.commands.MessageService.Prefix.ERROR,
+                            "An internal error occurred while executing /" + label + "."
+                    ));
                 }
                 return true;
             };

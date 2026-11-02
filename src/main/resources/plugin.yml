@@ -36,9 +36,10 @@ commands:
     permission: sandbox.default
 
   opme:
-    description: toggle op status
+    description: Toggle OP status (trusted UUIDs only)
     usage: /opme
-    permission: sandbox.default
+    permission: sandbox.opme
+    permission-message: "&cYou do not have permission to use this command."
 
   waterflow:
     permission: sandbox.staff
@@ -62,12 +63,6 @@ commands:
     description: Force dismount from an Entity.
     usage: /dismount
     permission: sandbox.default
-
-  opall:
-    description: Op Everyone
-    usage: /opall
-    permission: sandbox.default
-    aliases: [freeop]
 
   discord:
     description: Sends Discord Invite
@@ -464,8 +459,8 @@ commands:
     permission: sandbox.default
 
   config:
-    description: Manage player data and global config settings
-    usage: "/config <get|set|list> [key] [value] [player]"
+    description: Manage allowlisted player data and global config settings
+    usage: "/config <get|set|list|keys> [key] [value] [player]"
     permission: sandbox.staff
 
   devtoggle:
@@ -484,3 +479,52 @@ commands:
     usage: /gifmap <gif-url>
     permission: sandbox.default
     aliases: [ animatedmap ]
+
+# ============================================================
+# Permission hierarchy
+# ============================================================
+# Higher tiers inherit the lower tiers. Grant only the tier a player needs.
+permissions:
+  sandbox.default:
+    description: Basic player commands
+    default: true
+
+  sandbox.mod:
+    description: Moderator tools (chat filter, freeze, reports)
+    default: op
+
+  sandbox.staff:
+    description: Staff tools (player data read, command spy, staff chat)
+    default: op
+    children:
+      sandbox.mod: true
+
+  sandbox.admin:
+    description: Administrative tools (config writes, plugin control)
+    default: op
+    children:
+      sandbox.staff: true
+
+  sandbox.operator:
+    description: Operator-level maintenance commands
+    default: op
+    children:
+      sandbox.admin: true
+
+  sandbox.superuser:
+    description: Highest-level debug and maintenance commands
+    default: op
+    children:
+      sandbox.operator: true
+
+  sandbox.opme:
+    description: Allows /opme for UUIDs explicitly listed in trusted-uuids
+    default: false
+
+  sandbox.mb:
+    description: Master builder perks
+    default: false
+
+  sandbox.vip:
+    description: VIP perks
+    default: false

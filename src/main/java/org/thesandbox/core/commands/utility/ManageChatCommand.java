@@ -1,5 +1,6 @@
 package org.thesandbox.core.commands.utility;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -34,7 +35,7 @@ public class ManageChatCommand extends BaseCommand implements TabCompleter {
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
 
         if (args.length < 1) {
-            sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <mute|clear>"));
+            sendUsage(sender, "/" + label + " <mute|clear|forceclear>");
             return true;
         }
 
@@ -51,22 +52,23 @@ public class ManageChatCommand extends BaseCommand implements TabCompleter {
                 return true;
             }
             case "clear": {
+                // One multi-line component = one packet per player instead of 100.
                 for (Player p : Bukkit.getOnlinePlayers()) {
-                    if (p.hasPermission("sandbox.staff")) continue; // don't clear for mods
-                    for (int i = 0; i < 100; i++) p.sendMessage(" ");
+                    if (p.hasPermission("sandbox.staff")) continue;
+                    p.sendMessage(Component.text("\n".repeat(100)));
                 }
                 Colors.broadcast(CommandMessages.server(Colors.RED + sender.getName() + " - Cleared the chat"));
                 return true;
             }
             case "forceclear": {
                 for (Player p : Bukkit.getOnlinePlayers()) {
-                    for (int i = 0; i < 100; i++) p.sendMessage(" ");
+                    p.sendMessage(Component.text("\n".repeat(100)));
                 }
                 Colors.broadcast(CommandMessages.server("&c" + sender.getName() + " - Force Cleared the chat"));
                 return true;
             }
             default: {
-                sender.sendMessage(CommandMessages.usage(Colors.RED + "Usage: /" + label + " <mute|clear|forceclear>"));
+                sendUsage(sender, "/" + label + " <mute|clear|forceclear>");
                 return true;
             }
         }

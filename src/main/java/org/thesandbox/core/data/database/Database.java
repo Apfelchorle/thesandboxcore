@@ -96,8 +96,23 @@ public final class Database {
         String user = plugin.getConfig().getString("mysql.sandbox.user");
         String password = plugin.getConfig().getString("mysql.sandbox.password");
 
+        boolean useSsl = plugin.getConfig().getBoolean("mysql.sandbox.use-ssl", true);
+        boolean requireSsl = plugin.getConfig().getBoolean("mysql.sandbox.require-ssl", false);
+        boolean allowPublicKeyRetrieval = plugin.getConfig().getBoolean(
+                "mysql.sandbox.allow-public-key-retrieval", false
+        );
+
+        if (!useSsl) {
+            plugin.getLogger().warning(
+                    "[SQL] mysql.sandbox.use-ssl is false - database traffic is not encrypted."
+            );
+        }
+
         String jdbcUrl = "jdbc:mysql://" + host + ":" + port + "/" + database
-                + "?useSSL=false&autoReconnect=true&useUnicode=true&characterEncoding=utf8&allowPublicKeyRetrieval=true";
+                + "?useSSL=" + useSsl
+                + "&requireSSL=" + requireSsl
+                + "&allowPublicKeyRetrieval=" + allowPublicKeyRetrieval
+                + "&autoReconnect=true&useUnicode=true&characterEncoding=utf8";
 
         HikariConfig config = new HikariConfig();
         config.setPoolName("TheSandboxCore-SQL");

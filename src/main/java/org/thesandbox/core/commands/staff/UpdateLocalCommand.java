@@ -125,7 +125,8 @@ public class UpdateLocalCommand extends BaseCommand {
                 GitHubReleaseUpdater.Result result = updater.checkAndUpdate(
                         target,
                         currentTag,
-                        updateFolder
+                        updateFolder,
+                        plugin.getConfig().getBoolean("update.allow-unverified", false)
                 );
                 results.add(result.message);
 

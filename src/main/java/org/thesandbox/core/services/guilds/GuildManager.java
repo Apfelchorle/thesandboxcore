@@ -20,6 +20,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.thesandbox.core.util.colors.Colors;
 import org.thesandbox.core.util.colors.HexColorUtil;
+import org.thesandbox.core.util.colors.TextSanitizer;
 
 import javax.sql.DataSource;
 import java.io.File;
@@ -831,18 +832,22 @@ public final class GuildManager {
     private Component rich(String input) {
         if (input == null || input.isEmpty()) return Component.empty();
 
+        // Player-controlled guild/nickname text: strip interactive MiniMessage
+        // tags before deserialising so nobody can inject click/hover actions.
+        String safeInput = TextSanitizer.sanitizeMiniMessage(input);
+
         // Supports mixed guild-chat formatting in one message:
         //   legacy colors: &a, &l, &r, etc.
         //   hex colors: &#ff00ff, #ff00ff, &x&f&f&0&0&f&f
         //   MiniMessage: <red>, <bold>, <gradient:#ff0:#f0f>, etc.
-        if (looksLikeMiniMessage(input)) {
+        if (looksLikeMiniMessage(safeInput)) {
             try {
-                return MiniMessage.miniMessage().deserialize(legacyToMiniMessage(input));
+                return MiniMessage.miniMessage().deserialize(legacyToMiniMessage(safeInput));
             } catch (Exception ignored) {
-                return Colors.c(input);
+                return Colors.c(safeInput);
             }
         }
-        return Colors.c(input);
+        return Colors.c(safeInput);
     }
 
     private Component guildChatDisplayName(Player player) {

@@ -12,6 +12,7 @@ import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.thesandbox.core.TheSandboxCore;
+import org.thesandbox.core.util.Utils;
 
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -60,7 +61,7 @@ public class PlayerDataListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
-        String ip = getPlayerIp(player);
+        String ip = Utils.censorIp(getPlayerIp(player)); // fix horrible doxxing issue.
         if (ip != null) {
             set(uuid, PlayerDataKeys.LAST_IP, ip);
         }

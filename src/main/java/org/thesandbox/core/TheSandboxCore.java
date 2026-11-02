@@ -221,6 +221,7 @@ public class TheSandboxCore extends JavaPlugin {
 
         Utils.setPlugin(this);
         saveDefaultConfig();
+        org.thesandbox.core.commands.MessageService.load(this);
 
         try {
             initPacketEvents();
@@ -534,6 +535,7 @@ public class TheSandboxCore extends JavaPlugin {
 
     public void reloadAndReconnect() {
         reloadConfig();
+        org.thesandbox.core.commands.MessageService.reload();
 
         // Persist pending async writes before the old pool is closed.
         if (balanceManager != null) balanceManager.flush();

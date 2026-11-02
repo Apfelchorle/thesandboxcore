@@ -1,0 +1,51 @@
+# ============================================================
+#  TheSandboxCore - command theme and messages
+# ============================================================
+# Every command prefix and common message is defined here.
+# Supported colour syntax: &a, &l, &#RRGGBB, &x&R&R&G&G&B&B
+#
+# Re-theme the entire plugin by editing the prefix palette below.
+# Restart or run /thesandboxcore reload after changes.
+# ============================================================
+
+prefixes:
+  # Broadcast / server-wide announcements
+  server: "&c&lServer &8• &c"
+
+  # Neutral information
+  info: "&b&lInfo &8» &b"
+
+  # Command failures and validation errors
+  error: "&c&lError &8» &c"
+
+  # Syntax/help output
+  usage: "&e&lUsage &8» &e"
+
+  # Successful but routine command output
+  command: "&7&lCommand &8» &7"
+
+  # Confirmed state changes
+  success: "&a&lSuccess &8» &a"
+
+messages:
+  no-permission: "You do not have permission to use this command."
+  player-only: "This command can only be used by players."
+  player-not-found: "Player not found: %s"
+  invalid-number: "%s is not a valid number."
+  invalid-value: "Invalid value: %s"
+  reloaded: "TheSandboxCore reloaded in %s ms."
+  config-key-not-allowed: "That key is not editable through this command. Use /config list to see the supported keys."
+  config-key-not-readable: "That key is not readable."
+  config-key-read-only: "That key is read-only."
+  config-invalid-value: "Invalid value for %s: %s"
+  config-global-get: "%s = %s"
+  config-global-set: "Updated %s."
+  config-player-get: "%s (%s) = %s"
+  config-player-set: "Set %s = %s for %s."
+  config-list-global: "Safe global config keys:"
+  config-list-player: "Player data for %s:"
+  config-keys-player: "Safe player data keys:"
+  config-keys-global: "Safe global config keys:"
+  balance-not-ready: "The balance service is not ready yet. Try again in a moment."
+  opme-no-access: "You Do Not Have Access To This Command"
+  opme-status: "OP status is now: %s"

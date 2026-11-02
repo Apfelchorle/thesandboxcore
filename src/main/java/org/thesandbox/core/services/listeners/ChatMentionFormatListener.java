@@ -22,6 +22,7 @@ import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.util.Utils;
 import org.thesandbox.core.util.colors.Colors;
 import org.thesandbox.core.util.colors.HexColorUtil;
+import org.thesandbox.core.util.colors.TextSanitizer;
 import org.thesandbox.core.data.PlayerDataKeys;
 
 import java.util.regex.Matcher;
@@ -205,7 +206,7 @@ public class ChatMentionFormatListener implements Listener {
 
         Component baseBodyComponent;
         if (useMiniMessage) {
-            baseBodyComponent = miniMessage.deserialize(sanitized);
+            baseBodyComponent = miniMessage.deserialize(TextSanitizer.sanitizeMiniMessage(sanitized));
         } else {
             baseBodyComponent = Utils.legacyserializer(sanitized);
         }

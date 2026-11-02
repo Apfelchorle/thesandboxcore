@@ -18,6 +18,7 @@ import org.bukkit.plugin.Plugin;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.data.PlayerDataListener;
 import org.thesandbox.core.services.login.LoginService;
+import org.thesandbox.core.util.Utils;
 import org.thesandbox.core.util.colors.ComponentBuilder;
 
 import java.util.*;
@@ -75,8 +76,8 @@ public class PlayerCommand extends BaseCommand {
     }
 
     /**
-     * Shows detailed player info with hover-to-reveal for sensitive data.
-     * IP is censored in the visible text but revealed on hover.
+     * Shows detailed player info. IP addresses are censored at capture time, so
+     * neither the visible text nor any stored value contains the full address.
      * LiteBans queries are executed asynchronously to avoid main-thread blocking.
      */
     private void info(CommandSender sender, String label, String[] args) {
@@ -215,13 +216,11 @@ public class PlayerCommand extends BaseCommand {
         }
         builder.append(ComponentBuilder.legacy("&7Rank: ")).append(ComponentBuilder.legacy(rankColor + rankDisplay)).newline();
 
-        // IP address (censored, shown on hover for staff only)
+        // IP address (censored at capture; old rows are censored for display too)
         String ip = dataListener.getLastIp(uuid);
         if (ip != null && !ip.isEmpty()) {
-            String censoredIp = censorIp(ip);
-            Component ipComp = ComponentBuilder.text(censoredIp)
+            Component ipComp = ComponentBuilder.text(Utils.censorIp(ip))
                     .gray()
-                    .hoverText("&7IP: " + ip)
                     .build();
             builder.append(ComponentBuilder.legacy("&7IP: ")).append(ipComp).newline();
         } else {
@@ -320,17 +319,6 @@ public class PlayerCommand extends BaseCommand {
      */
     private static double getMaxHealth(Player player) {
         return player.getAttribute(Attribute.MAX_HEALTH).getBaseValue();
-    }
-
-    /**
-     * Censors an IP address, showing only the first and last octet.
-     * e.g. "192.168.1.100" -> "192.*.*.100"
-     */
-    private static String censorIp(String ip) {
-        if (ip == null || ip.isEmpty()) return "*.*.*.*";
-        String[] parts = ip.split("\\.");
-        if (parts.length != 4) return "*.*.*.*";
-        return parts[0] + ".*.*." + parts[3];
     }
 
     private void listPlayers(CommandSender sender) {

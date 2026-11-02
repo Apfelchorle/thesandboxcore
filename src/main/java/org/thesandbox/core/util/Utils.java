@@ -36,7 +36,7 @@ public class Utils {
     public static final Pattern MINIMESSAGE_TAG = Pattern.compile("<[^>]+>");
     private static final Random random = new Random();
     private static TheSandboxCore plugin;
-    private static boolean warnedLegacyTrust = false;
+    private static boolean warnedEmptyTrustList = false;
     private final PlayerDataListener playerDataListener;
 
     public Utils(TheSandboxCore plugin, PlayerDataListener playerDataListener) {
@@ -81,6 +81,16 @@ public class Utils {
         );
     }
 
+    /**
+     * Redacts an IPv4 address to its first octet. The last octet is often
+     * enough to identify a household, so it is never shown or stored.
+     */
+    public static String censorIp(String ip) {
+        if (ip == null || ip.isEmpty()) return "*.*.*.*";
+        String[] parts = ip.split("\\.");
+        if (parts.length != 4) return "*.*.*.*";
+        return parts[0] + ".*.*.*";
+    }
     public static Double randomDoubleRange(double min, double max) {
         return min + random.nextDouble() * (max - min);
     }
@@ -196,7 +206,8 @@ public class Utils {
      * The old implementation resolved the names "usfl"/"ThePyroMan" through Mojang on every call:
      * a blocking network lookup on the main thread, and anyone who later acquires one of those names
      * would inherit the access. UUIDs are the only stable identity, so the list now lives in config.
-     * While the list is empty we fall back to a cache-only name lookup (no network) and warn once.
+     * An empty list grants nobody access; name-based fallbacks are intentionally gone because
+     * cracked servers let anyone claim a name.
      */
     public static boolean hasUuid(Player player) {
         if (player == null) return false;
@@ -210,20 +221,12 @@ public class Utils {
                 return true;
             }
         }
-        if (!configured.isEmpty()) return false;
-
-        if (!warnedLegacyTrust && plugin != null) {
-            warnedLegacyTrust = true;
+        if (configured.isEmpty() && !warnedEmptyTrustList && plugin != null) {
+            warnedEmptyTrustList = true;
             plugin.getLogger().warning(
-                    "config 'trusted-uuids' is empty - falling back to legacy name matching. " +
+                    "config 'trusted-uuids' is empty - no player is trusted. " +
                             "Add trusted player UUIDs to config.yml."
             );
-        }
-        for (String legacyName : new String[]{"usfl", "ThePyroMan"}) {
-            OfflinePlayer cached = Bukkit.getOfflinePlayerIfCached(legacyName);
-            if (cached != null && target.equals(cached.getUniqueId())) {
-                return true;
-            }
         }
         return false;
     }

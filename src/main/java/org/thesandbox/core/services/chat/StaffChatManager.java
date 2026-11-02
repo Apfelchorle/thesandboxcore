@@ -9,6 +9,7 @@ import org.thesandbox.core.services.discord.DiscordBridge;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.services.chat.ShushService;
 import org.thesandbox.core.util.colors.HexColorUtil;
+import org.thesandbox.core.util.colors.TextSanitizer;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -150,7 +151,7 @@ public class StaffChatManager {
             if (message == null || message.isEmpty()) {
                 body = Component.empty();
             } else if (useMini) {
-                body = miniMessage.deserialize(message);
+                body = miniMessage.deserialize(TextSanitizer.sanitizeMiniMessage(message));
             } else {
                 body = legacySection.deserialize(HexColorUtil.translate(message));
             }
