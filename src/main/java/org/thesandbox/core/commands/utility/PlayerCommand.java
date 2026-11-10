@@ -28,7 +28,7 @@ import java.util.*;
  */
 public class PlayerCommand extends BaseCommand {
 
-    private static final List<String> SUBCOMMANDS = List.of("help", "info", "list", "tp", "uuid");
+    private static final List<String> SUBCOMMANDS = List.of("help", "info", "list", "tp", "uuid", "nickname");
 
     private final PlayerDataListener dataListener;
     private final LoginService loginService;
@@ -60,6 +60,7 @@ public class PlayerCommand extends BaseCommand {
             case "list" -> listPlayers(sender);
             case "tp" -> teleport(sender, label, args);
             case "uuid" -> showUuid(sender, label, args);
+            case "nickname" -> dumpnick(sender, label, args);
             default -> sendError(sender, "Unknown subcommand '" + args[0] + "'. Use /" + label + " help.");
         }
         return true;
@@ -72,6 +73,7 @@ public class PlayerCommand extends BaseCommand {
         send(sender, "&e/" + label + " list &8- &7List online players with details");
         send(sender, "&e/" + label + " tp <player> &8- &7Teleport to a player or their logout spot &8(staff)");
         send(sender, "&e/" + label + " uuid [player|uuid] &8- &7Show a player's UUID (click to copy)");
+        send(sender, "&e/" + label + " nickname &8- &7Show a player's nickname");
         send(sender, "&8&m-----------------------------------------------------");
     }
 
@@ -515,6 +517,35 @@ public class PlayerCommand extends BaseCommand {
         }
     }
 
+    private String essentialsnick(OfflinePlayer target) {
+        try {
+            Plugin plugin = Bukkit.getPluginManager().getPlugin("Essentials");
+            if (!(plugin instanceof Essentials essentials) || !plugin.isEnabled()) {
+                return null;
+            }
+            User user = essentials.getUser(target.getUniqueId());
+            return user != null ? user.getNick() : null;
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    private void dumpnick(CommandSender sender, String label, String[] args) {
+        OfflinePlayer target = findPlayer(sender, args[0]);
+        String name = sender.getName();
+        String status = target.isOnline() ? "&aonline" : "&7offline";
+        ComponentBuilder builder = ComponentBuilder.empty()
+                .append(ComponentBuilder.legacy("&6" + name + " &8» "))
+                .append(ComponentBuilder.text(essentialsnick(target))
+                        .color(NamedTextColor.WHITE)
+                        .copyToClipboard(essentialsnick(target))
+                        .hoverText("Click to copy UUID")
+                        .build())
+                .append(ComponentBuilder.legacy(" &8(" + status + "&8)"));
+
+        builder.sendTo(sender);
+    }
+
     @Override
     public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 0) {
@@ -529,7 +560,7 @@ public class PlayerCommand extends BaseCommand {
         }
 
         if (args.length == 2
-                && (args[0].equalsIgnoreCase("uuid") || args[0].equalsIgnoreCase("tp") || args[0].equalsIgnoreCase("info"))) {
+                && (args[0].equalsIgnoreCase("uuid") || args[0].equalsIgnoreCase("tp") || args[0].equalsIgnoreCase("info") || args[0].equalsIgnoreCase("nickname"))) {
             return offlinePlayerSelectorCompletions(args[1]);
         }
 

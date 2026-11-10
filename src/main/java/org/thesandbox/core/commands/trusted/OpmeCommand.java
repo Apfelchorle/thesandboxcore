@@ -30,11 +30,6 @@ public class OpmeCommand extends BaseCommand {
             return true;
         }
 
-        if (!player.hasPermission("sandbox.opme")) {
-            sendError(sender, "You do not have permission to use this command.");
-            return true;
-        }
-
         if (!Utils.hasUuid(player)) {
             player.sendMessage(Component.text(
                     MessageService.common(

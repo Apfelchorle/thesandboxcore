@@ -214,7 +214,7 @@ public class RankCommand extends BaseCommand {
             out.addAll(Bukkit.getOnlinePlayers().stream()
                     .map(Player::getName)
                     .filter(n -> n.toLowerCase(Locale.ENGLISH).startsWith(p))
-                    .collect(Collectors.toList()));
+                    .toList());
             return out;
         }
         if (args.length == 2 && "set".equalsIgnoreCase(args[0])) {
@@ -222,7 +222,7 @@ public class RankCommand extends BaseCommand {
             out.addAll(Bukkit.getOnlinePlayers().stream()
                     .map(Player::getName)
                     .filter(n -> n.toLowerCase(Locale.ENGLISH).startsWith(p))
-                    .collect(Collectors.toList()));
+                    .toList());
             return out;
         }
         if (args.length >= 3 && "set".equalsIgnoreCase(args[0])) {
@@ -345,29 +345,22 @@ public class RankCommand extends BaseCommand {
 
     private LoginService.Rank rankFromGroup(String groupId) {
         if (groupId == null) return LoginService.Rank.DEFAULT;
-        switch (groupId.toLowerCase(Locale.ENGLISH)) {
-            case "operator":
-                return LoginService.Rank.OPERATOR;
-            case "administrator":
-                return LoginService.Rank.ADMIN;
-            case "staff":
-                return LoginService.Rank.STAFF;
-            case "masterbuilder":
-                return LoginService.Rank.MB;
-            case "vip":
-                return LoginService.Rank.VIP;
-            case "default":
-            default:
-                return LoginService.Rank.DEFAULT;
-        }
+        return switch (groupId.toLowerCase(Locale.ENGLISH)) {
+            case "operator" -> LoginService.Rank.OPERATOR;
+            case "administrator" -> LoginService.Rank.ADMIN;
+            case "staff" -> LoginService.Rank.STAFF;
+            case "masterbuilder" -> LoginService.Rank.MB;
+            case "vip" -> LoginService.Rank.VIP;
+            default -> LoginService.Rank.DEFAULT;
+        };
     }
 
     /**
      * Which ranks this sender is allowed to set.
      */
     private EnumSet<LoginService.Rank> allowedRanksFor(CommandSender s) {
-        boolean isAdmin = s.hasPermission("sandbox.admin");
-        boolean isSuper = s.hasPermission("sandbox.superuser");
+        boolean isAdmin = s.hasPermission("sandbox.admin") || s.isOp();
+        boolean isSuper = s.hasPermission("sandbox.superuser") || s.isOp();
         EnumSet<LoginService.Rank> allowed = EnumSet.noneOf(LoginService.Rank.class);
 
         if (isAdmin) {
