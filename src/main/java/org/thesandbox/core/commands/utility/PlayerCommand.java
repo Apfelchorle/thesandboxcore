@@ -73,7 +73,7 @@ public class PlayerCommand extends BaseCommand {
         send(sender, "&e/" + label + " list &8- &7List online players with details");
         send(sender, "&e/" + label + " tp <player> &8- &7Teleport to a player or their logout spot &8(staff)");
         send(sender, "&e/" + label + " uuid [player|uuid] &8- &7Show a player's UUID (click to copy)");
-        send(sender, "&e/" + label + " nickname &8- &7Show a player's nickname");
+        send(sender, "&e/" + label + " nickname [player] &8- &7Show a player's nickname");
         send(sender, "&8&m-----------------------------------------------------");
     }
 
@@ -517,32 +517,66 @@ public class PlayerCommand extends BaseCommand {
         }
     }
 
-    private String essentialsnick(OfflinePlayer target) {
-        try {
-            Plugin plugin = Bukkit.getPluginManager().getPlugin("Essentials");
-            if (!(plugin instanceof Essentials essentials) || !plugin.isEnabled()) {
-                return null;
-            }
-            User user = essentials.getUser(target.getUniqueId());
-            return user != null ? user.getNick() : null;
-        } catch (Throwable ignored) {
-            return null;
-        }
-    }
-
     private void dumpnick(CommandSender sender, String label, String[] args) {
-        OfflinePlayer target = findPlayer(sender, args[0]);
-        String name = sender.getName();
-        String status = target.isOnline() ? "&aonline" : "&7offline";
-        ComponentBuilder builder = ComponentBuilder.empty()
-                .append(ComponentBuilder.legacy("&6" + name + " &8» "))
-                .append(ComponentBuilder.text(essentialsnick(target))
-                        .color(NamedTextColor.WHITE)
-                        .copyToClipboard(essentialsnick(target))
-                        .hoverText("Click to copy UUID")
-                        .build())
-                .append(ComponentBuilder.legacy(" &8(" + status + "&8)"));
+        final OfflinePlayer target;
+        if (args.length >= 2) {
+            target = findPlayer(sender, args[1]);
+            if (target == null) {
+                sendError(sender, "Player '" + args[1] + "' was not found. They must have joined before.");
+                return;
+            }
+        } else if (sender instanceof Player player) {
+            target = player;
+        } else {
+            sendUsage(sender, "/" + label + " nickname <player>");
+            return;
+        }
 
+        Plugin plugin = Bukkit.getPluginManager().getPlugin("Essentials");
+        if (!(plugin instanceof Essentials essentials) || !plugin.isEnabled()) {
+            sendError(sender, "Essentials is not installed or not enabled. Cannot read nicknames.");
+            return;
+        }
+
+        User user = essentials.getUser(target.getUniqueId());
+        if (user == null) {
+            sendError(sender, "Essentials has no data for "
+                    + (target.getName() != null ? target.getName() : "that player") + ".");
+            return;
+        }
+
+        String name = target.getName() != null ? target.getName() : "(unknown)";
+        String status = target.isOnline() ? "&aonline" : "&7offline";
+        String rawNick = user.getNickname();
+        boolean hasNick = rawNick != null && !rawNick.isBlank();
+
+        ComponentBuilder builder = ComponentBuilder.empty()
+                .append(ComponentBuilder.legacy("&8&m--------------&r &6Nickname &8&m--------------")).newline()
+                .append(ComponentBuilder.legacy("&7Player: &f" + name + " &8(" + status + "&8)")).newline()
+                .append(ComponentBuilder.legacy("&7Nickname: "));
+
+        if (hasNick) {
+            builder.append(ComponentBuilder.legacy(user.getNick(true))
+                    .copyToClipboard(rawNick)
+                    .hoverText("Click to copy nickname"));
+        } else {
+            builder.append(ComponentBuilder.legacy("&7(none)"));
+        }
+
+        // Show the stored value when it contains formatting codes so it is clear
+        // what is saved (for example the &r added by /marrytag).
+        if (hasNick && (rawNick.indexOf('&') >= 0 || rawNick.indexOf('§') >= 0)) {
+            builder.newline()
+                    .append(ComponentBuilder.legacy("&7Stored: "))
+                    .append(ComponentBuilder.text(rawNick)
+                            .color(NamedTextColor.WHITE)
+                            .copyToClipboard(rawNick)
+                            .hoverText("Click to copy stored nickname")
+                            .build());
+        }
+
+        builder.newline()
+                .append(ComponentBuilder.legacy("&8&m-----------------------------------------------------"));
         builder.sendTo(sender);
     }
 

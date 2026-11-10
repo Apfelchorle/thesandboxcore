@@ -383,6 +383,7 @@ public class ChatMentionFormatListener implements Listener {
     }
 
     private Component getPlayerNameComponent(Player p) {
+        final NamedTextColor rankColor = rankNameTextColor(p);
         String base = null;
 
         try {
@@ -401,19 +402,31 @@ public class ChatMentionFormatListener implements Listener {
 
         if (base == null || base.isBlank()) {
             Component displayName = p.displayName();
-            if (!Utils.plainText(displayName).isBlank()) return displayName;
+            if (!Utils.plainText(displayName).isBlank()) return displayName.colorIfAbsent(rankColor);
             base = p.getName();
         }
 
-        if (base.contains("&")) {
-            return LegacyComponentSerializer.legacyAmpersand().deserialize(base);
+        // Normalise to section signs first so nicknames mixing & codes (for example
+        // the /marrytag heart prefix) and § hex codes (from /nickgradient) both parse.
+        String legacy = Colors.color(base);
+        if (legacy.indexOf('§') >= 0) {
+            return LegacyComponentSerializer.legacySection().deserialize(legacy).colorIfAbsent(rankColor);
         }
 
-        if (base.indexOf('§') >= 0) {
-            return LegacyComponentSerializer.legacySection().deserialize(base);
-        }
+        return Component.text(base, rankColor);
+    }
 
-        return Component.text(base, NamedTextColor.GRAY);
+    /**
+     * Rank colour used as the default name colour. Explicit nickname colours
+     * (for example from /colorme or /nickrainbow) still take precedence.
+     */
+    private NamedTextColor rankNameTextColor(Player p) {
+        try {
+            if (core.getLoginService() == null) return NamedTextColor.GRAY;
+            return Colors.namedColor(core.getLoginService().getRank(p).color);
+        } catch (Throwable ignored) {
+            return NamedTextColor.GRAY;
+        }
     }
 
     private String getDisplayWithPrefix(Player p) {

@@ -455,7 +455,7 @@ commands:
 
   player:
     description: Player utilities for online and offline players
-    usage: /player <help|list|tp|uuid> [player|uuid]
+    usage: /player <help|list|tp|uuid|nickname> [player|uuid]
     permission: sandbox.default
 
   config:

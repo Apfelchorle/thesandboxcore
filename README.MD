@@ -172,6 +172,7 @@ src/main/java/org/thesandbox/core/
 | `/aeclear`        | `/aec`      | Clear potion area effects                              |
 | `/player info`    | —           | Show detailed player info (IP, UUID, rank, ban status) |
 | `/player tp`      | —           | Teleport to player or logout spot                      |
+| `/player nickname`| —           | Show a player's nickname (click to copy)               |
 | `/config`         | —           | Safe, typed allowlisted player/global config           |
 | `/waterflow`      | —           | Toggle water/lava flow                                 |
 

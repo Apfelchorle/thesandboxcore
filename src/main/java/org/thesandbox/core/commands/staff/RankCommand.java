@@ -165,6 +165,9 @@ public class RankCommand extends BaseCommand {
                     // Set primary group to match
                     user.setPrimaryGroup(targetGroup);
 
+                    // Refresh cached metadata/permissions for online players before saving.
+                    user.getCachedData().invalidate();
+
                     // Save
                     um.saveUser(user).get(5, TimeUnit.SECONDS);
                     // --------------------------------------------------------------
