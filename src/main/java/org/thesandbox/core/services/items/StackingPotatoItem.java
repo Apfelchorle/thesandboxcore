@@ -23,6 +23,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.data.PlayerDataListener;
+import org.thesandbox.core.services.entities.RideableDragonEntity;
 import org.thesandbox.core.util.Utils;
 import org.thesandbox.core.services.items.util.Item;
 import org.thesandbox.core.services.items.util.ItemKeys;
@@ -37,15 +38,18 @@ public class StackingPotatoItem implements Item, Listener {
     private final String NAME = PlayerDataKeys.Stacking_Potato;
     private final PluginConfigManager pluginConfigManager;
     private final TheSandboxCore plugin;
-    private final PlayerDataListener playerDataListener = TheSandboxCore.getInstance().getDataListener();
+    private final PlayerDataListener playerDataListener;
     private final ItemKeys itemKeys;
+    private final RideableDragonEntity rideableDragonEntity;
     private final Map<UUID, Deque<LivingEntity>> stacks = new HashMap<>();
     private final Map<UUID, Long> lastsnek = new HashMap<>();
 
-    public StackingPotatoItem(PluginConfigManager pluginConfigManager, TheSandboxCore plugin, ItemKeys itemKeys) {
+    public StackingPotatoItem(PluginConfigManager pluginConfigManager, TheSandboxCore plugin, ItemKeys itemKeys, RideableDragonEntity rideableDragonEntity) {
         this.pluginConfigManager = pluginConfigManager;
         this.plugin = plugin;
         this.itemKeys = itemKeys;
+        this.rideableDragonEntity = rideableDragonEntity;
+        this.playerDataListener = plugin.getDataListener();
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
@@ -100,54 +104,18 @@ public class StackingPotatoItem implements Item, Listener {
     }
 
     private void potato_ride(Player player, LivingEntity target) {
+        if (player.getVehicle() != null) {
+            return;
+        }
+
         if (target instanceof EnderDragon dragon) {
-            ArmorStand seat = (ArmorStand) dragon.getWorld().spawnEntity(
-                    dragon.getLocation().add(0, 2.5, 0),
-                    EntityType.MARKER
-            );
-            seat.setGravity(false);
-            seat.setInvulnerable(true);
-            seat.setPersistent(false);
-
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                if (!seat.isValid() || !dragon.isValid() || !player.isOnline()) {
-                    seat.remove();
-                    return;
-                }
-                if (!seat.addPassenger(player)) {
-                    seat.remove();
-                    return;
-                }
-
-                new BukkitRunnable() {
-                    public void run() {
-                        if (!dragon.isValid() || !seat.isValid() || !player.isOnline()) {
-                            seat.remove();
-                            cancel();
-                            return;
-                        }
-
-                        if (player.isSneaking() && player.getVehicle() != seat) {
-                            seat.remove();
-                            cancel();
-                            return;
-                        }
-
-                        Location loc = dragon.getLocation().add(0, 2.5, 0);
-                        loc.setYaw(dragon.getLocation().getYaw());
-                        seat.teleport(loc);
-
-                        if (player.getVehicle() != seat) {
-                            if (!player.isSneaking()) {
-                                seat.addPassenger(player);
-                            } else {
-                                seat.remove();
-                                cancel();
-                            }
-                        }
-                    }
-                }.runTaskTimer(plugin, 1L, 1L);
-            });
+            RideableDragonEntity controller = rideableDragonEntity != null
+                    ? rideableDragonEntity
+                    : plugin.getRideableDragonEntity();
+            if (controller != null) {
+                controller.track(dragon);
+            }
+            dragon.addPassenger(player);
             return;
         }
 
@@ -245,7 +213,7 @@ public class StackingPotatoItem implements Item, Listener {
         long now =  System.currentTimeMillis();
         if (lastsnek.containsKey(uuid)) {
             long diff = now - lastsnek.get(uuid);
-            if (diff > pluginConfigManager.getOrCreate(PlayerDataKeys.Stacking_Potato + ".ms_detection_rate", 200)) {
+            if (diff < pluginConfigManager.getOrCreate("items." + NAME + ".ms_detection_rate", 200)) {
                 lastsnek.remove(uuid);
                 toggle_mode(player.getUniqueId());
                 Utils.Feedback(player,"StackingPotato Mode Changed To: " + getmode(uuid), NamedTextColor.DARK_GREEN, Sound.ENTITY_ITEM_PICKUP);
@@ -285,4 +253,6 @@ public class StackingPotatoItem implements Item, Listener {
         e.getPlayer().leaveVehicle();
         lastsnek.remove(e.getPlayer().getUniqueId());
     }
+
+
 }

@@ -48,6 +48,7 @@ public final class PlayerDataKeys {
                 RIDEABLE_ENDER_PEARL,
                 GRAPPLING_HOOK,
                 Stacking_Potato,
+                Stacking_Potato_Mode,
                 FLOAT_BOAT,
                 WIND_ROD,
                 MARRIAGE_STATUS,

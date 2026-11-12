@@ -8,6 +8,7 @@ import org.bukkit.entity.Boat;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.commands.BaseCommand;
+import org.thesandbox.core.services.entities.RideableDragonEntity;
 import org.thesandbox.core.services.items.FloatBoatItem;
 
 import java.util.List;
@@ -15,9 +16,15 @@ import java.util.List;
 public class DismountCommand extends BaseCommand {
 
     private final FloatBoatItem floatBoatItem;
+    private final RideableDragonEntity rideableDragonEntity;
+
+    public DismountCommand(FloatBoatItem floatBoatItem, RideableDragonEntity rideableDragonEntity) {
+        this.floatBoatItem = floatBoatItem;
+        this.rideableDragonEntity = rideableDragonEntity;
+    }
 
     public DismountCommand(FloatBoatItem floatBoatItem) {
-        this.floatBoatItem = floatBoatItem;
+        this(floatBoatItem, null);
     }
 
     @Override
@@ -33,17 +40,27 @@ public class DismountCommand extends BaseCommand {
             return true;
         }
 
-        boolean isFloatBoat = vehicle instanceof Boat boat && floatBoatItem.isFloatBoatPublic(boat);
+        boolean isFloatBoat = floatBoatItem != null && vehicle instanceof Boat boat && floatBoatItem.isFloatBoatPublic(boat);
+        boolean isTrackedDragon = rideableDragonEntity != null && rideableDragonEntity.isTracked(vehicle);
+
         if (isFloatBoat) {
             FloatBoatItem.ALLOWED_DISMOUNTS.add(player.getUniqueId());
+        }
+        if (isTrackedDragon) {
+            RideableDragonEntity.ALLOWED_DISMOUNTS.add(player.getUniqueId());
         }
 
         boolean removed = false;
         try {
             removed = vehicle.removePassenger(player);
         } finally {
-            if (!removed && isFloatBoat) {
-                FloatBoatItem.ALLOWED_DISMOUNTS.remove(player.getUniqueId());
+            if (!removed) {
+                if (isFloatBoat) {
+                    FloatBoatItem.ALLOWED_DISMOUNTS.remove(player.getUniqueId());
+                }
+                if (isTrackedDragon) {
+                    RideableDragonEntity.ALLOWED_DISMOUNTS.remove(player.getUniqueId());
+                }
             }
         }
 

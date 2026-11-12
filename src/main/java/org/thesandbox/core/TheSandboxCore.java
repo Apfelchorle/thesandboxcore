@@ -16,6 +16,7 @@ import org.thesandbox.core.services.discord.DiscordBridge;
 import org.thesandbox.core.services.discord.media.AnimatedMapService;
 import org.thesandbox.core.services.display.RankScoreboardManager;
 import org.thesandbox.core.services.economy.BalanceManager;
+import org.thesandbox.core.services.entities.RideableDragonEntity;
 import org.thesandbox.core.services.guilds.GuildManager;
 import org.thesandbox.core.services.items.FloatBoatItem;
 import org.thesandbox.core.services.items.util.Item;
@@ -87,8 +88,13 @@ public class TheSandboxCore extends JavaPlugin {
     private ManageChatService manageChatService;
     private ItemKeys itemKeys;
     private AnimatedMapService animatedMapService;
+    private RideableDragonEntity rideableDragonEntity;
 
     // ==================== Getters ====================
+
+    public RideableDragonEntity getRideableDragonEntity() {
+        return rideableDragonEntity;
+    }
 
     public BalanceManager getBalanceManager() {
         return balanceManager;
@@ -279,12 +285,14 @@ public class TheSandboxCore extends JavaPlugin {
         this.balanceManager.init();
 
         this.itemKeys = new ItemKeys(this);
+        this.rideableDragonEntity = new RideableDragonEntity(this);
         this.registeredItems = ItemAutoRegistrar.registerAll(
             this,
             itemKeys,
             dataListener,
             loginMessages,
-            pluginConfigManager
+            pluginConfigManager,
+            rideableDragonEntity
         );
 
         this.loginService = new LoginService(this);
@@ -423,7 +431,8 @@ public class TheSandboxCore extends JavaPlugin {
                 commandBlockManager,
                 rankScoreboardManager,
                 staffChatManager,
-                commandSpyManager
+                commandSpyManager,
+                rideableDragonEntity
             )
         );
 
@@ -503,6 +512,10 @@ public class TheSandboxCore extends JavaPlugin {
                 .findFirst()
                 .ifPresent(FloatBoatItem::cleanup)
         );
+
+        safely("clean up rideable dragon entity", () -> {
+            if (rideableDragonEntity != null) rideableDragonEntity.cleanup();
+        });
 
         safely("terminate PacketEvents", () -> {
             if (PacketEvents.getAPI() != null) PacketEvents.getAPI().terminate();
