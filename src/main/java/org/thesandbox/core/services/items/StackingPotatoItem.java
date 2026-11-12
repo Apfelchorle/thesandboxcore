@@ -80,7 +80,7 @@ public class StackingPotatoItem implements Item, Listener {
 
     @Override
     public void onInteract(PlayerInteractEvent e) {
-        // Left-click = drop the stack
+        // Left-click = drop the stack or dismount dragon
         if (e.getAction() != Action.LEFT_CLICK_AIR && e.getAction() != Action.LEFT_CLICK_BLOCK) {
             return;
         }
@@ -89,10 +89,24 @@ public class StackingPotatoItem implements Item, Listener {
             return;
         }
 
-        dropStack(e.getPlayer());
+        Player player = e.getPlayer();
+        if (player.getVehicle() instanceof EnderDragon dragon) {
+            RideableDragonEntity.ALLOWED_DISMOUNTS.add(player.getUniqueId());
+            dragon.removePassenger(player);
+            Utils.Feedback(player, "Dismounted dragon.", NamedTextColor.GREEN, Sound.ENTITY_ITEM_PICKUP);
+            return;
+        }
+
+        dropStack(player);
     }
 
     private void modebasedoutcome(Player player, LivingEntity target) {
+        // Ender Dragons can only be ridden, not stacked
+        if (target instanceof EnderDragon dragon) {
+            potato_ride(player, dragon);
+            return;
+        }
+
         // current modes are : stack | ride --> Requested By Tizz Tizzius The Ninty First
         UUID uuid = player.getUniqueId();
         switch(getmode(uuid)) {
@@ -105,6 +119,7 @@ public class StackingPotatoItem implements Item, Listener {
 
     private void potato_ride(Player player, LivingEntity target) {
         if (player.getVehicle() != null) {
+            Utils.Feedback(player, "You are already riding an entity!", NamedTextColor.RED, Sound.ENTITY_VILLAGER_NO);
             return;
         }
 
@@ -115,7 +130,13 @@ public class StackingPotatoItem implements Item, Listener {
             if (controller != null) {
                 controller.track(dragon);
             }
-            dragon.addPassenger(player);
+            dragon.setPhase(EnderDragon.Phase.HOVER);
+            boolean success = dragon.addPassenger(player);
+            if (success) {
+                Utils.Feedback(player, "Mounted Dragon! Use WASD to fly, Jump to shoot fireballs.", NamedTextColor.LIGHT_PURPLE, Sound.ENTITY_ENDER_DRAGON_GROWL);
+            } else {
+                Utils.Feedback(player, "Could not mount dragon!", NamedTextColor.RED, Sound.ENTITY_VILLAGER_NO);
+            }
             return;
         }
 
@@ -127,7 +148,10 @@ public class StackingPotatoItem implements Item, Listener {
         while (!current.getPassengers().isEmpty()) {
             current = current.getPassengers().getFirst();
         }
-        current.addPassenger(player);
+        boolean success = current.addPassenger(player);
+        if (success) {
+            Utils.Feedback(player, "Mounted " + target.getName() + "!", NamedTextColor.GREEN, Sound.ENTITY_ITEM_PICKUP);
+        }
     }
 
     private void potato_stack(Player player, LivingEntity target) {
@@ -225,15 +249,27 @@ public class StackingPotatoItem implements Item, Listener {
 
     @EventHandler
     public void onRightClickEntity(PlayerInteractEntityEvent e) {
+        if (e.getHand() != org.bukkit.inventory.EquipmentSlot.HAND) {
+            return;
+        }
+
         Player player = e.getPlayer();
         ItemStack held = player.getInventory().getItemInMainHand();
 
         if (!matches(held)) {
             return;
         }
-        if (!(e.getRightClicked() instanceof LivingEntity target)) {
+
+        Entity clicked = e.getRightClicked();
+        LivingEntity target;
+        if (clicked instanceof LivingEntity living) {
+            target = living;
+        } else if (clicked instanceof ComplexEntityPart part && part.getParent() != null) {
+            target = part.getParent();
+        } else {
             return;
         }
+
         e.setCancelled(true);
         modebasedoutcome(player, target);
     }

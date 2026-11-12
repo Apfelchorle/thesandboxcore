@@ -93,11 +93,14 @@ public class RideableDragonEntity extends PacketListenerAbstract implements List
      * becomes its first passenger can steer it.
      */
     public void track(EnderDragon dragon) {
+        if (dragon == null) return;
         trackedDragons.add(dragon.getUniqueId());
+        dragon.setPhase(EnderDragon.Phase.HOVER);
     }
 
     /** Stop controlling the dragon and clear rider state. */
     public void untrack(EnderDragon dragon) {
+        if (dragon == null) return;
         trackedDragons.remove(dragon.getUniqueId());
     }
 
@@ -151,7 +154,14 @@ public class RideableDragonEntity extends PacketListenerAbstract implements List
             if (dragon.getPassengers().isEmpty() || dragon.getPassengers().getFirst() != player) continue;
 
             DragonInputState input = riderInputs.get(player.getUniqueId());
-            if (input == null) continue;
+            if (input == null) {
+                input = new DragonInputState();
+            }
+
+            // Keep dragon in HOVER phase so vanilla fight AI doesn't fight the rider
+            if (dragon.getPhase() != EnderDragon.Phase.HOVER) {
+                dragon.setPhase(EnderDragon.Phase.HOVER);
+            }
 
             applySteering(dragon, player, input);
             handleFireball(dragon, player, input);
@@ -173,9 +183,14 @@ public class RideableDragonEntity extends PacketListenerAbstract implements List
         Vector forwardVec = lookDir.clone().multiply(input.forward);
 
         // Strafe component: perpendicular to look on the XZ plane.
-        Vector strafeVec = new Vector(-lookDir.getZ(), 0, lookDir.getX())
-                .normalize()
-                .multiply(input.sideways);
+        double xzLen = Math.sqrt(lookDir.getX() * lookDir.getX() + lookDir.getZ() * lookDir.getZ());
+        Vector strafeVec;
+        if (xzLen > 0.001) {
+            strafeVec = new Vector(-lookDir.getZ() / xzLen, 0, lookDir.getX() / xzLen)
+                    .multiply(input.sideways);
+        } else {
+            strafeVec = new Vector(0, 0, 0);
+        }
 
         Vector movement = forwardVec.add(strafeVec).multiply(SPEED_MULTIPLIER);
 
