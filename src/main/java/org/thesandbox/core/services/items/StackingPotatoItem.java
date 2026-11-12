@@ -5,11 +5,10 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -20,6 +19,7 @@ import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.data.PlayerDataListener;
@@ -100,15 +100,42 @@ public class StackingPotatoItem implements Item, Listener {
     }
 
     private void potato_ride(Player player, LivingEntity target) {
+        if (target instanceof EnderDragon dragon) {
+            ArmorStand seat = (ArmorStand) dragon.getWorld().spawnEntity(
+                    dragon.getLocation().add(0, 2.5, 0),
+                    EntityType.ARMOR_STAND
+            );
+            seat.setInvisible(true);
+            seat.setMarker(true);
+            seat.setGravity(false);
+            seat.setInvulnerable(true);
+
+            // Player rides the seat; seat follows the dragon.
+            seat.addPassenger(player);
+
+            new BukkitRunnable() {
+                public void run() {
+                    if (!dragon.isValid() || !player.isOnline() || player.getVehicle() != seat) {
+                        seat.remove();
+                        cancel();
+                        return;
+                    }
+                    Location loc = dragon.getLocation().add(0, 2.5, 0);
+                    loc.setYaw(dragon.getLocation().getYaw());
+                    seat.teleport(loc);
+                }
+            }.runTaskTimer(plugin, 1L, 1L);
+            return; // <-- important: don't fall through
+        }
+
+        // Normal (non-dragon) ride logic
         Entity current = target;
         while (current.getVehicle() != null) {
             current = current.getVehicle();
         }
-
         while (!current.getPassengers().isEmpty()) {
             current = current.getPassengers().getFirst();
         }
-
         current.addPassenger(player);
     }
 
@@ -185,14 +212,17 @@ public class StackingPotatoItem implements Item, Listener {
 
     @EventHandler
     public void onDoubleShift(PlayerToggleSneakEvent e) {
-        if (!e.isSneaking()) return;
-
         Player player = e.getPlayer();
+        ItemStack held = player.getInventory().getItemInMainHand();
+        if (!matches(held)) {
+            return;
+        }
+        if (!e.isSneaking()) return;
         UUID uuid = player.getUniqueId();
         long now =  System.currentTimeMillis();
         if (lastsnek.containsKey(uuid)) {
             long diff = now - lastsnek.get(uuid);
-            if (diff > 500) {
+            if (diff > 800) {
                 lastsnek.remove(uuid);
                 toggle_mode(player.getUniqueId());
                 Utils.Feedback(player,"StackingPotato Mode Changed To: " + getmode(uuid), NamedTextColor.DARK_GREEN, Sound.ENTITY_ITEM_PICKUP);
