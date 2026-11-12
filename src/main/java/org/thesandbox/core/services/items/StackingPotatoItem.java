@@ -99,32 +99,63 @@ public class StackingPotatoItem implements Item, Listener {
         }
     }
 
-    private void potato_ride(Player player, Entity target) {
+    private void potato_ride(Player player, LivingEntity target) {
         if (target instanceof EnderDragon dragon) {
             ArmorStand seat = (ArmorStand) dragon.getWorld().spawnEntity(
                     dragon.getLocation().add(0, 2.5, 0),
                     EntityType.ARMOR_STAND
             );
             seat.setInvisible(true);
+            seat.setVisible(false);
             seat.setMarker(true);
             seat.setGravity(false);
             seat.setInvulnerable(true);
+            seat.setPersistent(false);
 
-            // Player rides the seat; seat follows the dragon.
-            seat.addPassenger(player);
-
-            new BukkitRunnable() {
-                public void run() {
-                    if (!dragon.isValid() || !player.isOnline() || player.getVehicle() != seat) {
-                        seat.remove();
-                        cancel();
-                        return;
-                    }
-                    Location loc = dragon.getLocation().add(0, 2.5, 0);
-                    loc.setYaw(dragon.getLocation().getYaw());
-                    seat.teleport(loc);
+            // The entity is not fully registered in the world until the next tick,
+            // so defer mounting/following (mirrors Rideable_Ender_Pearl_Item).
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!seat.isValid() || !dragon.isValid() || !player.isOnline()) {
+                    seat.remove();
+                    return;
                 }
-            }.runTaskTimer(plugin, 1L, 1L);
+                if (!seat.addPassenger(player)) {
+                    seat.remove();
+                    return;
+                }
+
+                new BukkitRunnable() {
+                    public void run() {
+                        if (!dragon.isValid() || !seat.isValid() || !player.isOnline()) {
+                            seat.remove();
+                            cancel();
+                            return;
+                        }
+
+                        // Allow an intentional dismount (shift) to end the ride.
+                        if (player.isSneaking() && player.getVehicle() != seat) {
+                            seat.remove();
+                            cancel();
+                            return;
+                        }
+
+                        Location loc = dragon.getLocation().add(0, 2.5, 0);
+                        loc.setYaw(dragon.getLocation().getYaw());
+                        seat.teleport(loc);
+
+                        // Teleporting a vehicle can dismount its passenger on the server side;
+                        // remount instead of killing the seat so the ride persists.
+                        if (player.getVehicle() != seat) {
+                            if (!player.isSneaking()) {
+                                seat.addPassenger(player);
+                            } else {
+                                seat.remove();
+                                cancel();
+                            }
+                        }
+                    }
+                }.runTaskTimer(plugin, 1L, 1L);
+            });
             return; // <-- important: don't fall through
         }
 
@@ -240,15 +271,11 @@ public class StackingPotatoItem implements Item, Listener {
         if (!matches(held)) {
             return;
         }
-        if (e.getRightClicked() instanceof Entity target) {
-            potato_ride(player, target);
+        if (!(e.getRightClicked() instanceof LivingEntity target)) {
             return;
         }
-//        if (!(e.getRightClicked() instanceof LivingEntity target)) {
-//            return;
-//        }
-//        e.setCancelled(true);
-//        modebasedoutcome(player, target);
+        e.setCancelled(true);
+        modebasedoutcome(player, target);
     }
 
     @EventHandler
