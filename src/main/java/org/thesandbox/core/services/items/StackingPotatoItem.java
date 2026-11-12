@@ -99,7 +99,7 @@ public class StackingPotatoItem implements Item, Listener {
         }
     }
 
-    private void potato_ride(Player player, LivingEntity target) {
+    private void potato_ride(Player player, Entity target) {
         if (target instanceof EnderDragon dragon) {
             ArmorStand seat = (ArmorStand) dragon.getWorld().spawnEntity(
                     dragon.getLocation().add(0, 2.5, 0),
@@ -222,7 +222,7 @@ public class StackingPotatoItem implements Item, Listener {
         long now =  System.currentTimeMillis();
         if (lastsnek.containsKey(uuid)) {
             long diff = now - lastsnek.get(uuid);
-            if (diff > 800) {
+            if (diff > pluginConfigManager.getOrCreate(PlayerDataKeys.Stacking_Potato + ".ms_detection_rate", 200)) {
                 lastsnek.remove(uuid);
                 toggle_mode(player.getUniqueId());
                 Utils.Feedback(player,"StackingPotato Mode Changed To: " + getmode(uuid), NamedTextColor.DARK_GREEN, Sound.ENTITY_ITEM_PICKUP);
@@ -240,12 +240,15 @@ public class StackingPotatoItem implements Item, Listener {
         if (!matches(held)) {
             return;
         }
-        if (!(e.getRightClicked() instanceof LivingEntity target)) {
+        if (e.getRightClicked() instanceof Entity target) {
+            potato_ride(player, target);
             return;
         }
-        e.setCancelled(true);
-
-        modebasedoutcome(player, target);
+//        if (!(e.getRightClicked() instanceof LivingEntity target)) {
+//            return;
+//        }
+//        e.setCancelled(true);
+//        modebasedoutcome(player, target);
     }
 
     @EventHandler
