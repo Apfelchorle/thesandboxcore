@@ -36,6 +36,7 @@ public class PlayerDataListener implements Listener {
         DEFAULTS.put(PlayerDataKeys.RIDEABLE_ENDER_PEARL, "not_owned");
         DEFAULTS.put(PlayerDataKeys.GRAPPLING_HOOK, "not_owned");
         DEFAULTS.put(PlayerDataKeys.Stacking_Potato, "not_owned");
+        DEFAULTS.put(PlayerDataKeys.Stacking_Potato_Mode, "ride");
         DEFAULTS.put(PlayerDataKeys.WIND_ROD, "not_owned");
         DEFAULTS.put(PlayerDataKeys.FLOAT_BOAT, "not_owned");
         DEFAULTS.put(PlayerDataKeys.MARRIAGE_STATUS, "Single");

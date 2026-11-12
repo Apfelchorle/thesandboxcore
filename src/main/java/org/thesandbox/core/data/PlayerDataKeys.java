@@ -18,6 +18,7 @@ public final class PlayerDataKeys {
     public static final String RIDEABLE_ENDER_PEARL = "Rideable Ender Pearl";
     public static final String GRAPPLING_HOOK = "Grappling Hook";
     public static final String Stacking_Potato = "Stacking Potato";
+    public static final String Stacking_Potato_Mode = "Stacking Potato Mode"; // ride | stack
     public static final String FLOAT_BOAT = "Float Boat";
     public static final String WIND_ROD = "Wind Rod";
     public static final String MARRIAGE_STATUS = "MarriageStatus";
@@ -29,7 +30,7 @@ public final class PlayerDataKeys {
     public static final String VANISHED = "Vanished";
     // CHATFILTER
     public static final String CHATFILTER = "ChatFilterStatus";
-    // IP TRACKING
+    // IP TRACKING : we only store the first octet, i think i should remove this to avoid a tfm typa leak poor ivan they got him thrice
     public static final String LAST_IP = "LastIp";
     // RANK TRACKING
     public static final String LAST_RANK = "LastRank";

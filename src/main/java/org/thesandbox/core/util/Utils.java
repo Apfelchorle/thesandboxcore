@@ -52,6 +52,8 @@ public class Utils {
     ) {
         Utils.SendMessage(player, message, color);
         Utils.playSound(player, player.getLocation(), sound);
+        // logging ish
+        Bukkit.getConsoleSender().sendMessage(player.getName() + " Triggered:  " + color + message);
     }
 
     // will likely be useless for complex stuff but for times
