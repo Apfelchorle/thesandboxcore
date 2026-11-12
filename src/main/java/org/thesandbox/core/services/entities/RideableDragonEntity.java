@@ -6,6 +6,7 @@ import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerInput;
+import io.papermc.paper.entity.TeleportFlag;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.DragonFireball;
@@ -18,6 +19,9 @@ import org.bukkit.event.entity.EntityDismountEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.util.Vector;
 import org.thesandbox.core.TheSandboxCore;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 
 import java.util.Map;
 import java.util.Set;
@@ -73,6 +77,44 @@ public class RideableDragonEntity extends PacketListenerAbstract implements List
     public static final Set<UUID> ALLOWED_DISMOUNTS = ConcurrentHashMap.newKeySet();
 
     private org.bukkit.scheduler.BukkitTask flightTask;
+
+    // ── NMS Reflection Cache ──────────────────────────────────────────
+    private static Method craftEntityGetHandle;
+    private static Method entityMoveMethod;
+    private static Object moverTypeSelf;
+    private static Constructor<?> vec3Constructor;
+    private static boolean nmsAvailable = true;
+
+    static {
+        try {
+            Class<?> moverTypeClass = Class.forName("net.minecraft.world.entity.MoverType");
+            for (Object constant : moverTypeClass.getEnumConstants()) {
+                if ("SELF".equalsIgnoreCase(((Enum<?>) constant).name())) {
+                    moverTypeSelf = constant;
+                    break;
+                }
+            }
+
+            Class<?> vec3Class = Class.forName("net.minecraft.world.phys.Vec3");
+            vec3Constructor = vec3Class.getConstructor(double.class, double.class, double.class);
+
+            Class<?> nmsEntityClass = Class.forName("net.minecraft.world.entity.Entity");
+            entityMoveMethod = nmsEntityClass.getMethod("move", moverTypeClass, vec3Class);
+        } catch (Throwable t) {
+            nmsAvailable = false;
+        }
+    }
+
+    private static Object getHandle(EnderDragon dragon) {
+        try {
+            if (craftEntityGetHandle == null) {
+                craftEntityGetHandle = dragon.getClass().getMethod("getHandle");
+            }
+            return craftEntityGetHandle.invoke(dragon);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
 
     // ── Construction ──────────────────────────────────────────────────
 
@@ -176,7 +218,8 @@ public class RideableDragonEntity extends PacketListenerAbstract implements List
 
         // Rotate dragon to face where the rider looks.
         // EnderDragon yaw is offset 180° from the player convention.
-        dragon.setRotation(riderLoc.getYaw() + 180f, riderLoc.getPitch());
+        float yaw = riderLoc.getYaw() + 180f;
+        float pitch = riderLoc.getPitch();
 
         // Build movement vector from WASD + look direction.
         // Forward component: project forward input onto the full 3D look vector.
@@ -186,7 +229,7 @@ public class RideableDragonEntity extends PacketListenerAbstract implements List
         double xzLen = Math.sqrt(lookDir.getX() * lookDir.getX() + lookDir.getZ() * lookDir.getZ());
         Vector strafeVec;
         if (xzLen > 0.001) {
-            strafeVec = new Vector(-lookDir.getZ() / xzLen, 0, lookDir.getX() / xzLen)
+            strafeVec = new Vector(lookDir.getZ() / xzLen, 0, -lookDir.getX() / xzLen)
                     .multiply(input.sideways);
         } else {
             strafeVec = new Vector(0, 0, 0);
@@ -194,16 +237,52 @@ public class RideableDragonEntity extends PacketListenerAbstract implements List
 
         Vector movement = forwardVec.add(strafeVec).multiply(SPEED_MULTIPLIER);
 
-        if (movement.lengthSquared() > 0.001) {
-            // Apply as velocity (replaces previous velocity each tick for snappy control).
-            dragon.setVelocity(movement);
+        if (movement.lengthSquared() > 0.0001) {
+            moveDragon(dragon, movement, yaw, pitch);
         } else {
-            // Hover in place: kill momentum.
-            dragon.setVelocity(new Vector(0, dragon.getVelocity().getY() * 0.5, 0));
+            dragon.setRotation(yaw, pitch);
         }
 
         // Prevent fall damage accumulation while riding.
         dragon.setFallDistance(0);
+    }
+
+    @SuppressWarnings({"deprecation", "removal"})
+    private void moveDragon(EnderDragon dragon, Vector movement, float yaw, float pitch) {
+        Location current = dragon.getLocation();
+        double startX = current.getX();
+        double startY = current.getY();
+        double startZ = current.getZ();
+
+        boolean moved = false;
+        if (nmsAvailable) {
+            try {
+                Object handle = getHandle(dragon);
+                if (handle != null) {
+                    Object vec3 = vec3Constructor.newInstance(movement.getX(), movement.getY(), movement.getZ());
+                    entityMoveMethod.invoke(handle, moverTypeSelf, vec3);
+                    dragon.setRotation(yaw, pitch);
+
+                    Location after = dragon.getLocation();
+                    double distSq = (after.getX() - startX) * (after.getX() - startX)
+                            + (after.getY() - startY) * (after.getY() - startY)
+                            + (after.getZ() - startZ) * (after.getZ() - startZ);
+                    if (distSq > 0.0001) {
+                        moved = true;
+                    }
+                }
+            } catch (Throwable ignored) {
+            }
+        }
+
+        // Fallback to Paper's passenger-retaining teleport if NMS move is unavailable
+        // or if the dragon collided/was blocked by terrain.
+        if (!moved) {
+            Location target = current.add(movement);
+            target.setYaw(yaw);
+            target.setPitch(pitch);
+            dragon.teleport(target, TeleportFlag.EntityState.RETAIN_PASSENGERS);
+        }
     }
 
     // ── Fireball ──────────────────────────────────────────────────────
