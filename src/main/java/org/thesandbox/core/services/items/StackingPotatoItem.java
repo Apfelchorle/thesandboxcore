@@ -103,17 +103,12 @@ public class StackingPotatoItem implements Item, Listener {
         if (target instanceof EnderDragon dragon) {
             ArmorStand seat = (ArmorStand) dragon.getWorld().spawnEntity(
                     dragon.getLocation().add(0, 2.5, 0),
-                    EntityType.ARMOR_STAND
+                    EntityType.MARKER
             );
-            seat.setInvisible(true);
-            seat.setVisible(false);
-            seat.setMarker(true);
             seat.setGravity(false);
             seat.setInvulnerable(true);
             seat.setPersistent(false);
 
-            // The entity is not fully registered in the world until the next tick,
-            // so defer mounting/following (mirrors Rideable_Ender_Pearl_Item).
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (!seat.isValid() || !dragon.isValid() || !player.isOnline()) {
                     seat.remove();
@@ -132,7 +127,6 @@ public class StackingPotatoItem implements Item, Listener {
                             return;
                         }
 
-                        // Allow an intentional dismount (shift) to end the ride.
                         if (player.isSneaking() && player.getVehicle() != seat) {
                             seat.remove();
                             cancel();
@@ -143,8 +137,6 @@ public class StackingPotatoItem implements Item, Listener {
                         loc.setYaw(dragon.getLocation().getYaw());
                         seat.teleport(loc);
 
-                        // Teleporting a vehicle can dismount its passenger on the server side;
-                        // remount instead of killing the seat so the ride persists.
                         if (player.getVehicle() != seat) {
                             if (!player.isSneaking()) {
                                 seat.addPassenger(player);
@@ -156,7 +148,7 @@ public class StackingPotatoItem implements Item, Listener {
                     }
                 }.runTaskTimer(plugin, 1L, 1L);
             });
-            return; // <-- important: don't fall through
+            return;
         }
 
         // Normal (non-dragon) ride logic
