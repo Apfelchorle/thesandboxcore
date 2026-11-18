@@ -22,7 +22,9 @@ import org.thesandbox.core.util.colors.Colors;
 import org.thesandbox.core.util.colors.HexColorUtil;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class TagCommand extends BaseCommand {
     private static final int PREFIX_PRIORITY = 200;
@@ -325,24 +327,37 @@ public class TagCommand extends BaseCommand {
             try {
                 LuckPerms lp = LuckPermsProvider.get();
                 UserManager um = lp.getUserManager();
+                List<Player> online = new ArrayList<>(Bukkit.getOnlinePlayers());
+
+                // Load all users concurrently and wait for the batch once instead
+                // of giving every player its own 5-second timeout in sequence.
+                List<CompletableFuture<User>> futures = new ArrayList<>(online.size());
+                for (Player player : online) {
+                    futures.add(um.loadUser(player.getUniqueId()));
+                }
+                CompletableFuture
+                        .allOf(futures.toArray(CompletableFuture[]::new))
+                        .exceptionally(t -> null)
+                        .get(5, TimeUnit.SECONDS);
+
                 List<String> lines = new ArrayList<>();
-                for (Player online : Bukkit.getOnlinePlayers()) {
-                    try {
-                        User u = um.loadUser(online.getUniqueId()).get(5, TimeUnit.SECONDS);
-                        if (u == null) continue;
-                        String tag = currentPrefixAtPriority(u, PREFIX_PRIORITY);
-                        if (tag != null && !tag.isEmpty()) {
-                            lines.add(Colors.DARK_AQUA + " - " + online.getName() + Colors.GRAY + " -> " + tag);
-                        }
-                    } catch (Exception ignored) {
+                for (int i = 0; i < online.size(); i++) {
+                    User u = futures.get(i).getNow(null);
+                    if (u == null) continue;
+                    String tag = currentPrefixAtPriority(u, PREFIX_PRIORITY);
+                    if (tag != null && !tag.isEmpty()) {
+                        lines.add(Colors.DARK_AQUA + " - " + online.get(i).getName() + Colors.GRAY + " -> " + tag);
                     }
                 }
+
                 if (lines.isEmpty()) {
                     sendCommand(sender, Colors.YELLOW + "No one online currently has a tag.");
                 } else {
                     sendCommand(sender, Colors.GRAY + "Online players with tags:");
                     for (String line : lines) sendCommand(sender, line);
                 }
+            } catch (TimeoutException e) {
+                sendError(sender, Colors.RED + "Timed out while loading tags.");
             } catch (Exception e) {
                 sendError(sender, Colors.RED + "Error listing tags: " + e.getMessage());
             }

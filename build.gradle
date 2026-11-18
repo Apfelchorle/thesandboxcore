@@ -3,6 +3,52 @@ plugins {
     id 'com.gradleup.shadow' version '9.6.1'
 }
 
+// ---------------------------------------------------------------------------
+// Build flavors
+//
+//   ./gradlew build                       -> sandbox (full feature set)
+//   ./gradlew build -Pflavor=survival     -> survival (hardened allowlist)
+//   ./gradlew survival                    -> shortcut for the survival jar
+//
+// A flavor is defined in flavors/<name>.properties. "commands", "items" and
+// "features" are comma-separated allowlists:
+//   "*" -> everything, "" -> nothing, "a,b,c" -> only those entries.
+// ---------------------------------------------------------------------------
+def requestedTasks = gradle.startParameter.taskNames.collect {
+    it.toLowerCase(Locale.ROOT).replaceFirst('^:', '')
+}
+def flavorFromTask = requestedTasks.any { it in ['survival', 'buildsurvival', 'survivaljar'] }
+        ? 'survival'
+        : requestedTasks.any { it in ['sandbox', 'buildsandbox', 'sandboxjar'] }
+        ? 'sandbox'
+        : null
+def requestedFlavor = (providers.gradleProperty('flavor').orNull ?: flavorFromTask ?: 'sandbox')
+        .toString().trim().toLowerCase(Locale.ROOT)
+
+def flavorsDir = file('flavors')
+def flavorFile = new File(flavorsDir, "${requestedFlavor}.properties")
+if (!flavorFile.isFile()) {
+    def available = flavorsDir.isDirectory()
+            ? flavorsDir.listFiles()
+                .findAll { it.name.endsWith('.properties') }
+                .collect { it.name.substring(0, it.name.length() - '.properties'.length()) }
+                .sort()
+                .join(', ')
+            : ''
+    throw new GradleException("Unknown build flavor '${requestedFlavor}'. Available: ${available ?: '(none)'}")
+}
+
+def flavorProps = new Properties()
+flavorFile.withInputStream { flavorProps.load(it) }
+
+def flavorDisplayName = flavorProps.getProperty('display-name', requestedFlavor).trim()
+def flavorArchiveBaseName = flavorProps.getProperty('archive-base-name', 'thesandboxcore').trim()
+def flavorCommands = flavorProps.getProperty('commands', '*').trim()
+def flavorItems = flavorProps.getProperty('items', '*').trim()
+def flavorFeatures = flavorProps.getProperty('features', '*').trim()
+
+println "Gradle build flavor: ${flavorDisplayName} [${requestedFlavor}]"
+
 group = 'org.thesandbox'
 version = '1.0.0'
 description = 'TheSandboxCore'
@@ -103,6 +149,145 @@ dependencies {
     implementation 'com.twelvemonkeys.imageio:imageio-tga:3.12.0'
 }
 
+// ---------------------------------------------------------------------------
+// Flavor resources
+//
+// The source plugin.yml stays complete. For each build we generate:
+//   - build/generated/flavor/plugin.yml       (disabled commands removed)
+//   - build/generated/flavor/flavor.properties (runtime allowlists)
+// Both are packaged instead of the source plugin.yml.
+// ---------------------------------------------------------------------------
+def flavorResourcesDir = layout.buildDirectory.dir('generated/flavor')
+def pluginYmlSource = file('src/main/resources/plugin.yml')
+
+def parseFlavorAllowlist = { String raw ->
+    String value = (raw ?: '').trim()
+    if (value == '*') return null                  // everything
+    if (value.isEmpty()) return Collections.emptySet() // nothing
+    return new LinkedHashSet<String>(
+            value.split(',')
+                    .collect { it.trim().toLowerCase(Locale.ROOT) }
+                    .findAll { !it.isEmpty() }
+    )
+}
+
+def readCommandKeys = { File input ->
+    Set<String> keys = new LinkedHashSet<>()
+    boolean inCommands = false
+    for (String line : input.readLines('UTF-8')) {
+        if (!inCommands) {
+            if (line.trim() == 'commands:') inCommands = true
+            continue
+        }
+        boolean topLevel = !line.isEmpty() && !line.startsWith(' ') && !line.startsWith('#')
+        if (topLevel) break
+        def matcher = line =~ /^  ([A-Za-z0-9_-]+):\s*(?:#.*)?$/
+        if (matcher.matches()) {
+            keys.add(matcher.group(1).toLowerCase(Locale.ROOT))
+        }
+    }
+    return keys
+}
+
+def filterPluginYml = { File input, File output, Set<String> allowed ->
+    List<String> lines = input.readLines('UTF-8')
+    StringBuilder result = new StringBuilder(lines.size() * 48)
+    boolean inCommands = false
+    boolean skipping = false
+
+    for (String line : lines) {
+        if (!inCommands) {
+            if (line.trim() == 'commands:') inCommands = true
+            result.append(line).append('\n')
+            continue
+        }
+
+        boolean topLevel = !line.isEmpty() && !line.startsWith(' ') && !line.startsWith('#')
+        if (topLevel) {
+            inCommands = false
+            skipping = false
+            result.append(line).append('\n')
+            continue
+        }
+
+        if (line.trim().isEmpty()) {
+            skipping = false
+            result.append(line).append('\n')
+            continue
+        }
+
+        if (line.startsWith('#')) {
+            // Column-0 section comments sit between command blocks; indented
+            // comments belong to the block currently being skipped.
+            if (!line.startsWith(' ')) skipping = false
+            if (!skipping) result.append(line).append('\n')
+            continue
+        }
+
+        def matcher = line =~ /^  ([A-Za-z0-9_-]+):\s*(?:#.*)?$/
+        if (matcher.matches()) {
+            String key = matcher.group(1).toLowerCase(Locale.ROOT)
+            skipping = allowed != null && !allowed.contains(key)
+            if (!skipping) result.append(line).append('\n')
+            continue
+        }
+
+        if (!skipping) result.append(line).append('\n')
+    }
+
+    output.setText(result.toString(), 'UTF-8')
+}
+
+def generateFlavorResources = tasks.register('generateFlavorResources') {
+    group = 'build'
+    description = "Generates flavor.properties and a filtered plugin.yml for the '${requestedFlavor}' flavor."
+
+    inputs.file(pluginYmlSource)
+    inputs.file(flavorFile)
+    inputs.property('flavor', requestedFlavor)
+    inputs.property('displayName', flavorDisplayName)
+    inputs.property('commands', flavorCommands)
+    inputs.property('items', flavorItems)
+    inputs.property('features', flavorFeatures)
+    outputs.dir(flavorResourcesDir)
+
+    doLast {
+        File outDir = flavorResourcesDir.get().asFile
+        outDir.mkdirs()
+
+        String propertiesText = [
+                '# Generated by build.gradle. Do not edit.',
+                "flavor=${requestedFlavor}",
+                "display-name=${flavorDisplayName}",
+                "commands=${flavorCommands}",
+                "items=${flavorItems}",
+                "features=${flavorFeatures}",
+                ''
+        ].join('\n')
+        new File(outDir, 'flavor.properties').setText(propertiesText, 'UTF-8')
+
+        Set<String> allowedCommands = parseFlavorAllowlist(flavorCommands)
+        if (allowedCommands != null) {
+            Set<String> knownCommands = readCommandKeys(pluginYmlSource)
+            List<String> unknown = allowedCommands.findAll { !knownCommands.contains(it) }.sort()
+            if (!unknown.isEmpty()) {
+                throw new GradleException(
+                        "Flavor '${requestedFlavor}' lists command(s) missing from plugin.yml: ${unknown.join(', ')}")
+            }
+        }
+
+        filterPluginYml(pluginYmlSource, new File(outDir, 'plugin.yml'), allowedCommands)
+    }
+}
+
+// The source plugin.yml is replaced by the generated one.
+sourceSets.main.resources.exclude('plugin.yml')
+
+tasks.named('processResources') {
+    dependsOn generateFlavorResources
+    from(flavorResourcesDir)
+}
+
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
     options.release.set(25)
@@ -114,7 +299,7 @@ tasks.named('jar') {
 }
 
 tasks.named('shadowJar') {
-    archiveBaseName.set('thesandboxcore')
+    archiveBaseName.set(flavorArchiveBaseName)
     archiveVersion.set(project.version.toString())
     archiveClassifier.set('')
 
@@ -135,5 +320,19 @@ tasks.named('shadowJar') {
 }
 
 tasks.named('build') {
+    dependsOn tasks.named('shadowJar')
+}
+
+// Convenience shortcuts. The task name is picked up at configuration time, so
+// `./gradlew survival` builds the same jar as `./gradlew build -Pflavor=survival`.
+tasks.register('sandbox') {
+    group = 'build'
+    description = 'Builds the sandbox flavor jar (same as -Pflavor=sandbox).'
+    dependsOn tasks.named('shadowJar')
+}
+
+tasks.register('survival') {
+    group = 'build'
+    description = 'Builds the survival flavor jar (same as -Pflavor=survival).'
     dependsOn tasks.named('shadowJar')
 }

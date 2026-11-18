@@ -46,6 +46,10 @@ public record MediaRenderSettings(
         RenderStyle renderStyle;
         if (style != null && style.equalsIgnoreCase("emoji")) {
             renderStyle = RenderStyle.EMOJI;
+        } else if (style != null && style.equalsIgnoreCase("braille")) {
+            renderStyle = RenderStyle.BRAILLE;
+        } else if (style != null && style.equalsIgnoreCase("shade")) {
+            renderStyle = RenderStyle.SHADE;
         } else {
             renderStyle = RenderStyle.BLOCK;
         }
@@ -57,8 +61,8 @@ public record MediaRenderSettings(
                 config.getBoolean("discord.image-render.nsfw", false),
                 config.getBoolean("discord.image-render.spoilers", false),
                 config.getBoolean("discord.image-render.thumbnails", true),
-                clamp(config.getInt("discord.image-render.width", 34), 8, 80),
-                clamp(config.getInt("discord.image-render.height", 16), 4, 40),
+                clamp(config.getInt("discord.image-render.width", 40), 8, 80),
+                clamp(config.getInt("discord.image-render.height", 22), 4, 40),
                 clamp(config.getDouble("discord.image-render.char-aspect", 0.9), 0.4, 2.0),
                 mode,
                 renderStyle,
@@ -103,7 +107,7 @@ public record MediaRenderSettings(
     public static MediaRenderSettings disabled() {
         return new MediaRenderSettings(
                 false, false, false, false, false, false,
-                34, 16, 0.9, ColorMode.HEX, RenderStyle.BLOCK, 64, 32, 0x1F1F1F,
+                40, 22, 0.9, ColorMode.HEX, RenderStyle.BLOCK, 64, 32, 0x1F1F1F,
                 2000L, 128, 12, 3,
                 8 * 1024 * 1024, 20_000_000, 256, false
         );
@@ -131,6 +135,15 @@ public record MediaRenderSettings(
         /**
          * Uses colored emoji circles mapped to luminance bands.
          */
-        EMOJI
+        EMOJI,
+        /**
+         * Packs 2×4 subpixels into braille characters, giving roughly eight
+         * times the detail of {@link #BLOCK} at the same chat footprint.
+         */
+        BRAILLE,
+        /**
+         * Uses {@code ░ ▒ ▓ █} characters for a smoother block-resolution look.
+         */
+        SHADE
     }
 }

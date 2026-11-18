@@ -75,7 +75,11 @@ public class MarryCommand extends BaseCommand {
     }
 
     private void handleStatus(Player sender, String playerName) {
-        OfflinePlayer player = Bukkit.getOfflinePlayer(playerName);
+        OfflinePlayer player = resolveOfflineTarget(sender, playerName);
+        if (player == null) {
+            sender.sendMessage(Component.text("Unknown player: " + playerName, NamedTextColor.RED));
+            return;
+        }
         String status = playerDataListener.getMarriageStatus(player.getUniqueId());
         String spouse = playerDataListener.getMarriageSpouse(player.getUniqueId());
         if (status != null && status.equalsIgnoreCase("Married")) {
@@ -241,10 +245,10 @@ public class MarryCommand extends BaseCommand {
 
         OfflinePlayer p2 = Bukkit.getPlayerExact(p2name);
         if (p2 == null) {
-            p2 = Bukkit.getOfflinePlayer(p2name);
+            p2 = Bukkit.getOfflinePlayerIfCached(p2name);
         }
 
-        if (!p2.hasPlayedBefore() && !p2.isOnline()) {
+        if (p2 == null || (!p2.hasPlayedBefore() && !p2.isOnline())) {
             p1.sendMessage(Component.text("Player '" + p2name + "' could not be found.", NamedTextColor.RED));
             return;
         }

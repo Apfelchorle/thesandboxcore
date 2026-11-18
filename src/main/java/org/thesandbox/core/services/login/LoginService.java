@@ -4,6 +4,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.util.colors.Colors;
+import org.thesandbox.core.util.permissions.PermissionTier;
 
 import java.util.Locale;
 import java.util.UUID;
@@ -93,13 +94,7 @@ public class LoginService {
      * Highest → lowest permissions check.
      */
     public Rank getRank(Player p) {
-        if (p == null) return Rank.DEFAULT;
-        if (p.hasPermission("sandbox.operator")) return Rank.OPERATOR;
-        if (p.hasPermission("sandbox.admin")) return Rank.ADMIN;
-        if (p.hasPermission("sandbox.staff")) return Rank.STAFF;
-        if (p.hasPermission("sandbox.mb")) return Rank.MB;
-        if (p.hasPermission("sandbox.vip")) return Rank.VIP;
-        return Rank.DEFAULT;
+        return Rank.fromPermissions(p);
     }
 
     public String getDisplayNameFor(Player p) {
@@ -144,6 +139,22 @@ public class LoginService {
             this.display = display;
             this.displayName = display;
             this.color = color;
+        }
+
+        /**
+         * Single permission-to-rank mapping used everywhere (login messages,
+         * Discord prefixes, player data). Highest rank wins.
+         */
+        public static Rank fromPermissions(Player player) {
+            if (player == null) return DEFAULT;
+
+            PermissionTier tier = PermissionTier.of(player);
+            if (tier.atLeast(PermissionTier.OPERATOR)) return OPERATOR;
+            if (tier == PermissionTier.ADMIN) return ADMIN;
+            if (tier == PermissionTier.STAFF) return STAFF;
+            if (player.hasPermission("sandbox.mb")) return MB;
+            if (player.hasPermission("sandbox.vip")) return VIP;
+            return DEFAULT;
         }
     }
 }

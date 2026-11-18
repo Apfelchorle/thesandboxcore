@@ -6,7 +6,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
+import org.thesandbox.core.util.commands.CommandGuard;
 
 import java.util.*;
 
@@ -14,11 +14,15 @@ import java.util.*;
  * /wildcard <command...>  – runs a command once for every online player.
  * Use '?' as the player-name placeholder; if absent the name is appended.
  * <p>
- * Note: the blocklist (wildcard.blocked-commands) only inspects the first token of the command.
- * Wrapper commands such as "execute ... run <blocked>" are not detected.
+ * {@link CommandGuard} blocks privileged commands and command wrappers
+ * ({@code execute}, {@code sudo}, ...) so the blocklist cannot be bypassed by
+ * nesting.
  */
 public class WildcardCommand extends BaseCommand {
+    private static final long COOLDOWN_MS = 2000L;
+
     private final TheSandboxCore core;
+    private final Map<UUID, Long> lastUse = new HashMap<>();
 
     public WildcardCommand(TheSandboxCore core) {
         this.core = core;
@@ -26,7 +30,7 @@ public class WildcardCommand extends BaseCommand {
 
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player)) {
+        if (!(sender instanceof Player player)) {
             sendError(sender, "This command cannot be used from console.");
             return true;
         }
@@ -36,42 +40,30 @@ public class WildcardCommand extends BaseCommand {
             return true;
         }
 
-        // Base command name: strip leading slash AND any "namespace:" prefix so
-        // "minecraft:op" can't be used to dodge the blocklist.
-        String baseName = args[0];
-        if (baseName.startsWith("/")) baseName = baseName.substring(1);
-        int colon = baseName.indexOf(':');
-        if (colon >= 0) baseName = baseName.substring(colon + 1);
-        if (baseName.isEmpty()) {
+        String template = String.join(" ", args).trim();
+        while (template.startsWith("/")) {
+            template = template.substring(1).trim();
+        }
+        if (template.isEmpty()) {
             sendError(sender, "Please provide a command to run.");
             return true;
         }
 
-        Set<String> names = resolveNames(baseName);
-
-        // Never allow wildcard to run itself (would multiply by player count per level).
-        if (names.contains("wildcard") || names.contains(command.getName().toLowerCase(Locale.ENGLISH))
-                || names.contains(label.toLowerCase(Locale.ENGLISH))) {
-            sendError(sender, "Refusing to run /" + label + " from itself.");
+        String blocked = CommandGuard.blockedReason(
+                template,
+                core.getConfig().getStringList("wildcard.blocked-commands"),
+                !sender.hasPermission("sandbox.superuser")
+        );
+        if (blocked != null) {
+            sendError(sender, "Refusing to run /" + blocked + " through /" + label + ".");
             return true;
         }
 
-        // Blocked commands unless sandbox.superuser
-        if (!sender.hasPermission("sandbox.superuser")) {
-            for (String b : core.getConfig().getStringList("wildcard.blocked-commands")) {
-                if (b == null || b.isEmpty()) continue;
-                String bb = b.replaceFirst("^/", "").toLowerCase(Locale.ENGLISH);
-                int bc = bb.indexOf(':');
-                if (bc >= 0) bb = bb.substring(bc + 1);
-                if (names.contains(bb)) {
-                    sendError(sender, "I applaud you for trying.");
-                    return true;
-                }
-            }
+        if (isOnCooldown(player)) {
+            sendError(sender, "Please wait a moment before using /" + label + " again.");
+            return true;
         }
 
-        String template = String.join(" ", args);
-        if (template.startsWith("/")) template = template.substring(1);
         boolean hasPlaceholder = template.indexOf('?') >= 0;
 
         // Snapshot: commands like /kick modify the live online-player collection.
@@ -92,21 +84,14 @@ public class WildcardCommand extends BaseCommand {
         return true;
     }
 
-    /**
-     * The typed name plus the real command name and all aliases (from the server command map).
-     */
-    private static Set<String> resolveNames(String baseName) {
-        Set<String> names = new HashSet<>();
-        names.add(baseName.toLowerCase(Locale.ENGLISH));
-
-        Command resolved = Bukkit.getCommandMap().getCommand(baseName);
-        if (resolved != null) {
-            names.add(resolved.getName().toLowerCase(Locale.ENGLISH));
-            for (String a : resolved.getAliases()) {
-                if (a != null && !a.isEmpty()) names.add(a.toLowerCase(Locale.ENGLISH));
-            }
+    private boolean isOnCooldown(Player player) {
+        long now = System.currentTimeMillis();
+        Long last = lastUse.get(player.getUniqueId());
+        if (last != null && now - last < COOLDOWN_MS) {
+            return true;
         }
-        return names;
+        lastUse.put(player.getUniqueId(), now);
+        return false;
     }
 
     @Override

@@ -17,6 +17,13 @@ import java.util.regex.Pattern;
 
 public class ChatFilterEngine {
 
+    /**
+     * Upper bound on text inspected by the filter. Chat messages are already
+     * shorter than this; the cap keeps a pathological caller from running the
+     * combined regex over an unbounded string.
+     */
+    private static final int MAX_SCAN_LENGTH = 4096;
+
     private final PluginConfigManager configManager;
     private final TheSandboxCore plugin;
     private volatile Pattern cachedPattern;
@@ -78,69 +85,67 @@ public class ChatFilterEngine {
             return new Result(false, plain, plain, null, detectedBadWords);
         }
 
-        Matcher matcher = pattern.matcher(plain);
+        String scanText = plain.length() > MAX_SCAN_LENGTH
+                ? plain.substring(0, MAX_SCAN_LENGTH)
+                : plain;
+        String remainder = scanText.length() < plain.length()
+                ? plain.substring(scanText.length())
+                : "";
+
+        Matcher matcher = pattern.matcher(scanText);
         boolean triggered = false;
+
+        StringBuilder censoredPlain = new StringBuilder(scanText.length() + 16);
+        TextComponent.Builder censored = Component.text();
+        int lastEnd = 0;
+
         while (matcher.find()) {
-            detectedBadWords.add(matcher.group());
             triggered = true;
+            String match = matcher.group();
+            detectedBadWords.add(match);
+
+            censoredPlain
+                    .append(scanText, lastEnd, matcher.start())
+                    .append("&4****&r");
+
+            censored.append(Component.text(scanText.substring(lastEnd, matcher.start())));
+            censored.append(censorToken(match));
+
+            lastEnd = matcher.end();
         }
 
         if (!triggered) {
             return new Result(false, plain, plain, null, detectedBadWords);
         }
-        String censoredPlain = pattern.matcher(plain).replaceAll("&4****&r");
-        Component censored = buildCensoredComponent(
-                plain,
-                pattern,
-                detectedBadWords
-        );
+
+        censoredPlain.append(scanText, lastEnd, scanText.length()).append(remainder);
+        if (lastEnd < scanText.length()) {
+            censored.append(Component.text(scanText.substring(lastEnd)));
+        }
+        if (!remainder.isEmpty()) {
+            censored.append(Component.text(remainder));
+        }
+
         return new Result(
                 true,
                 plain,
-                censoredPlain,
-                censored,
+                censoredPlain.toString(),
+                censored.build(),
                 detectedBadWords
         );
     }
 
-    private Component buildCensoredComponent(
-            String originalText,
-            Pattern pattern,
-            List<String> badWords
-    ) {
-        TextComponent.Builder builder = Component.text();
-        Matcher matcher = pattern.matcher(originalText);
-
-        int lastEnd = 0;
-        int wordIndex = 0;
-
-        while (matcher.find() && wordIndex < badWords.size()) {
-            builder.append(
-                    Component.text(originalText.substring(lastEnd, matcher.start()))
-            );
-
-            String originalBadWord = badWords.get(wordIndex++);
-
-            Component censorToken = Component.text("****")
-                    .color(TextColor.fromHexString("#FF5555"))
-                    .hoverEvent(
-                            HoverEvent.showText(
-                                    Component.text(
-                                            "Censored Word: " + originalBadWord,
-                                            NamedTextColor.RED
-                                    )
-                            )
-                    );
-
-            builder.append(censorToken);
-            lastEnd = matcher.end();
-        }
-
-        if (lastEnd < originalText.length()) {
-            builder.append(Component.text(originalText.substring(lastEnd)));
-        }
-
-        return builder.build();
+    private Component censorToken(String originalBadWord) {
+        return Component.text("****")
+                .color(TextColor.fromHexString("#FF5555"))
+                .hoverEvent(
+                        HoverEvent.showText(
+                                Component.text(
+                                        "Censored Word: " + originalBadWord,
+                                        NamedTextColor.RED
+                                )
+                        )
+                );
     }
 
     public String generateGrawlix(int wordLength) {

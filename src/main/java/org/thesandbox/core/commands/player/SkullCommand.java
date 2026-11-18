@@ -27,10 +27,10 @@ public class SkullCommand extends BaseCommand {
         }
 
         String targetName = (args.length == 0) ? player.getName() : args[0];
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
+        OfflinePlayer target = resolveOfflineTarget(sender, targetName);
 
         // Guard against null name (never-played player)
-        if (target.getName() == null) {
+        if (target == null || target.getName() == null) {
             sendError(sender, "Unknown player: " + targetName);
             return true;
         }

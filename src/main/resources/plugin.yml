@@ -332,7 +332,7 @@ commands:
     permission: sandbox.default
 
   cage:
-    description: Toggle a player cage (glass by default, or skull/block variant)
+    description: Toggle a player cage (glass by default, or skull/block variant; terrain is restored on uncage and after a crash)
     usage: /cage <player> [skull <username> | block <MATERIAL>]
     permission: sandbox.staff
 

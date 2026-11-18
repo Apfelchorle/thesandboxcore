@@ -7,6 +7,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.thesandbox.core.services.items.util.Item;
 import org.thesandbox.core.services.items.util.ItemListener;
+import org.thesandbox.core.util.BuildFlavor;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
@@ -48,6 +49,15 @@ public final class ItemAutoRegistrar {
         for (Class<?> clazz : itemClasses) {
             if (!Item.class.isAssignableFrom(clazz)) continue;
             if (clazz.isInterface() || Modifier.isAbstract(clazz.getModifiers())) continue;
+
+            // Filter before construction: item constructors register Bukkit and
+            // PacketEvents listeners, so building a disabled item would still
+            // leave its behaviour active.
+            if (!BuildFlavor.isItemEnabled(clazz)) {
+                plugin.getLogger().info("[ItemAutoRegistrar] Skipping " + clazz.getSimpleName()
+                        + " (not enabled in the " + BuildFlavor.name() + " build flavor).");
+                continue;
+            }
 
             Object instance = constructBest(plugin, clazz, injector);
             if (instance == null) {

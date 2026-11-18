@@ -10,6 +10,7 @@ import org.thesandbox.core.services.moderation.CommandBlockManager;
 import org.thesandbox.core.services.moderation.CommandSpyManager;
 import org.thesandbox.core.services.chat.ShushService;
 import org.thesandbox.core.util.colors.Colors;
+import org.thesandbox.core.util.permissions.PermissionTier;
 
 import java.util.function.Supplier;
 
@@ -63,14 +64,14 @@ public class CommandPreListener implements Listener {
                 .replace("%player%", sender.getName())
                 .replace("%command%", spyCommand);
 
-        CmdTier senderTier = getCmdTier(sender);
+        PermissionTier senderTier = PermissionTier.of(sender);
         for (Player viewer : sender.getServer().getOnlinePlayers()) {
             if (!viewer.hasPermission("sandbox.staff")) continue;
             if (shushService != null && shushService.isEnabled(viewer.getUniqueId())) continue;
             if (commandSpyManager.isCmdSpyDisabled(viewer.getUniqueId())) continue;
             if (viewer == sender) continue;
-            CmdTier viewerTier = getCmdTier(viewer);
-            if (senderTier.v <= viewerTier.v) {
+            PermissionTier viewerTier = PermissionTier.of(viewer);
+            if (senderTier.weight() <= viewerTier.weight()) {
                 viewer.sendMessage(formatted);
             }
         }
@@ -87,24 +88,6 @@ public class CommandPreListener implements Listener {
                 }
             }
         } catch (Exception ignore) {
-        }
-    }
-
-    private CmdTier getCmdTier(Player p) {
-        if (p == null) return CmdTier.DEFAULT;
-        if (p.hasPermission("sandbox.superuser")) return CmdTier.SUPERUSER;
-        if (p.hasPermission("sandbox.admin")) return CmdTier.SRADMIN;
-        if (p.hasPermission("sandbox.staff")) return CmdTier.ADMIN;
-        if (p.hasPermission("sandbox.mod")) return CmdTier.MOD; // fixed: was checking sandbox.staff twice
-        return CmdTier.DEFAULT;
-    }
-
-    public enum CmdTier {
-        DEFAULT(0), MOD(1), ADMIN(2), SRADMIN(3), SUPERUSER(4);
-        final int v;
-
-        CmdTier(int v) {
-            this.v = v;
         }
     }
 }

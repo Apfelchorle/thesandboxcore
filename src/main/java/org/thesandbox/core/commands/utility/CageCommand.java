@@ -13,6 +13,8 @@ import org.bukkit.block.Skull;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -21,24 +23,44 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.server.PluginDisableEvent;
+import org.bukkit.event.world.WorldLoadEvent;
+import org.bukkit.plugin.Plugin;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.util.colors.Colors;
 
+import java.io.File;
+import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class CageCommand extends BaseCommand implements Listener
 {
     private final TheSandboxCore plugin;
+    private final File cageFile;
 
     // Active cages: caged player's UUID -> cage data
     private final Map<UUID, CageData> cages = new HashMap<>();
 
+    // O(1) lookup for block-break protection: block position -> owning cage.
+    private final Map<BlockPos, CageData> cageBlockIndex = new HashMap<>();
+
+    // Recoveries that could not run yet because their world was not loaded.
+    private final Map<UUID, PendingRestore> pendingRestores = new LinkedHashMap<>();
+
+    // Optional WorldGuard integration, resolved once via reflection so the
+    // plugin still builds and runs without a WorldGuard dependency.
+    private volatile boolean worldGuardLookupDone;
+    private volatile Method worldGuardCanBuild;
+    private volatile Plugin worldGuardPlugin;
+
     public CageCommand(TheSandboxCore plugin)
     {
         this.plugin = plugin;
+        this.cageFile = new File(plugin.getDataFolder(), "cages.yml");
         Bukkit.getPluginManager().registerEvents(this, plugin);
+        loadCageRecords();
     }
 
     /* ============================== Command ============================== */
@@ -76,9 +98,13 @@ public class CageCommand extends BaseCommand implements Listener
                 else
                 {
                     CageData d = cages.remove(id);
-                    if (d != null) restoreAndRemove(d);
+                    if (d != null && !restoreAndRemove(d))
+                    {
+                        pendingRestores.put(id, toPending(id, d));
+                    }
                 }
             }
+            saveCageRecords();
             Colors.broadcast(Colors.color("&c&lServer &8» &c" + sender.getName() + " has uncaged all players."));
             return true;
         }
@@ -144,11 +170,23 @@ public class CageCommand extends BaseCommand implements Listener
             }
         }
 
+        int[] bounds = cageBounds(target.getLocation());
+        if (overlapsExistingCage(target.getWorld(), bounds))
+        {
+            sender.sendMessage(Colors.color("&c&lError &8» &cThat area overlaps an active cage."));
+            return true;
+        }
+        if (!canBuildCage(sender, target.getWorld(), bounds))
+        {
+            sender.sendMessage(Colors.color("&c&lError &8» &cYou cannot build here (region protection)."));
+            return true;
+        }
+
         CageData data = buildCage(target, mode, blockMat, skullUser);
 
         if (data == null) {
             sender.sendMessage(Colors.color("&c&lError &8» &cFailed to place cage (world or block issue)."));
-        return true;
+            return true;
         }
 
         // Broadcast shows skull username exactly as typed; blocks stay ALL CAPS (Material.name()).
@@ -201,9 +239,18 @@ public class CageCommand extends BaseCommand implements Listener
             if (p != null) uncage(p);
             else {
                 CageData d = cages.remove(id);
-                if (d != null) restoreAndRemove(d);
+                if (d != null && !restoreAndRemove(d)) {
+                    pendingRestores.put(id, toPending(id, d));
+                }
             }
         }
+        // Keeps world-not-loaded recoveries for the next start.
+        saveCageRecords();
+    }
+
+    @EventHandler
+    public void onWorldLoad(WorldLoadEvent event) {
+        flushPendingRestores();
     }
 
     /* ============================== Events ============================== */
@@ -246,20 +293,12 @@ public class CageCommand extends BaseCommand implements Listener
     @EventHandler(ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event)
     {
-        Block block = event.getBlock();
-        BlockPos pos = BlockPos.of(block);
+        CageData data = cageBlockIndex.get(BlockPos.of(event.getBlock()));
+        if (data == null) return;
 
-        for (CageData data : cages.values())
-        {
-            if (!data.worldId.equals(block.getWorld().getUID())) continue;
-            if (!data.blockSet.contains(pos)) continue;
-
-            event.setCancelled(true);
-            String message = Colors.color("&c&lError &8» &cThat block is part of an active cage.");
-
-            event.getPlayer().sendMessage(message);
-            return;
-        }
+        event.setCancelled(true);
+        String message = Colors.color("&c&lError &8» &cThat block is part of an active cage.");
+        event.getPlayer().sendMessage(message);
     }
 
     // Prevent the caged player from placing blocks anywhere inside their cage
@@ -332,24 +371,20 @@ public class CageCommand extends BaseCommand implements Listener
     private CageData buildCage(Player target, CageMode mode, Material blockMat, String skullUser)
     {
         World w = target.getWorld();
-
-        // Force Survival while caged
-        target.setGameMode(GameMode.SURVIVAL);
-
-        // Floor one block below player feet
-        Location base = target.getLocation().getBlock().getLocation();
-        int minX = base.getBlockX() - 2;
-        int minY = base.getBlockY() - 1; // important
-        int minZ = base.getBlockZ() - 2;
-
-        int maxX = minX + 4;
-        int maxY = minY + 4;
-        int maxZ = minZ + 4;
+        int[] bounds = cageBounds(target.getLocation());
+        int minX = bounds[0];
+        int minY = bounds[1];
+        int minZ = bounds[2];
+        int maxX = bounds[3];
+        int maxY = bounds[4];
+        int maxZ = bounds[5];
 
         List<OriginalBlock> originals = new ArrayList<>();
         Set<BlockPos> cageBlocks = new HashSet<>();
+        List<Block> wallBlocks = new ArrayList<>();
 
-        // Build hollow 5x5x5 and place blocks
+        // Capture every original block *before* touching the world so a crash
+        // during the build can still be reverted on the next startup.
         for (int x = minX; x <= maxX; x++)
         {
             for (int y = minY; y <= maxY; y++)
@@ -361,31 +396,48 @@ public class CageCommand extends BaseCommand implements Listener
                     if (y < w.getMinHeight() || y >= w.getMaxHeight()) continue;
 
                     Block b = w.getBlockAt(x, y, z);
-                    originals.add(new OriginalBlock(b.getLocation(), b.getBlockData()));
+                    originals.add(new OriginalBlock(b.getLocation(), b.getState()));
                     cageBlocks.add(BlockPos.of(b));
-
-                    if (mode == CageMode.SKULL)
-                    {
-                        b.setType(Material.PLAYER_HEAD, false);
-                    }
-                    else
-                    {
-                        b.setType(blockMat, false);
-                    }
+                    wallBlocks.add(b);
                 }
             }
         }
 
+        if (wallBlocks.isEmpty()) return null;
+
         // Center player inside the cage
         Location center = new Location(w, (minX + maxX) / 2.0 + 0.5, minY + 1.0, (minZ + maxZ) / 2.0 + 0.5);
-        target.teleport(center);
 
         CageData data = new CageData(
                 originals, cageBlocks, w.getUID(),
                 minX, minY, minZ, maxX, maxY, maxZ,
-                center, mode, blockMat, skullUser
+                center, mode, blockMat, skullUser, target.getName()
         );
         cages.put(target.getUniqueId(), data);
+        for (BlockPos pos : cageBlocks)
+        {
+            cageBlockIndex.put(pos, data);
+        }
+        // Persist first: a crash mid-build then leaves a record that reverts to
+        // the original terrain on the next start.
+        saveCageRecords();
+
+        // Force Survival while caged
+        target.setGameMode(GameMode.SURVIVAL);
+
+        for (Block b : wallBlocks)
+        {
+            if (mode == CageMode.SKULL)
+            {
+                b.setType(Material.PLAYER_HEAD, false);
+            }
+            else
+            {
+                b.setType(blockMat, false);
+            }
+        }
+
+        target.teleport(center);
 
         // If skull mode, fetch textures via SkinsRestorer (offline/cracked friendly)
         if (mode == CageMode.SKULL && skullUser != null && !skullUser.isBlank())
@@ -475,32 +527,397 @@ public class CageCommand extends BaseCommand implements Listener
 
     private void uncage(Player target)
     {
-        CageData d = cages.remove(target.getUniqueId());
+        UUID id = target.getUniqueId();
+        CageData d = cages.remove(id);
         if (d == null) return;
-        restoreAndRemove(d);
+        if (!restoreAndRemove(d))
+        {
+            pendingRestores.put(id, toPending(id, d));
+        }
+        saveCageRecords();
     }
 
-    private void restoreAndRemove(CageData d)
+    /**
+     * Puts every captured block back. Returns {@code false} when the cage's
+     * world is not loaded yet so the caller can persist a deferred restore.
+     */
+    private boolean restoreAndRemove(CageData d)
     {
-        World w = Bukkit.getWorld(d.worldId);
-        if (w == null) return;
+        unindexCage(d);
 
-        // Restore original terrain
-        List<OriginalBlock> list = d.originals;
-        Collections.reverse(list);
-        for (OriginalBlock ob : list)
+        World w = Bukkit.getWorld(d.worldId);
+        if (w == null)
         {
-            Block b = w.getBlockAt(ob.location);
-            b.setBlockData(ob.blockData, false);
+            plugin.getLogger().warning("[/cage] World " + d.worldId + " is not loaded; deferring cage restoration.");
+            return false;
+        }
+
+        // Restore in reverse build order without mutating the stored list.
+        for (int i = d.originals.size() - 1; i >= 0; i--)
+        {
+            OriginalBlock ob = d.originals.get(i);
+            try
+            {
+                // A full BlockState snapshot also restores container contents,
+                // sign text, and skull profiles.
+                if (ob.state() != null && ob.state().getWorld() == w)
+                {
+                    ob.state().update(true, false);
+                }
+                else
+                {
+                    w.getBlockAt(ob.location()).setBlockData(ob.blockData(), false);
+                }
+            }
+            catch (RuntimeException ex)
+            {
+                plugin.getLogger().warning("[/cage] Could not restore block at "
+                        + ob.location().getBlockX() + "," + ob.location().getBlockY()
+                        + "," + ob.location().getBlockZ() + ": " + ex.getMessage());
+            }
+        }
+        return true;
+    }
+
+    /* ============================== Persistence ============================== */
+
+    /** Records all active cages and deferred restores so a crash cannot leave terrain caged forever. */
+    private void saveCageRecords()
+    {
+        if (cages.isEmpty() && pendingRestores.isEmpty())
+        {
+            if (cageFile.isFile() && !cageFile.delete())
+            {
+                plugin.getLogger().warning("[/cage] Could not delete " + cageFile.getName());
+            }
+            return;
+        }
+
+        YamlConfiguration yaml = new YamlConfiguration();
+        yaml.options().setHeader(List.of(
+                "Crash-recovery records for /cage. Do not edit by hand.",
+                "They are replayed (terrain restored) on the next startup."
+        ));
+
+        for (Map.Entry<UUID, CageData> e : cages.entrySet())
+        {
+            CageData d = e.getValue();
+            writeCageRecord(yaml, "cages." + e.getKey(), e.getKey(), d.playerName,
+                    d.worldId, worldName(d.worldId), savedBlocks(d));
+        }
+        for (Map.Entry<UUID, PendingRestore> e : pendingRestores.entrySet())
+        {
+            PendingRestore p = e.getValue();
+            writeCageRecord(yaml, "pending." + e.getKey(), p.playerId(), p.playerName(),
+                    p.worldId(), p.worldName(), p.blocks());
+        }
+
+        try
+        {
+            File parent = cageFile.getParentFile();
+            if (parent != null) parent.mkdirs();
+            yaml.save(cageFile);
+        }
+        catch (IOException ex)
+        {
+            plugin.getLogger().warning("[/cage] Could not save " + cageFile.getName() + ": " + ex.getMessage());
+        }
+    }
+
+    private void writeCageRecord(YamlConfiguration yaml, String path, UUID playerId, String playerName,
+                                 UUID worldId, String worldName, List<SavedBlock> blocks)
+    {
+        ConfigurationSection section = yaml.createSection(path);
+        section.set("player", playerName == null ? "" : playerName);
+        section.set("world", worldId.toString());
+        section.set("world-name", worldName == null ? "" : worldName);
+
+        ConfigurationSection blockSection = section.createSection("blocks");
+        for (SavedBlock block : blocks)
+        {
+            blockSection.set(block.x() + "," + block.y() + "," + block.z(), block.data());
+        }
+    }
+
+    /** Reads recovery records written before an unclean shutdown. */
+    private void loadCageRecords()
+    {
+        if (!cageFile.isFile()) return;
+
+        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(cageFile);
+        int before = pendingRestores.size();
+        readCageRecords(yaml.getConfigurationSection("cages"));
+        readCageRecords(yaml.getConfigurationSection("pending"));
+
+        int found = pendingRestores.size() - before;
+        if (found > 0)
+        {
+            plugin.getLogger().info("[/cage] Found " + found
+                    + " cage area(s) to restore from a previous unclean shutdown.");
+        }
+        flushPendingRestores();
+    }
+
+    private void readCageRecords(ConfigurationSection section)
+    {
+        if (section == null) return;
+
+        for (String key : section.getKeys(false))
+        {
+            ConfigurationSection entry = section.getConfigurationSection(key);
+            if (entry == null) continue;
+
+            UUID playerId;
+            try
+            {
+                playerId = UUID.fromString(key);
+            }
+            catch (IllegalArgumentException ex)
+            {
+                continue;
+            }
+
+            UUID worldId;
+            try
+            {
+                worldId = UUID.fromString(String.valueOf(entry.getString("world", "")));
+            }
+            catch (IllegalArgumentException ex)
+            {
+                plugin.getLogger().warning("[/cage] Skipping recovery record with an invalid world: " + key);
+                continue;
+            }
+
+            List<SavedBlock> blocks = readSavedBlocks(entry.getConfigurationSection("blocks"));
+            if (blocks.isEmpty()) continue;
+
+            pendingRestores.put(playerId, new PendingRestore(
+                    playerId,
+                    stringOrEmpty(entry, "player"),
+                    worldId,
+                    stringOrEmpty(entry, "world-name"),
+                    blocks
+            ));
+        }
+    }
+
+    private static String stringOrEmpty(ConfigurationSection section, String key) {
+        String value = section.getString(key);
+        return value == null ? "" : value;
+    }
+
+    private List<SavedBlock> readSavedBlocks(ConfigurationSection section)
+    {
+        if (section == null) return List.of();
+
+        List<SavedBlock> blocks = new ArrayList<>();
+        for (String key : section.getKeys(false))
+        {
+            String[] parts = key.split(",");
+            if (parts.length != 3) continue;
+            try
+            {
+                int x = Integer.parseInt(parts[0].trim());
+                int y = Integer.parseInt(parts[1].trim());
+                int z = Integer.parseInt(parts[2].trim());
+                blocks.add(new SavedBlock(x, y, z, section.getString(key, "minecraft:air")));
+            }
+            catch (NumberFormatException ignored)
+            {
+                // Ignore malformed coordinates instead of failing the whole restore.
+            }
+        }
+        return blocks;
+    }
+
+    /** Restores deferred areas whose worlds are now loaded. */
+    private void flushPendingRestores()
+    {
+        if (pendingRestores.isEmpty()) return;
+
+        int restored = 0;
+        Iterator<Map.Entry<UUID, PendingRestore>> iterator = pendingRestores.entrySet().iterator();
+        while (iterator.hasNext())
+        {
+            PendingRestore pending = iterator.next().getValue();
+            if (restoreBlocks(pending))
+            {
+                iterator.remove();
+                restored++;
+                plugin.getLogger().info("[/cage] Restored cage terrain for "
+                        + (pending.playerName().isBlank() ? pending.playerId().toString() : pending.playerName())
+                        + " in " + (pending.worldName().isBlank() ? pending.worldId().toString() : pending.worldName()));
+            }
+        }
+        if (restored > 0) saveCageRecords();
+    }
+
+    private boolean restoreBlocks(PendingRestore pending)
+    {
+        World world = Bukkit.getWorld(pending.worldId());
+        if (world == null && !pending.worldName().isBlank())
+        {
+            // The world UID changes if a world is regenerated; fall back to its name.
+            world = Bukkit.getWorld(pending.worldName());
+        }
+        if (world == null) return false;
+
+        for (SavedBlock saved : pending.blocks())
+        {
+            try
+            {
+                world.getBlockAt(saved.x(), saved.y(), saved.z())
+                        .setBlockData(Bukkit.createBlockData(saved.data()), false);
+            }
+            catch (RuntimeException ex)
+            {
+                plugin.getLogger().warning("[/cage] Skipping invalid block data '" + saved.data()
+                        + "' at " + saved.x() + "," + saved.y() + "," + saved.z());
+            }
+        }
+        return true;
+    }
+
+    private PendingRestore toPending(UUID playerId, CageData data)
+    {
+        return new PendingRestore(playerId, data.playerName, data.worldId,
+                worldName(data.worldId), savedBlocks(data));
+    }
+
+    private void unindexCage(CageData data)
+    {
+        for (BlockPos pos : data.blockSet)
+        {
+            cageBlockIndex.remove(pos, data);
+        }
+    }
+
+    private List<SavedBlock> savedBlocks(CageData data)
+    {
+        List<SavedBlock> blocks = new ArrayList<>(data.originals.size());
+        for (OriginalBlock original : data.originals)
+        {
+            Location loc = original.location();
+            blocks.add(new SavedBlock(
+                    loc.getBlockX(), loc.getBlockY(), loc.getBlockZ(),
+                    original.blockData().getAsString()
+            ));
+        }
+        return blocks;
+    }
+
+    private String worldName(UUID worldId)
+    {
+        World world = Bukkit.getWorld(worldId);
+        return world == null ? "" : world.getName();
+    }
+
+    /* ============================== Region safety ============================== */
+
+    private static int[] cageBounds(Location location)
+    {
+        int minX = location.getBlockX() - 2;
+        int minY = location.getBlockY() - 1; // floor one block below the player
+        int minZ = location.getBlockZ() - 2;
+        return new int[]{minX, minY, minZ, minX + 4, minY + 4, minZ + 4};
+    }
+
+    private boolean overlapsExistingCage(World world, int[] bounds)
+    {
+        UUID worldId = world.getUID();
+        for (CageData d : cages.values())
+        {
+            if (!d.worldId.equals(worldId)) continue;
+            if (bounds[0] <= d.maxX && bounds[3] >= d.minX
+                    && bounds[1] <= d.maxY && bounds[4] >= d.minY
+                    && bounds[2] <= d.maxZ && bounds[5] >= d.minZ)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Optional WorldGuard check. The plugin is not a compile dependency, so the
+     * legacy {@code WorldGuardPlugin#canBuild(Player, Block)} method is resolved
+     * reflectively. If the API shape is unknown the check fails open rather than
+     * breaking the command.
+     */
+    private boolean canBuildCage(CommandSender sender, World world, int[] bounds)
+    {
+        if (!(sender instanceof Player player)) return true;
+
+        Method canBuild = worldGuardCanBuild();
+        Plugin worldGuard = worldGuardPlugin;
+        if (canBuild == null || worldGuard == null) return true;
+
+        for (int x = bounds[0]; x <= bounds[3]; x++)
+        {
+            for (int y = bounds[1]; y <= bounds[4]; y++)
+            {
+                if (y < world.getMinHeight() || y >= world.getMaxHeight()) continue;
+
+                for (int z = bounds[2]; z <= bounds[5]; z++)
+                {
+                    boolean wall = x == bounds[0] || x == bounds[3]
+                            || y == bounds[1] || y == bounds[4]
+                            || z == bounds[2] || z == bounds[5];
+                    if (!wall) continue;
+
+                    try
+                    {
+                        Object result = canBuild.invoke(worldGuard, player, world.getBlockAt(x, y, z));
+                        if (result instanceof Boolean allowed && !allowed) return false;
+                    }
+                    catch (ReflectiveOperationException | RuntimeException ex)
+                    {
+                        plugin.getLogger().warning("[/cage] WorldGuard build check failed: " + ex.getMessage());
+                        return true;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    private Method worldGuardCanBuild()
+    {
+        if (worldGuardLookupDone) return worldGuardCanBuild;
+
+        synchronized (this)
+        {
+            if (worldGuardLookupDone) return worldGuardCanBuild;
+            worldGuardLookupDone = true;
+
+            Plugin wg = Bukkit.getPluginManager().getPlugin("WorldGuard");
+            if (wg == null || !wg.isEnabled()) return null;
+
+            try
+            {
+                worldGuardCanBuild = wg.getClass().getMethod("canBuild", Player.class, Block.class);
+                worldGuardPlugin = wg;
+            }
+            catch (NoSuchMethodException ex)
+            {
+                plugin.getLogger().info("[/cage] WorldGuard build check is unavailable; region protection is not enforced for /cage.");
+            }
+            return worldGuardCanBuild;
         }
     }
 
     /* ============================== Data & utils ============================== */
 
-    private record OriginalBlock(Location location, BlockData blockData) {
-            private OriginalBlock(Location location, BlockData blockData) {
-                this.location = location.clone();
-                this.blockData = blockData.clone();
+    private record SavedBlock(int x, int y, int z, String data) {
+    }
+
+    private record PendingRestore(UUID playerId, String playerName, UUID worldId, String worldName,
+                                  List<SavedBlock> blocks) {
+    }
+
+    private record OriginalBlock(Location location, BlockData blockData, BlockState state) {
+            private OriginalBlock(Location location, BlockState state) {
+                this(location.clone(), state.getBlockData().clone(), state);
             }
         }
 
@@ -530,11 +947,12 @@ public class CageCommand extends BaseCommand implements Listener
         final CageMode mode;
         final Material blockMat;
         final String skullUser;
+        final String playerName;
         PlayerProfile profile; // may be null until textures fetched
 
         CageData(List<OriginalBlock> originals, Set<BlockPos> blockSet, UUID worldId,
                  int minX, int minY, int minZ, int maxX, int maxY, int maxZ,
-                 Location center, CageMode mode, Material blockMat, String skullUser)
+                 Location center, CageMode mode, Material blockMat, String skullUser, String playerName)
         {
             this.originals = originals;
             this.blockSet = blockSet;
@@ -549,6 +967,7 @@ public class CageCommand extends BaseCommand implements Listener
             this.mode = mode;
             this.blockMat = blockMat;
             this.skullUser = skullUser;
+            this.playerName = playerName;
         }
     }
 }

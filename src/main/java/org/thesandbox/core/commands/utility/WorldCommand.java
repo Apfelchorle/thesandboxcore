@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
+import org.thesandbox.core.services.world.WorldPreloadService;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.ArrayList;
@@ -15,14 +16,6 @@ import java.util.List;
 
 public class WorldCommand extends BaseCommand
 {
-    private static final List<String> ALLOWED_WORLDS = List.of(
-            "world",
-            "world_nether",
-            "world_the_end",
-            "masterbuilderworld",
-            "flatlands"
-    );
-
     private final JavaPlugin plugin;
 
     public WorldCommand(JavaPlugin plugin)
@@ -41,12 +34,12 @@ public class WorldCommand extends BaseCommand
 
         if (args.length < 1)
         {
-            sendUsage(player, Colors.RED + "Usage: /" + label + " <" + String.join("|", ALLOWED_WORLDS) + ">");
+            sendUsage(player, Colors.RED + "Usage: /" + label + " <" + String.join("|", WorldPreloadService.DEFAULT_WORLDS) + ">");
             return true;
         }
 
         String requested = args[0].toLowerCase();
-        if (!ALLOWED_WORLDS.contains(requested))
+        if (!WorldPreloadService.DEFAULT_WORLDS.contains(requested))
         {
             sendError(player, Colors.RED + "Unknown world: " + requested);
             return true;
@@ -81,7 +74,7 @@ public class WorldCommand extends BaseCommand
         {
             String prefix = args[0].toLowerCase();
             List<String> out = new ArrayList<>();
-            for (String w : ALLOWED_WORLDS)
+            for (String w : WorldPreloadService.DEFAULT_WORLDS)
             {
                 if (w.startsWith(prefix))
                 {

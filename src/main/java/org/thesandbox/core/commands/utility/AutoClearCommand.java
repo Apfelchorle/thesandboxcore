@@ -29,9 +29,10 @@ public class AutoClearCommand extends BaseCommand {
             return true;
         }
 
-        // Works for offline players; name -> UUID (Bukkit cache)
-        OfflinePlayer target = Bukkit.getOfflinePlayer(args[0]);
-        if (target == null || target.getUniqueId() == null)
+        // Works for offline players that are already in the server cache. Never
+        // call the blocking name lookup from a command handler.
+        OfflinePlayer target = resolveOfflineTarget(sender, args[0]);
+        if (target == null)
         {
             sender.sendMessage(Colors.color("&c&lError &8» &cUnknown player: " + args[0]));
             return true;

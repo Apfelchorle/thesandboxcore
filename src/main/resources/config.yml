@@ -24,6 +24,20 @@ mysql:
     allow-public-key-retrieval: false
 
 # ------------------------------------------------------------
+# Worlds
+# ------------------------------------------------------------
+# Load existing worlds during startup instead of on the first
+# teleport. Missing worlds are never generated implicitly.
+worlds:
+  preload-enabled: true
+  preload:
+    - world
+    - world_nether
+    - world_the_end
+    - masterbuilderworld
+    - flatlands
+
+# ------------------------------------------------------------
 # Discord bridge
 # ------------------------------------------------------------
 discord:
@@ -34,6 +48,35 @@ discord:
   token: ""
   chat-bridge:
     enabled: true
+
+  # Chat art renderer for images/GIFs posted to Discord.
+  # style: braille  -> 2x4 subpixels per character (highest detail)
+  #        block    -> one block character per pixel
+  #        shade    -> block resolution with ░ ▒ ▓ █ gradients
+  #        emoji    -> colored circles mapped to luminance
+  image-render:
+    enabled: true
+    staff: true
+    public-chat: true
+    nsfw: false
+    spoilers: false
+    thumbnails: true
+    width: 40
+    height: 22
+    char-aspect: 0.9
+    style: braille
+    palette: hex
+    colors: 64
+    alpha-threshold: 32
+    background: "#1F1F1F"
+    timeout-ms: 2000
+    cache-size: 128
+    max-per-minute: 12
+    max-per-author-per-minute: 3
+    max-bytes: 8388608
+    max-pixels: 20000000
+    fetch-size: 256
+    debug: false
 
 # ------------------------------------------------------------
 # Updates

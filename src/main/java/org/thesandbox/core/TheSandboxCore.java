@@ -32,6 +32,8 @@ import org.thesandbox.core.services.update.UpdateTarget;
 import org.thesandbox.core.services.world.AutoClearService;
 import org.thesandbox.core.services.world.AutoTpService;
 import org.thesandbox.core.services.world.EntityWiper;
+import org.thesandbox.core.services.world.WorldPreloadService;
+import org.thesandbox.core.util.BuildFlavor;
 import org.thesandbox.core.util.FunctionsHolder;
 import org.thesandbox.core.util.Utils;
 import org.thesandbox.core.util.config.PluginConfigManager;
@@ -40,9 +42,11 @@ import org.thesandbox.core.util.registry.ItemAutoRegistrar;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class TheSandboxCore extends JavaPlugin {
 
@@ -228,6 +232,7 @@ public class TheSandboxCore extends JavaPlugin {
         Utils.setPlugin(this);
         saveDefaultConfig();
         org.thesandbox.core.commands.MessageService.load(this);
+        getLogger().info("Build flavor: " + BuildFlavor.summary());
 
         try {
             initPacketEvents();
@@ -236,6 +241,8 @@ public class TheSandboxCore extends JavaPlugin {
             if (!verifyInstances()) {
                 return;
             }
+            // Run after every plugin has enabled so world-manager plugins are ready.
+            getServer().getScheduler().runTask(this, () -> WorldPreloadService.preload(this));
             registerListeners();
             registerCommands();
 
@@ -285,7 +292,9 @@ public class TheSandboxCore extends JavaPlugin {
         this.balanceManager.init();
 
         this.itemKeys = new ItemKeys(this);
-        this.rideableDragonEntity = new RideableDragonEntity(this);
+        this.rideableDragonEntity = BuildFlavor.isFeatureEnabled("rideable-dragon")
+                ? new RideableDragonEntity(this)
+                : null;
         this.registeredItems = ItemAutoRegistrar.registerAll(
             this,
             itemKeys,
@@ -320,7 +329,9 @@ public class TheSandboxCore extends JavaPlugin {
         this.discord.start();
 
         // Animated map service for GIF maps
-        this.animatedMapService = new AnimatedMapService(this);
+        this.animatedMapService = BuildFlavor.isFeatureEnabled("animated-maps")
+                ? new AnimatedMapService(this)
+                : null;
         this.discord.setAnimatedMapService(this.animatedMapService);
 
         // Services that depend on discord or shushService
@@ -409,8 +420,10 @@ public class TheSandboxCore extends JavaPlugin {
     }
 
     private void registerCommands() {
+        // Arrays.asList (not List.of) because flavor-gated services such as the
+        // rideable-dragon controller are null in a survival build.
         List<Object> commandServices = new ArrayList<>(
-            List.of(
+            Arrays.asList(
                 tagService,
                 loginService,
                 autoClearService,
@@ -421,7 +434,7 @@ public class TheSandboxCore extends JavaPlugin {
                 this.shushService,
                 this.discord,
                 dataListener,
-                    balanceManager,
+                balanceManager,
                 itemKeys,
                 loginMessages,
                 pluginConfigManager,
@@ -435,6 +448,7 @@ public class TheSandboxCore extends JavaPlugin {
                 rideableDragonEntity
             )
         );
+        commandServices.removeIf(Objects::isNull);
 
         commandServices.addAll(this.registeredItems);
         CommandAutoRegistrar.registerAll(this, commandServices.toArray());

@@ -20,6 +20,7 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.CommandData;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
@@ -41,6 +42,7 @@ import org.thesandbox.core.services.discord.media.*;
 import org.thesandbox.core.services.discord.model.ReportRecord;
 import org.thesandbox.core.services.listeners.ChatFilterEngine;
 import org.thesandbox.core.services.login.LoginService;
+import org.thesandbox.core.util.BuildFlavor;
 import org.thesandbox.core.util.Utils;
 import org.thesandbox.core.util.colors.Colors;
 
@@ -408,6 +410,15 @@ public class DiscordBridge extends ListenerAdapter {
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
         String cmd = event.getName().toLowerCase(Locale.ROOT);
 
+        // Second layer: a command that was registered by an older jar can stay
+        // visible in Discord until the bot re-registers its commands. Refuse
+        // anything the current build flavor does not allow.
+        if (!isSlashCommandAllowed(cmd)) {
+            event.reply("This command is not available on this server.")
+                    .setEphemeral(true).queue();
+            return;
+        }
+
         if (cmd.equals("update")) {
             handleUpdate(event);
             return;
@@ -445,6 +456,24 @@ public class DiscordBridge extends ListenerAdapter {
         if (cmd.equals("devtoggle")) {
             handleDevToggle(event);
         }
+    }
+
+    /**
+     * Mirrors the gates used by {@link #registerGuildCommands(Guild)} so a stale
+     * Discord registration cannot call a handler that the current flavor has
+     * disabled.
+     */
+    private static boolean isSlashCommandAllowed(String cmd) {
+        return switch (cmd) {
+            case "console" -> BuildFlavor.isFeatureEnabled("discord-console");
+            case "uploadschem" -> BuildFlavor.isFeatureEnabled("discord-uploads");
+            case "masterbuilder" ->
+                    BuildFlavor.isFeatureEnabled("discord-masterbuilder") && BuildFlavor.isCommandEnabled("rank");
+            case "devtoggle" -> BuildFlavor.isCommandEnabled("devtoggle");
+            case "list" -> BuildFlavor.isCommandEnabled("list");
+            case "update" -> BuildFlavor.isCommandEnabled("updatelocal");
+            default -> true;
+        };
     }
 
     public void stop() {
@@ -863,37 +892,65 @@ public class DiscordBridge extends ListenerAdapter {
 
     /* --------------------------- Command registration --------------------------- */
     private void registerGuildCommands(Guild g) {
-        g.updateCommands().addCommands(
+        // Slash commands are registered directly with Discord, so they never go
+        // through plugin.yml filtering. Gate them with the same build flavor:
+        // /console in particular can dispatch arbitrary commands with console
+        // authority and would otherwise re-enable every command removed from
+        // the survival build.
+        List<CommandData> commands = new ArrayList<>();
 
-                /* /console */
-                Commands.slash("console", "run any command ingame with console authority")
-                        .addOptions(
-                                new OptionData(OptionType.STRING, "command", "command to run", true)
-                        )
-                        .setGuildOnly(true),
+        if (BuildFlavor.isFeatureEnabled("discord-console")) {
+            commands.add(
+                    /* /console */
+                    Commands.slash("console", "run any command ingame with console authority")
+                            .addOptions(
+                                    new OptionData(OptionType.STRING, "command", "command to run", true)
+                            )
+                            .setGuildOnly(true)
+            );
+        }
 
-                /* /update */
-                Commands.slash("update", "Run /update ingame")
-                        .setGuildOnly(true),
+        if (BuildFlavor.isCommandEnabled("updatelocal")) {
+            commands.add(
+                    /* /update */
+                    Commands.slash("update", "Run /update ingame")
+                            .setGuildOnly(true)
+            );
+        }
 
-                // /uploadschem
-                Commands.slash("uploadschem", "Upload A Schem File To The Server!")
-                        .addOptions(
-                                new OptionData(OptionType.ATTACHMENT, "schem", "a .schem file", true)
-                        )
-                        .setGuildOnly(true),
+        if (BuildFlavor.isFeatureEnabled("discord-uploads")) {
+            commands.add(
+                    // /uploadschem
+                    Commands.slash("uploadschem", "Upload A Schem File To The Server!")
+                            .addOptions(
+                                    new OptionData(OptionType.ATTACHMENT, "schem", "a .schem file", true)
+                            )
+                            .setGuildOnly(true)
+            );
+        }
 
-                // /list – show online player list
-                Commands.slash("list", "Show the online player list, formatted like /list in-game")
-                        .setGuildOnly(true),
+        if (BuildFlavor.isCommandEnabled("list")) {
+            commands.add(
+                    // /list – show online player list
+                    Commands.slash("list", "Show the online player list, formatted like /list in-game")
+                            .setGuildOnly(true)
+            );
+        }
 
-                // /masterbuilder – set a player's rank to masterbuilder (everyone can use)
-                Commands.slash("masterbuilder", "Set a player's rank to Master Builder")
-                        .addOptions(
-                                new OptionData(OptionType.STRING, "username", "Minecraft username to promote", true)
-                        )
-                        .setGuildOnly(true),
+        if (BuildFlavor.isFeatureEnabled("discord-masterbuilder") && BuildFlavor.isCommandEnabled("rank")) {
+            commands.add(
+                    // /masterbuilder – set a player's rank to masterbuilder (everyone can use)
+                    Commands.slash("masterbuilder", "Set a player's rank to Master Builder")
+                            .addOptions(
+                                    new OptionData(OptionType.STRING, "username", "Minecraft username to promote", true)
+                            )
+                            .setGuildOnly(true)
+            );
+        }
 
+        // /chatbridge only toggles the MC <-> Discord bridge and cannot run
+        // arbitrary commands, so it stays available for server admins.
+        commands.add(
                 // /chatbridge – admin-only toggle for MC <-> Discord public/staff chat bridging
                 Commands.slash("chatbridge", "Enable, disable, or view Minecraft/Discord chat bridging")
                         .addOptions(
@@ -903,23 +960,30 @@ public class DiscordBridge extends ListenerAdapter {
                                         .addChoice("status", "status")
                         )
                         .setGuildOnly(true)
-                        .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR)),
-
-                // /devtoggle discord – admin-only Discord-side equivalent of the in-game /devtoggle discord
-                Commands.slash("devtoggle", "Developer toggles for Minecraft/Discord systems")
-                        .addOptions(
-                                new OptionData(OptionType.STRING, "target", "system to toggle", true)
-                                        .addChoice("discord", "discord"),
-                                new OptionData(OptionType.STRING, "action", "toggle, enable, disable, or status", true)
-                                        .addChoice("toggle", "toggle")
-                                        .addChoice("enable", "enable")
-                                        .addChoice("disable", "disable")
-                                        .addChoice("status", "status")
-                        )
-                        .setGuildOnly(true)
                         .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR))
-        ).queue(
-                __ -> plugin.getLogger().info("[Discord] Registered slash cmds in: " + g.getName()),
+        );
+
+        if (BuildFlavor.isCommandEnabled("devtoggle")) {
+            commands.add(
+                    // /devtoggle discord – admin-only Discord-side equivalent of the in-game /devtoggle discord
+                    Commands.slash("devtoggle", "Developer toggles for Minecraft/Discord systems")
+                            .addOptions(
+                                    new OptionData(OptionType.STRING, "target", "system to toggle", true)
+                                            .addChoice("discord", "discord"),
+                                    new OptionData(OptionType.STRING, "action", "toggle, enable, disable, or status", true)
+                                            .addChoice("toggle", "toggle")
+                                            .addChoice("enable", "enable")
+                                            .addChoice("disable", "disable")
+                                            .addChoice("status", "status")
+                            )
+                            .setGuildOnly(true)
+                            .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR))
+            );
+        }
+
+        g.updateCommands().addCommands(commands).queue(
+                __ -> plugin.getLogger().info("[Discord] Registered slash cmds in: " + g.getName()
+                        + " (" + commands.size() + " enabled for the " + BuildFlavor.name() + " flavor)"),
                 err -> plugin.getLogger().warning("[Discord] Slash cmd register failed in " + g.getName() + ": " + err.getMessage())
         );
     }
@@ -1102,7 +1166,21 @@ public class DiscordBridge extends ListenerAdapter {
             return;
         }
 
-        String command = CmdOPT.getAsString();
+        String command = CmdOPT.getAsString().trim();
+
+        // Even when /console is enabled, never dispatch a command that the
+        // current build flavor has removed from plugin.yml.
+        String root = command.startsWith("/") ? command.substring(1) : command;
+        root = root.split("\\s+", 2)[0].toLowerCase(Locale.ROOT);
+        int namespaceSeparator = root.indexOf(':');
+        if (namespaceSeparator >= 0) {
+            root = root.substring(namespaceSeparator + 1);
+        }
+        if (!BuildFlavor.isCommandEnabled(root)) {
+            event.reply("`" + root + "` is not enabled in the " + BuildFlavor.name() + " build flavor.")
+                    .setEphemeral(true).queue();
+            return;
+        }
 
         event.deferReply(true).queue(hook -> {
             Bukkit.getScheduler().runTask(plugin, () -> {
@@ -1226,8 +1304,7 @@ public class DiscordBridge extends ListenerAdapter {
             return;
         }
 
-        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(username);
-        Player p = Bukkit.getPlayer(offlinePlayer.getUniqueId());
+        Player p = Bukkit.getPlayerExact(username);
 
         if (p == null) {
             event.reply("That player is not online Or Does Not Exist").queue();
@@ -1783,14 +1860,8 @@ public class DiscordBridge extends ListenerAdapter {
                 rank = plugin.getLoginService().getRank(player);
             }
         } catch (Throwable ignored) {
-            // Fall back to direct permission checks if LoginService is unavailable.
-            if (player != null) {
-                if (player.hasPermission("sandbox.operator")) rank = LoginService.Rank.OPERATOR;
-                else if (player.hasPermission("sandbox.admin")) rank = LoginService.Rank.ADMIN;
-                else if (player.hasPermission("sandbox.staff")) rank = LoginService.Rank.STAFF;
-                else if (player.hasPermission("sandbox.mb")) rank = LoginService.Rank.MB;
-                else if (player.hasPermission("sandbox.vip")) rank = LoginService.Rank.VIP;
-            }
+            // Fall back to the same permission mapping LoginService uses.
+            rank = LoginService.Rank.fromPermissions(player);
         }
 
         return discordRankPrefix(rank);

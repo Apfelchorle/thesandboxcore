@@ -27,6 +27,14 @@ public class DismountCommand extends BaseCommand {
         this(floatBoatItem, null);
     }
 
+    /**
+     * Survival builds do not register custom items or the dragon controller,
+     * so keep the basic force-dismount behaviour available without them.
+     */
+    public DismountCommand() {
+        this(null, null);
+    }
+
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
         Player player = asPlayer(sender);

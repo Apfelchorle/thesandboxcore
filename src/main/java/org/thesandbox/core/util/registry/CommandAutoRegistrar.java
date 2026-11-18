@@ -10,6 +10,7 @@ import org.jspecify.annotations.NonNull;
 import org.thesandbox.core.commands.ISubCommand;
 import org.thesandbox.core.commands.meta.CommandAliases;
 import org.thesandbox.core.commands.meta.CommandName;
+import org.thesandbox.core.util.BuildFlavor;
 
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
@@ -65,9 +66,13 @@ public final class CommandAutoRegistrar {
         }
 
         // ---- Read plugin.yml keys/aliases ----------------------------------
+        // The built survival jar already has disabled commands removed from
+        // plugin.yml. This filter is a second gate for IDE runs and hand-edited
+        // plugin.yml files.
         Map<String, List<String>> ymlCommands = readCommandKeysAndAliases(plugin);
+        ymlCommands.entrySet().removeIf(e -> !BuildFlavor.isCommandEnabled(e.getKey()));
         if (ymlCommands.isEmpty()) {
-            plugin.getLogger().warning("No commands found in plugin.yml.");
+            plugin.getLogger().warning("No commands are enabled for the " + BuildFlavor.name() + " build flavor.");
         }
 
         // ---- Scan for *Command classes -------------------------------------
@@ -105,8 +110,15 @@ public final class CommandAutoRegistrar {
                 if (match) targets.put(key, new ArrayList<>(aliases));
             }
             if (targets.isEmpty()) {
-                plugin.getLogger().warning("[CommandAutoRegistrar] " + clazz.getSimpleName()
-                        + " matches no plugin.yml command (looked for " + claimed + ") - it is never registered.");
+                // In a survival build the class is present in the jar but its
+                // command was deliberately removed from plugin.yml. Don't spam
+                // the log for every gated feature.
+                boolean gatedByFlavor = BuildFlavor.hasCommandAllowlist()
+                        && claimed.stream().noneMatch(BuildFlavor::isCommandEnabled);
+                if (!gatedByFlavor) {
+                    plugin.getLogger().warning("[CommandAutoRegistrar] " + clazz.getSimpleName()
+                            + " matches no plugin.yml command (looked for " + claimed + ") - it is never registered.");
+                }
                 continue;
             }
 
@@ -261,15 +273,20 @@ public final class CommandAutoRegistrar {
     private static Object constructBest(JavaPlugin plugin, Class<?> clazz, Map<Class<?>, Object> injector) {
         Constructor<?>[] ctors = clazz.getDeclaredConstructors();
         Arrays.sort(ctors, Comparator.comparingInt((Constructor<?> c) -> c.getParameterCount()).reversed());
+
+        // A class may offer a smaller constructor as a fallback (e.g. a command
+        // whose item dependency is absent in a survival build). Only report
+        // missing services when every constructor failed.
+        Set<String> unresolved = new LinkedHashSet<>();
+
         for (Constructor<?> c : ctors) {
             Class<?>[] paramTypes = c.getParameterTypes();
             try {
-                Object[] args = buildArgsFor(c.getParameterTypes(), injector);
+                Object[] args = buildArgsFor(paramTypes, injector);
                 if (args == null) {
                     for (Class<?> pt : paramTypes) {
                         if (findAssignable(injector, pt) == null) {
-                            plugin.getLogger().warning("[CommandAutoRegistrar] " + clazz.getSimpleName()
-                                    + " ctor needs " + pt.getName() + " but no matching service was found in the injector.");
+                            unresolved.add(clazz.getSimpleName() + " ctor needs " + pt.getName());
                         }
                     }
                     continue;
@@ -281,11 +298,10 @@ public final class CommandAutoRegistrar {
                         + " ctor threw during construction: " + (e.getCause() != null ? e.getCause() : e));
             }
         }
-        try {
-            Constructor<?> noArg = clazz.getDeclaredConstructor();
-            noArg.setAccessible(true);
-            return noArg.newInstance();
-        } catch (Exception ignored) {
+
+        for (String message : unresolved) {
+            plugin.getLogger().warning("[CommandAutoRegistrar] " + message
+                    + " but no matching service was found in the injector.");
         }
         return null;
     }

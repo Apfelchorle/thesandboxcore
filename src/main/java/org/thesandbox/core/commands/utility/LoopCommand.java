@@ -3,14 +3,17 @@ package org.thesandbox.core.commands.utility;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
+import org.thesandbox.core.util.commands.CommandGuard;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * /loop <amount> <command...>
@@ -20,8 +23,10 @@ import java.util.Locale;
 public class LoopCommand extends BaseCommand
 {
     private static final int DEFAULT_MAX = 1000;
+    private static final long COOLDOWN_MS = 2000L;
 
     private final TheSandboxCore plugin;
+    private final Map<UUID, Long> lastUse = new HashMap<>();
 
     public LoopCommand(TheSandboxCore plugin)
     {
@@ -76,13 +81,17 @@ public class LoopCommand extends BaseCommand
             return true;
         }
 
-        // Recursion guard (also covers namespaced forms like "thesandboxcore:loop").
-        String base = toRun.split("\\s+", 2)[0].toLowerCase(Locale.ENGLISH);
-        int colon = base.indexOf(':');
-        if (colon >= 0) base = base.substring(colon + 1);
-        if (base.equals(label.toLowerCase(Locale.ENGLISH)) || base.equals(command.getName().toLowerCase(Locale.ENGLISH)) || base.equals("loop"))
+        // Recursion and wrapper bypasses are rejected by the shared guard.
+        String blocked = CommandGuard.blockedReason(toRun, List.of(), false);
+        if (blocked != null)
         {
-            sendError(sender, "Refusing to loop the /loop command.");
+            sendError(sender, "Refusing to loop a protected command (/" + blocked + ").");
+            return true;
+        }
+
+        if (sender instanceof Player player && isOnCooldown(player))
+        {
+            sendError(sender, "Please wait a moment before using /" + label + " again.");
             return true;
         }
 
@@ -97,6 +106,18 @@ public class LoopCommand extends BaseCommand
 
         sendCommand(sender, "Finished looping" + (failed > 0 ? " (" + failed + " run(s) reported failure)." : "."));
         return true;
+    }
+
+    private boolean isOnCooldown(Player player)
+    {
+        long now = System.currentTimeMillis();
+        Long last = lastUse.get(player.getUniqueId());
+        if (last != null && now - last < COOLDOWN_MS)
+        {
+            return true;
+        }
+        lastUse.put(player.getUniqueId(), now);
+        return false;
     }
 
     @Override

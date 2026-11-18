@@ -15,21 +15,44 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class PluginControlCommand extends BaseCommand {
+    // Plugins that must never be disabled or hot-reloaded through this command.
+    // Disabling them would blind protections, break permissions, or take down
+    // the server. Names are compared case-insensitively.
+    private static final Set<String> PROTECTED_PLUGINS = Set.of(
+            "thesandboxcore",
+            "luckperms",
+            "vault",
+            "essentials",
+            "essentialsx",
+            "coreprotect",
+            "packetevents",
+            "worldguard",
+            "worldedit",
+            "litebans",
+            "premiumvanish",
+            "supervanish",
+            "libsdisguises",
+            "skinsrestorer"
+    );
+
     private final JavaPlugin plugin;
     private final Set<String> untouchable;
 
     public PluginControlCommand(JavaPlugin plugin) {
         this.plugin = plugin;
-        // Protect your core plugin from disable/reload
-        this.untouchable = Collections.singleton(plugin.getName());
-        // If you want to protect more, add them here:
-        // this.untouchable.addAll(Arrays.asList("LuckPerms", "Vault", "Essentials"));
+        this.untouchable = new HashSet<>(PROTECTED_PLUGINS);
+        this.untouchable.add(plugin.getName().toLowerCase(Locale.ROOT));
     }
 
     private boolean canUse(CommandSender sender)
     {
-        // Adjust the permission to match your setup
-        return sender.hasPermission("sandbox.staff") || sender.isOp();
+        // Previously sandbox.staff could disable protection/logging plugins.
+        return sender.hasPermission("sandbox.admin");
+    }
+
+    private boolean isUntouchable(Plugin plugin)
+    {
+        return untouchable.contains(plugin.getName().toLowerCase(Locale.ROOT));
     }
 
     private void msg(CommandSender sender, Component message)
@@ -120,23 +143,25 @@ public class PluginControlCommand extends BaseCommand {
                         msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, target.getName() + " is already disabled!"));
                         return true;
                     }
-                    if (untouchable.contains(target.getName()))
+                    if (isUntouchable(target))
                     {
                         msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + target.getName() + " cannot be disabled!"));
                         return true;
                     }
+                    plugin.getLogger().info("[Security] " + sender.getName() + " disabled plugin " + target.getName());
                     pm.disablePlugin(target);
                     msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, Colors.YELLOW + target.getName() + " is now disabled!"));
                     return true;
                 }
 
                 case "reload" -> {
-                    if (untouchable.contains(target.getName()))
+                    if (isUntouchable(target))
                     {
                         msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + target.getName() + " cannot be reloaded!"));
                         return true;
                     }
                     // Note: reloading arbitrary plugins can be risky.
+                    plugin.getLogger().info("[Security] " + sender.getName() + " reloaded plugin " + target.getName());
                     pm.disablePlugin(target);
                     pm.enablePlugin(target);
                     msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, Colors.GREEN + target.getName() + " has been reloaded!"));
@@ -171,7 +196,7 @@ public class PluginControlCommand extends BaseCommand {
             final String partial = args[1].toLowerCase(Locale.ROOT);
             return Arrays.stream(Bukkit.getPluginManager().getPlugins())
                     .map(Plugin::getName)
-                    .filter(name -> !untouchable.contains(name))
+                    .filter(name -> !untouchable.contains(name.toLowerCase(Locale.ROOT)))
                     .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(partial))
                     .sorted(String.CASE_INSENSITIVE_ORDER)
                     .collect(Collectors.toList());

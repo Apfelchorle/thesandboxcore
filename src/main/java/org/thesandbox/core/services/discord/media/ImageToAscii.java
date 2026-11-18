@@ -13,12 +13,10 @@ import java.util.List;
  * median-cut palette so chat components stay compact.</p>
  *
  * <p>Uses multi-pass Lanczos-style downsampling for sharper results at small
- * target sizes, and applies luminance-aware gamma correction to preserve
- * perceptual brightness.</p>
+ * target sizes. Braille rendering reserves 2×4 subpixels per character cell,
+ * so it gets a correspondingly larger target grid.</p>
  */
 public final class ImageToAscii {
-
-    private static final double GAMMA = 2.2;
 
     private ImageToAscii() {
     }
@@ -30,15 +28,28 @@ public final class ImageToAscii {
         int sourceHeight = source.getHeight();
         if (sourceWidth <= 0 || sourceHeight <= 0) return null;
 
-        double ratio = ((double) sourceHeight / (double) sourceWidth) * settings.charAspect();
-        int targetWidth = settings.width();
+        MediaRenderSettings.RenderStyle style = settings.renderStyle();
+        int cellWidth = style == MediaRenderSettings.RenderStyle.BRAILLE ? 2 : 1;
+        int cellHeight = style == MediaRenderSettings.RenderStyle.BRAILLE ? 4 : 1;
+        int maxTargetWidth = Math.max(1, settings.width() * cellWidth);
+        int maxTargetHeight = Math.max(1, settings.height() * cellHeight);
+
+        // Braille cells render at roughly 8×9 px but hold 2×4 subpixels, so a
+        // square source needs a target grid that is taller than it is wide.
+        double aspect = settings.charAspect();
+        if (style == MediaRenderSettings.RenderStyle.BRAILLE) {
+            aspect *= 2.0;
+        }
+
+        double ratio = ((double) sourceHeight / (double) sourceWidth) * aspect;
+        int targetWidth = maxTargetWidth;
         int targetHeight = Math.max(1, (int) Math.round(targetWidth * ratio));
-        if (targetHeight > settings.height()) {
-            targetHeight = settings.height();
+        if (targetHeight > maxTargetHeight) {
+            targetHeight = maxTargetHeight;
             targetWidth = Math.max(1, (int) Math.round(targetHeight / ratio));
         }
-        targetWidth = Math.max(1, Math.min(settings.width(), targetWidth));
-        targetHeight = Math.max(1, Math.min(settings.height(), targetHeight));
+        targetWidth = Math.max(1, Math.min(maxTargetWidth, targetWidth));
+        targetHeight = Math.max(1, Math.min(maxTargetHeight, targetHeight));
 
         // Multi-pass downsampling: halve the image repeatedly until it's close
         // to the target size, then do a final high-quality pass. This produces
@@ -68,11 +79,6 @@ public final class ImageToAscii {
                     green = (green * alpha + bgGreen * (255 - alpha) + 127) / 255;
                     blue = (blue * alpha + bgBlue * (255 - alpha) + 127) / 255;
                 }
-
-                // Apply gamma correction to preserve perceptual brightness
-                red = gammaCorrect(red, GAMMA);
-                green = gammaCorrect(green, GAMMA);
-                blue = gammaCorrect(blue, GAMMA);
 
                 colors[y][x] = 0xFF000000 | (red << 16) | (green << 8) | blue;
             }
@@ -235,16 +241,6 @@ public final class ImageToAscii {
             return finalImage;
         }
         return current;
-    }
-
-    /**
-     * Applies gamma correction to a single color channel value.
-     * Converts from linear to sRGB space to preserve perceptual brightness.
-     */
-    private static int gammaCorrect(int value, double gamma) {
-        double normalized = value / 255.0;
-        double corrected = Math.pow(normalized, 1.0 / gamma);
-        return Math.toIntExact(Math.round(corrected * 255.0));
     }
 
     private static final class Box {

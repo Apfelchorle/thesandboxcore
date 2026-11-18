@@ -33,8 +33,8 @@ public class AutoTpCommand extends BaseCommand implements TabCompleter {
             return true;
         }
 
-        OfflinePlayer target = Bukkit.getOfflinePlayer(args[0]);
-        if (target == null || target.getUniqueId() == null) {
+        OfflinePlayer target = resolveOfflineTarget(sender, args[0]);
+        if (target == null) {
             sender.sendMessage(Colors.color("&c&lError &8» &cUnknown player: " + args[0]));
             return true;
         }

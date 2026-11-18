@@ -8,6 +8,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.util.colors.Colors;
+import org.thesandbox.core.util.permissions.PermissionTier;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -104,17 +105,11 @@ public class SudoCommand extends BaseCommand {
     }
 
     /**
-     * Role levels:
-     * superuser=4, sradmin=3, admin=2, mod=1, default=0
+     * Role levels come from {@link PermissionTier}. Non-player senders are
+     * treated as console, above every player tier.
      */
     private static int roleLevel(CommandSender who) {
-        // Non-player (console) gets the highest power
-        if (!(who instanceof Player p)) return 5;
-
-        if (p.hasPermission("sandbox.operator") || p.hasPermission("sandbox.superuser")) return 4;
-        if (p.hasPermission("sandbox.admin")) return 3;
-        if (p.hasPermission("sandbox.staff")) return 2;
-        if (p.hasPermission("sandbox.mod")) return 1;
-        return 0;
+        if (!(who instanceof Player)) return PermissionTier.SUPERUSER.weight() + 1;
+        return PermissionTier.levelOf(who);
     }
 }

@@ -13,6 +13,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.thesandbox.core.util.colors.Colors;
+import org.thesandbox.core.util.permissions.PermissionTier;
 import org.thesandbox.core.data.database.PotionSpyRepository;
 
 import javax.sql.DataSource;
@@ -91,28 +92,18 @@ public class PotionSpyService implements Listener {
     // --------- UPDATED: tier-filtered broadcast ----------
     public void broadcastToEnabled(String message, UUID shooterId) {
         Player shooter = shooterId != null ? Bukkit.getPlayer(shooterId) : null;
-        Tier shooterTier = getTier(shooter);
+        PermissionTier shooterTier = PermissionTier.of(shooter);
 
         for (UUID viewerId : enabled) {
             Player viewer = Bukkit.getPlayer(viewerId);
             if (viewer == null || !viewer.isOnline()) continue;
 
-            Tier viewerTier = getTier(viewer);
+            PermissionTier viewerTier = PermissionTier.of(viewer);
             // viewer sees shooter if shooterTier <= viewerTier
-            if (shooterTier.v <= viewerTier.v) {
+            if (shooterTier.weight() <= viewerTier.weight()) {
                 viewer.sendMessage(message);
             }
         }
-    }
-
-    private Tier getTier(Player p) {
-        // Highest wins
-        if (p == null) return Tier.DEFAULT;
-        if (p.hasPermission("sandbox.superuser")) return Tier.SUPERUSER;
-        if (p.hasPermission("sandbox.admin")) return Tier.SRADMIN;
-        if (p.hasPermission("sandbox.staff")) return Tier.ADMIN;
-        if (p.hasPermission("sandbox.mod")) return Tier.MOD;
-        return Tier.DEFAULT;
     }
 
     private static Set<PotionEffectType> buildBadEffects() {
@@ -224,16 +215,6 @@ public class PotionSpyService implements Listener {
     public List<Map.Entry<ThrownPotion, Long>> getAllThrownPotions() {
         synchronized (allThrownPotions) {
             return new ArrayList<>(allThrownPotions);
-        }
-    }
-
-    // ------- Rank → tier mapping -------
-    private enum Tier {
-        DEFAULT(0), MOD(1), ADMIN(2), SRADMIN(3), SUPERUSER(4);
-        final int v;
-
-        Tier(int v) {
-            this.v = v;
         }
     }
 }
