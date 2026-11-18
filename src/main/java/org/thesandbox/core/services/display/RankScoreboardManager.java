@@ -46,7 +46,7 @@ public class RankScoreboardManager {
         applyRankScoreboardTeam(player, loginService.getRank(player));
     }
 
-    private Team ensureRankTeam(Scoreboard board, String name, String prefix, String nameColor) {
+    private void ensureRankTeam(Scoreboard board, String name, String prefix, String nameColor) {
         Team team = board.getTeam(name);
         if (team == null) {
             team = board.registerNewTeam(name);
@@ -59,8 +59,6 @@ public class RankScoreboardManager {
         } catch (NoSuchMethodError ignored) {
             // Older APIs do not have Team#setColor; the prefix will still display.
         }
-
-        return team;
     }
 
     /**

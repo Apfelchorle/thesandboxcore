@@ -36,7 +36,7 @@ public class UpdateLocalCommand extends BaseCommand {
             String label,
             String[] args
     ) {
-        if (!hasSuperuserPermission(sender)) {
+        if (lacksSuperuserPermission(sender)) {
             return true;
         }
 

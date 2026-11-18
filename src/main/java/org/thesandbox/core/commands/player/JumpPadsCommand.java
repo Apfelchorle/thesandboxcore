@@ -28,12 +28,9 @@ public class JumpPadsCommand implements Listener, ISubCommand {
     private static final String DEFAULT_MODE = JumpPadMode.OFF.name();
     private final Map<UUID, Boolean> pushMap = new ConcurrentHashMap<>();
     private final Map<UUID, JumpPadMode> modeCache = new ConcurrentHashMap<>();
-    private final TheSandboxCore plugin;
     private final PlayerDataListener dataListener;
-    private final double strength = 0.4;
 
     public JumpPadsCommand(TheSandboxCore plugin, PlayerDataListener dataListener) {
-        this.plugin = plugin;
         this.dataListener = dataListener;
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
@@ -47,6 +44,8 @@ public class JumpPadsCommand implements Listener, ISubCommand {
 
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
+        final double strength = 0.4;
+
         if (!event.hasExplicitlyChangedBlock()) {
             return;
         }

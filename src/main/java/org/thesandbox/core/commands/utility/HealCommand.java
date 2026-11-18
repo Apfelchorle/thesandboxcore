@@ -6,10 +6,8 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.Collections;
@@ -17,13 +15,6 @@ import java.util.List;
 
 public class HealCommand extends BaseCommand
 {
-    private final JavaPlugin plugin;
-
-    public HealCommand(JavaPlugin plugin)
-    {
-        this.plugin = plugin;
-    }
-
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args)
     {
@@ -38,7 +29,7 @@ public class HealCommand extends BaseCommand
         {
             // Self-heal: always allowed (no extra message here; healOne will notify)
             Player self = (Player) sender;
-            healOne(sender, self, /*tellTarget=*/true, /*tellSender=*/false);
+            healOne(sender, self, /*tellSender=*/false);
             return true;
         }
 
@@ -52,13 +43,13 @@ public class HealCommand extends BaseCommand
 
         if (sender instanceof Player actor)
         {
-            if (!hasStaffPermission(actor) && !actor.isOp())
+            if (lacksStaffPermission(actor) && !actor.isOp())
             {
                 return true;
             }
         }
 
-        boolean ok = healOne(sender, target, /*tellTarget=*/true, /*tellSender=*/true);
+        boolean ok = healOne(sender, target, /*tellSender=*/true);
         if (ok && !(sender instanceof Player && sender.equals(target)))
         {
             sendCommand(sender, "Healed " + target.getName() + ".");
@@ -78,7 +69,8 @@ public class HealCommand extends BaseCommand
 
     /* ---------------- internals ---------------- */
 
-    private boolean healOne(CommandSender actor, Player target, boolean tellTarget, boolean tellSender)
+    @SuppressWarnings("UnstableApiUsage") // The public constructor is internalised to stop plugins faking heals; needed to fire the event.
+    private boolean healOne(CommandSender actor, Player target, boolean tellSender)
     {
         if (target.isDead() || target.getHealth() <= 0.0D)
         {
@@ -112,7 +104,7 @@ public class HealCommand extends BaseCommand
             }
         } catch (Throwable ignored) {}
 
-        if (tellTarget) sendCommand(target, Colors.GREEN + "You have been healed!");
+        sendCommand(target, Colors.GREEN + "You have been healed!");
 
         return true;
     }
@@ -121,9 +113,10 @@ public class HealCommand extends BaseCommand
     {
         try
         {
-            if (p.getAttribute(Attribute.MAX_HEALTH) != null)
+            var maxHealth = p.getAttribute(Attribute.MAX_HEALTH);
+            if (maxHealth != null)
             {
-                return p.getAttribute(Attribute.MAX_HEALTH).getValue();
+                return maxHealth.getValue();
             }
         }
         catch (Throwable ignored) {}

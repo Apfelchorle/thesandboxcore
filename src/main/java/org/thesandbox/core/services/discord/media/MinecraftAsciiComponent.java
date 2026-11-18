@@ -97,7 +97,7 @@ public final class MinecraftAsciiComponent {
 
     /**
      * Packs 2×4 source pixels into one braille character. Each dot keeps the
-     * average colour of the pixels that contribute to it, and same-colour
+     * average color of the pixels that contribute to it, and same-color
      * cells are merged into a single component run so the chat JSON stays
      * compact.
      */
@@ -145,8 +145,8 @@ public final class MinecraftAsciiComponent {
                 }
 
                 if (pattern == 0) {
-                    // Blank cell: merge with surrounding spaces regardless of colour.
-                    if (run.length() > 0) {
+                    // Blank cell: merge with surrounding spaces regardless of color.
+                    if (!run.isEmpty()) {
                         out = out.append(coloredRun(run.toString(), runColor));
                         run.setLength(0);
                     }
@@ -162,7 +162,7 @@ public final class MinecraftAsciiComponent {
                 TextColor cellColor = resolveColor(average, legacy);
 
                 if (!cellColor.equals(runColor)) {
-                    if (run.length() > 0) {
+                    if (!run.isEmpty()) {
                         out = out.append(coloredRun(run.toString(), runColor));
                         run.setLength(0);
                     }
@@ -171,7 +171,7 @@ public final class MinecraftAsciiComponent {
                 run.append((char) (BRAILLE_BASE + pattern));
             }
 
-            if (run.length() > 0) {
+            if (!run.isEmpty()) {
                 out = out.append(coloredRun(run.toString(), runColor));
             }
         }
@@ -180,7 +180,7 @@ public final class MinecraftAsciiComponent {
 
     /**
      * Renders one {@code ░ ▒ ▓ █} character per pixel, choosing density from
-     * luminance while keeping the pixel colour.
+     * luminance while keeping the pixel color.
      */
     private static Component buildShade(ImageToAscii.Result result, int[][] colors, boolean legacy) {
         Component out = Component.empty();
@@ -220,7 +220,7 @@ public final class MinecraftAsciiComponent {
     private static int brailleBit(int dx, int dy) {
         if (dx == 0) {
             return switch (dy) {
-                case 0 -> 1 << 0; // dot 1
+                case 0 -> 1; // dot 1
                 case 1 -> 1 << 1; // dot 2
                 case 2 -> 1 << 2; // dot 3
                 case 3 -> 1 << 6; // dot 7

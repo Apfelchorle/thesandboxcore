@@ -129,7 +129,7 @@ public class BalanceManager {
         if (parsed == null) {
             return;
         }
-        if (!requireOnlineTarget(sender, target)) {
+        if (isOfflineTarget(sender, target)) {
             return;
         }
         if (isSamePlayer(sender, target)) {
@@ -160,7 +160,7 @@ public class BalanceManager {
         if (parsed == null) {
             return;
         }
-        if (!requireOnlineTarget(source, receive)) {
+        if (isOfflineTarget(source, receive)) {
             return;
         }
         if (source.getUniqueId().equals(receive.getUniqueId())) {
@@ -188,7 +188,7 @@ public class BalanceManager {
             return;
         }
         Player targetPlayer = org.thesandbox.core.util.FunctionsHolder.resolveTarget(sender, target);
-        if (!requireOnlineTarget(sender, targetPlayer)) {
+        if (isOfflineTarget(sender, targetPlayer)) {
             return;
         }
 
@@ -197,7 +197,7 @@ public class BalanceManager {
                 sender.getName() + " has given " + targetPlayer.getName() + " " + parsed + " coins!",
                 NamedTextColor.GOLD
         ));
-        TransactionMessage(targetPlayer, "You've Recieved " + parsed + " Coins From " + sender.getName(), NamedTextColor.GREEN);
+        TransactionMessage(targetPlayer, "You've Received " + parsed + " Coins From " + sender.getName(), NamedTextColor.GREEN);
         sender.sendMessage(Component.text(
                 targetPlayer.getName() + " has " + getCoins(targetPlayer.getUniqueId()) + " Coins!",
                 NamedTextColor.GREEN
@@ -221,12 +221,12 @@ public class BalanceManager {
         return value;
     }
 
-    private boolean requireOnlineTarget(CommandSender sender, Player target) {
+    private boolean isOfflineTarget(CommandSender sender, Player target) {
         if (target == null || !target.isOnline()) {
             sender.sendMessage(Component.text("Player is offline!", NamedTextColor.DARK_GRAY));
-            return false;
+            return true;
         }
-        return true;
+        return false;
     }
 
     private boolean isSamePlayer(CommandSender sender, Player target) {
@@ -261,7 +261,7 @@ public class BalanceManager {
     }
 
     public void addCoins(UUID uuid, int amount) {
-        updateCoins(uuid, current -> (int) Math.clamp((long) current + amount, 0, Integer.MAX_VALUE));
+        updateCoins(uuid, current -> Math.clamp((long) current + amount, 0, Integer.MAX_VALUE));
     }
 
     public void removeCoins(UUID uuid, int amount) {

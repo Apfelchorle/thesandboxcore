@@ -18,10 +18,10 @@ import org.bukkit.plugin.Plugin;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.data.PlayerDataListener;
 import org.thesandbox.core.services.login.LoginService;
-import org.thesandbox.core.util.Utils;
 import org.thesandbox.core.util.colors.ComponentBuilder;
 
 import java.util.*;
+import java.util.logging.Logger;
 
 /**
  * Player utilities that work for both online and offline players.
@@ -83,7 +83,7 @@ public class PlayerCommand extends BaseCommand {
      * LiteBans queries are executed asynchronously to avoid main-thread blocking.
      */
     private void info(CommandSender sender, String label, String[] args) {
-        if (!hasStaffPermission(sender)) {
+        if (lacksStaffPermission(sender)) {
             return;
         }
 
@@ -104,13 +104,12 @@ public class PlayerCommand extends BaseCommand {
         Player onlinePlayer = isOnline ? target.getPlayer() : null;
 
         // Query LiteBans asynchronously to avoid main-thread blocking
-        Bukkit.getScheduler().runTaskAsynchronously(Bukkit.getPluginManager().getPlugin("TheSandboxCore"), () -> {
+        Bukkit.getScheduler().runTaskAsynchronously(org.thesandbox.core.TheSandboxCore.getInstance(), () -> {
             LiteBansStatus liteBansStatus = queryLiteBansAsync(uuid);
 
             // Switch back to main thread to build and send the component
-            Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("TheSandboxCore"), () -> {
-                buildAndSendPlayerInfo(sender, targetName, uuid, isOnline, onlinePlayer, liteBansStatus);
-            });
+            Bukkit.getScheduler().runTask(org.thesandbox.core.TheSandboxCore.getInstance(),
+                    () -> buildAndSendPlayerInfo(sender, targetName, uuid, isOnline, onlinePlayer, liteBansStatus));
         });
     }
 
@@ -156,7 +155,7 @@ public class PlayerCommand extends BaseCommand {
             return new LiteBansStatus(type, ban, mute);
 
         } catch (Exception e) {
-            Bukkit.getLogger().warning("[TheSandboxCore] Failed to query LiteBans for " + uuid + ": " + e.getMessage());
+            Logger.getLogger("TheSandboxCore").warning("[TheSandboxCore] Failed to query LiteBans for " + uuid + ": " + e.getMessage());
             return new LiteBansStatus(LiteBansStatus.StatusType.ERROR, null, null);
         }
     }
@@ -287,21 +286,12 @@ public class PlayerCommand extends BaseCommand {
         }
 
         // Build visible status text
-        String visibleStatus;
-        switch (status.type) {
-            case BANNED_AND_MUTED:
-                visibleStatus = "&cBANNED &9MUTED";
-                break;
-            case BANNED:
-                visibleStatus = "&cBANNED";
-                break;
-            case MUTED:
-                visibleStatus = "&9MUTED";
-                break;
-            default:
-                visibleStatus = "&7Unknown";
-                break;
-        }
+        String visibleStatus = switch (status.type) {
+            case BANNED_AND_MUTED -> "&cBANNED &9MUTED";
+            case BANNED -> "&cBANNED";
+            case MUTED -> "&9MUTED";
+            default -> "&7Unknown";
+        };
 
         return ComponentBuilder.legacy(visibleStatus)
                 .hoverComponent(hover.build())
@@ -320,7 +310,8 @@ public class PlayerCommand extends BaseCommand {
      * Gets the max health of a player using the non-deprecated Attribute API.
      */
     private static double getMaxHealth(Player player) {
-        return player.getAttribute(Attribute.MAX_HEALTH).getBaseValue();
+        var attribute = player.getAttribute(Attribute.MAX_HEALTH);
+        return attribute != null ? attribute.getBaseValue() : 20.0;
     }
 
     private void listPlayers(CommandSender sender) {
@@ -418,7 +409,7 @@ public class PlayerCommand extends BaseCommand {
      * Essentials' logout location is used as a fallback.
      */
     private void teleport(CommandSender sender, String label, String[] args) {
-        if (!hasStaffPermission(sender)) {
+        if (lacksStaffPermission(sender)) {
             return;
         }
 
@@ -440,7 +431,7 @@ public class PlayerCommand extends BaseCommand {
 
         String targetName = target.getName() != null ? target.getName() : args[1];
         boolean online = false;
-        Location destination = null;
+        Location destination;
 
         Player onlineTarget = target.getPlayer();
         if (onlineTarget != null && onlineTarget.isOnline()) {
@@ -475,6 +466,7 @@ public class PlayerCommand extends BaseCommand {
         return rank != null ? rank.color + rank.displayName : "&7Player";
     }
 
+    @SuppressWarnings("ConstantValue") // The compile-time PremiumVanish stub always returns false; the real API is present at runtime.
     private boolean isVanished(Player player) {
         try {
             return VanishAPI.isInvisible(player);

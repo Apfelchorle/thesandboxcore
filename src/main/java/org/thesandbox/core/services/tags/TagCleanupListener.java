@@ -57,10 +57,10 @@ public class TagCleanupListener implements Listener {
             return;
         }
 
-        cleanupUserPrefix(uuid, username, "quit");
+        cleanupUserPrefix(uuid, username);
     }
 
-    private void cleanupUserPrefix(UUID uuid, String username, String phase) {
+    private void cleanupUserPrefix(UUID uuid, String username) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
                 LuckPerms lp = LuckPermsProvider.get();
@@ -98,7 +98,7 @@ public class TagCleanupListener implements Listener {
         int removed = 0;
         for (Node n : toRemove) {
             DataMutateResult res = map.remove(n);
-            if (res != null && res.wasSuccessful()) {
+            if (res.wasSuccessful()) {
                 removed++;
             }
         }
@@ -123,7 +123,7 @@ public class TagCleanupListener implements Listener {
             return;
         }
 
-        cleanupUserPrefix(uuid, username, "join");
+        cleanupUserPrefix(uuid, username);
     }
 
     /**
@@ -164,7 +164,7 @@ public class TagCleanupListener implements Listener {
             Guild guild = guildManager.guildOf(uuid);
             if (guild == null) return null;
             String prefix = guild.visiblePrefixFor(uuid);
-            return (prefix == null || prefix.isBlank()) ? null : prefix;
+            return prefix.isBlank() ? null : prefix;
         } catch (Throwable ignored) {
             return null;
         }

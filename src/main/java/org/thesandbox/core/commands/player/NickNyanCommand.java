@@ -8,7 +8,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.List;
@@ -78,9 +77,7 @@ public class NickNyanCommand extends BaseCommand {
 
         // Allow &-codes in input (only matters when user supplied an arg).
         String coloredAttempt = Colors.color(baseInput);
-        String visible = Colors.strip(coloredAttempt);
-        if (visible == null) visible = "";
-        visible = visible.trim();
+        String visible = Colors.strip(coloredAttempt).trim();
 
         // Validate allowed characters and visible length
         if (!visible.matches("^[a-zA-Z0-9_]+$")) {
@@ -104,7 +101,7 @@ public class NickNyanCommand extends BaseCommand {
             } catch (Throwable ignored) {
             }
             if (p.getName().equalsIgnoreCase(visible)
-                    || (otherDisplay != null && otherDisplay.trim().equalsIgnoreCase(visible))
+                    || otherDisplay.trim().equalsIgnoreCase(visible)
                     || (otherNick != null && Colors.strip(otherNick).trim().equalsIgnoreCase(visible))) {
                 sendError(sender, Colors.RED + "That nickname is already in use.");
                 return true;

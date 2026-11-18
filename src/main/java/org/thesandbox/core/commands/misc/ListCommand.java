@@ -15,7 +15,6 @@ import java.util.EnumSet;
 import java.util.List;
 
 public class ListCommand extends BaseCommand {
-    private final TheSandboxCore core;
     private final LoginService login;
 
     // Staff vs Player buckets as defined in your LoginService.Rank
@@ -26,7 +25,6 @@ public class ListCommand extends BaseCommand {
     );
 
     public ListCommand(TheSandboxCore core) {
-        this.core = core;
         this.login = core.getLoginService();
     }
 
@@ -48,7 +46,7 @@ public class ListCommand extends BaseCommand {
             }
 
             LoginService.Rank rank = login.getRank(p);
-            String entry = formatEntry(p, rank, vanished && viewerIsStaff);
+            String entry = formatEntry(p, rank, vanished);
 
             if (STAFF_RANKS.contains(rank)) {
                 staffLines.add(entry);

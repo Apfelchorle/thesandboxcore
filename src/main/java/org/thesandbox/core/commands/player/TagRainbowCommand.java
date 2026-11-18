@@ -12,12 +12,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
-import org.thesandbox.core.services.tags.TagService;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
@@ -33,12 +30,9 @@ public class TagRainbowCommand extends BaseCommand {
     private static final int MAX_VISIBLE_LEN = 30;  // visible chars only (no color codes)
 
     private final JavaPlugin plugin;
-    @SuppressWarnings("unused")
-    private final TagService tagService; // saving handled via /tag save, not here
 
-    public TagRainbowCommand(JavaPlugin plugin, TagService tagService) {
+    public TagRainbowCommand(JavaPlugin plugin) {
         this.plugin = plugin;
-        this.tagService = tagService;
     }
 
     @Override
@@ -76,7 +70,7 @@ public class TagRainbowCommand extends BaseCommand {
                     baseVisible = stripAllColors(legacy).trim();
                 } else {
                     // No args -> use current tag at managed priority
-                    String current = currentPrefixAtPriority(user, PREFIX_PRIORITY);
+                    String current = currentPrefixAtPriority(user);
                     if (current == null || current.isEmpty()) {
                         sendUsage(p, Colors.RED + "Usage: /tagrainbow <tag>");
                         return;
@@ -172,11 +166,11 @@ public class TagRainbowCommand extends BaseCommand {
     }
 
     /**
-     * Returns the current prefix value at a given priority, or null if none.
+     * Returns the current prefix value at the managed priority, or null if none.
      */
-    private static String currentPrefixAtPriority(User user, int priority) {
+    private static String currentPrefixAtPriority(User user) {
         for (Node n : user.data().toCollection()) {
-            if (n instanceof PrefixNode pn && pn.getPriority() == priority) {
+            if (n instanceof PrefixNode pn && pn.getPriority() == PREFIX_PRIORITY) {
                 return pn.getMetaValue();
             }
         }
@@ -187,7 +181,7 @@ public class TagRainbowCommand extends BaseCommand {
      * Classic rainbow across visible characters.
      */
     private static String rainbowify(String text) {
-        // ROYGBIV using closest Bukkit colors
+        // ROYGBIV using the closest Bukkit colors
         String[] colors = new String[]{
                 Colors.RED, Colors.GOLD, Colors.YELLOW,
                 Colors.GREEN, Colors.BLUE, Colors.DARK_PURPLE, Colors.LIGHT_PURPLE
@@ -274,10 +268,10 @@ public class TagRainbowCommand extends BaseCommand {
 
     private List<String> getTagBlacklist() {
         List<String> list = plugin.getConfig().getStringList("tags.blacklist");
-        if (list == null || list.isEmpty()) {
+        if (list.isEmpty()) {
             list = plugin.getConfig().getStringList("tag.blacklist");
         }
-        return (list != null) ? list : Collections.emptyList();
+        return list;
     }
 
     private static String stripLeadingSpaces(String s) {

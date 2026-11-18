@@ -1,17 +1,10 @@
 package org.thesandbox.core.services.chat;
 
-import org.bukkit.plugin.java.JavaPlugin;
-
 /**
  * Simple in-memory flag for global chat mute.
  */
 public class ManageChatService {
-    private final JavaPlugin plugin;
     private volatile boolean muted = false;
-
-    public ManageChatService(JavaPlugin plugin) {
-        this.plugin = plugin;
-    }
 
     public boolean isMuted() {
         return muted;

@@ -5,9 +5,7 @@ import org.bukkit.GameMode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.ArrayList;
@@ -16,13 +14,6 @@ import java.util.List;
 
 public class GamemodeCommand extends BaseCommand
 {
-    private final JavaPlugin plugin;
-
-    public GamemodeCommand(JavaPlugin plugin)
-    {
-        this.plugin = plugin;
-    }
-
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args)
     {
@@ -141,7 +132,7 @@ public class GamemodeCommand extends BaseCommand
                     names.add(name);
                 }
             }
-            Collections.sort(names, String.CASE_INSENSITIVE_ORDER);
+            names.sort(String.CASE_INSENSITIVE_ORDER);
             return names;
         }
 
@@ -154,30 +145,13 @@ public class GamemodeCommand extends BaseCommand
     {
         String in = input.toLowerCase();
 
-        switch (in)
+        return switch (in)
         {
-            case "0":
-            case "s":
-            case "survival":
-                return GameMode.SURVIVAL;
-
-            case "1":
-            case "c":
-            case "creative":
-                return GameMode.CREATIVE;
-
-            case "2":
-            case "a":
-            case "adventure":
-                return GameMode.ADVENTURE;
-
-            case "3":
-            case "sp":
-            case "spectator":
-                return GameMode.SPECTATOR;
-
-            default:
-                return null;
-        }
+            case "0", "s", "survival" -> GameMode.SURVIVAL;
+            case "1", "c", "creative" -> GameMode.CREATIVE;
+            case "2", "a", "adventure" -> GameMode.ADVENTURE;
+            case "3", "sp", "spectator" -> GameMode.SPECTATOR;
+            default -> null;
+        };
     }
 }

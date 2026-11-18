@@ -19,8 +19,8 @@ import java.util.*;
  */
 public abstract class BaseCommand implements ISubCommand {
 
-    protected boolean hasStaffPermission(CommandSender sender) {
-        return hasPermission(sender, "sandbox.staff");
+    protected boolean lacksStaffPermission(CommandSender sender) {
+        return !hasPermission(sender, "sandbox.staff");
     }
 
     /**
@@ -60,8 +60,8 @@ public abstract class BaseCommand implements ISubCommand {
         return hasPermission(sender, "sandbox.admin");
     }
 
-    protected boolean hasSuperuserPermission(CommandSender sender) {
-        return hasPermission(sender, "sandbox.superuser");
+    protected boolean lacksSuperuserPermission(CommandSender sender) {
+        return !hasPermission(sender, "sandbox.superuser");
     }
 
     protected void sendCommand(CommandSender sender, String message) {

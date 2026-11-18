@@ -162,7 +162,7 @@ public class ClearInventoryCommand extends BaseCommand
 
             if (matches.size() == 1)
             {
-                target = matches.get(0);
+                target = matches.getFirst();
             }
         }
 
@@ -238,8 +238,8 @@ public class ClearInventoryCommand extends BaseCommand
             }
             catch (SQLException ex)
             {
-                plugin.getLogger().severe("[ClearInventory] Failed to setup/load MySQL confirmation settings.");
-                ex.printStackTrace();
+                plugin.getLogger().log(java.util.logging.Level.SEVERE,
+                        "[ClearInventory] Failed to setup/load MySQL confirmation settings.", ex);
             }
         });
     }
@@ -276,8 +276,8 @@ public class ClearInventoryCommand extends BaseCommand
             }
             catch (SQLException ex)
             {
-                plugin.getLogger().severe("[ClearInventory] Failed to save confirmation setting for " + uuid + ".");
-                ex.printStackTrace();
+                plugin.getLogger().log(java.util.logging.Level.SEVERE,
+                        "[ClearInventory] Failed to save confirmation setting for " + uuid + ".", ex);
             }
         });
     }
@@ -290,7 +290,7 @@ public class ClearInventoryCommand extends BaseCommand
     private void clearInv(Player player)
     {
         player.getInventory().clear();
-        player.getInventory().setArmorContents(null);
+        player.getInventory().setArmorContents(new org.bukkit.inventory.ItemStack[4]);
         player.getInventory().setItemInOffHand(null);
     }
 

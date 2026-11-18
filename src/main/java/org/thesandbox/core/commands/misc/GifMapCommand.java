@@ -57,7 +57,8 @@ public class GifMapCommand extends BaseCommand {
         // Handle /gifmap example
         if (args[0].equalsIgnoreCase("example")) {
             logInfo(player.getName() + " ran /gifmap example");
-            return processGifUrl(player, EXAMPLE_GIF_URL, "example GIF");
+            processGifUrl(player, EXAMPLE_GIF_URL, "example GIF");
+            return true;
         }
 
         // Extract URL from arguments
@@ -89,7 +90,8 @@ public class GifMapCommand extends BaseCommand {
             return true;
         }
 
-        return processGifUrl(player, url, "GIF");
+        processGifUrl(player, url, "GIF");
+        return true;
     }
 
     private void logInfo(String message) {
@@ -110,14 +112,14 @@ public class GifMapCommand extends BaseCommand {
     /**
      * Central processing: validates service availability, starts download, handles the result.
      */
-    private boolean processGifUrl(Player player, String url, String description) {
+    private void processGifUrl(Player player, String url, String description) {
         // Get the animated map service
         AnimatedMapService mapService = getAnimatedMapService();
         if (mapService == null) {
-            logSevere("AnimatedMapService is not available — Discord bridge may not be initialized");
+            plugin.getLogger().severe("[GifMap] AnimatedMapService is not available - Discord bridge may not be initialized");
             player.sendMessage(Component.text(
                     "[GifMap] Animated map service is not available. The plugin may still be loading.", NamedTextColor.RED));
-            return true;
+            return;
         }
 
         player.sendMessage(Component.text(
@@ -127,7 +129,7 @@ public class GifMapCommand extends BaseCommand {
         // Download the GIF and create the map asynchronously
         downloadAndCreateMap(player, url, mapService);
 
-        return true;
+        return;
     }
 
     private void logFine(String message) {
@@ -151,14 +153,9 @@ public class GifMapCommand extends BaseCommand {
 
     private AnimatedMapService getAnimatedMapService() {
         if (plugin.getDiscord() != null) {
-            AnimatedMapService service = plugin.getDiscord().getAnimatedMapService();
-            return service;
+            return plugin.getDiscord().getAnimatedMapService();
         }
         return null;
-    }
-
-    private void logSevere(String message) {
-        plugin.getLogger().severe("[GifMap] " + message);
     }
 
     // ==================== Logging helpers ====================

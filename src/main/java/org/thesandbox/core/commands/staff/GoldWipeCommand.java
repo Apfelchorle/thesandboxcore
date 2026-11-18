@@ -18,7 +18,7 @@ public class GoldWipeCommand extends BaseCommand {
 
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        if (!hasStaffPermission(sender)) {
+        if (lacksStaffPermission(sender)) {
             return true;
         }
 

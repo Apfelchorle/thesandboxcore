@@ -35,7 +35,7 @@ public class CommandPreListener implements Listener {
     }
 
     /**
-     * Runs first so a blocked player's command is cancelled before other plugins see it.
+     * Runs first so a blocked player's command is canceled before other plugins see it.
      */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onCommandBlock(PlayerCommandPreprocessEvent event) {
@@ -48,7 +48,7 @@ public class CommandPreListener implements Listener {
 
     /**
      * Command spy runs at MONITOR so it only reports commands that actually went through
-     * (before, commands cancelled by other plugins were still broadcast to staff).
+     * (before, commands canceled by other plugins were still broadcast to staff).
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onCommandPre(PlayerCommandPreprocessEvent event) {

@@ -19,8 +19,8 @@ public class DataManager {
     public DataManager(TheSandboxCore plugin) {
         this.plugin = plugin;
         this.playerFolder = new File(plugin.getDataFolder(), "player_data");
-        if (!playerFolder.exists()) {
-            playerFolder.mkdirs();
+        if (!playerFolder.exists() && !playerFolder.mkdirs()) {
+            plugin.getLogger().warning("Could not create player data folder: " + playerFolder);
         }
     }
 

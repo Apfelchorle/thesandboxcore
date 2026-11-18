@@ -71,7 +71,7 @@ public class CoinsCommand extends BaseCommand {
                 return true;
             }
             case "set" -> {
-                if (!hasStaffPermission(sender)) {
+                if (lacksStaffPermission(sender)) {
                     return true;
                 }
                 if (args.length < 3) {
@@ -96,7 +96,7 @@ public class CoinsCommand extends BaseCommand {
                 return true;
             }
             case "take" -> {
-                if (!hasStaffPermission(sender)) {
+                if (lacksStaffPermission(sender)) {
                     return true;
                 }
                 if (args.length < 3) {
@@ -112,7 +112,7 @@ public class CoinsCommand extends BaseCommand {
                 return true;
             }
             case "add" -> {
-                if (!hasStaffPermission(sender)) {
+                if (lacksStaffPermission(sender)) {
                     return true;
                 }
                 if (args.length < 3) {

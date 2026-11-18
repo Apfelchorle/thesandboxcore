@@ -19,7 +19,6 @@ import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.services.items.util.Item;
 import org.thesandbox.core.services.items.util.ItemKeys;
 import org.thesandbox.core.data.PlayerDataKeys;
-import org.thesandbox.core.data.PlayerDataListener;
 
 import java.util.Arrays;
 import java.util.List;
@@ -27,12 +26,10 @@ import java.util.List;
 public class GrapplingHookItem implements Item, Listener {
 
     private static final String NAME = PlayerDataKeys.GRAPPLING_HOOK;
-    private final PlayerDataListener playerDataListener;
     private final TheSandboxCore plugin;
     private final ItemKeys keys;
 
-    public GrapplingHookItem(PlayerDataListener playerDataListener, TheSandboxCore plugin, ItemKeys keys) {
-        this.playerDataListener = playerDataListener;
+    public GrapplingHookItem(TheSandboxCore plugin, ItemKeys keys) {
         this.plugin = plugin;
         this.keys = keys;
         Bukkit.getPluginManager().registerEvents(this, plugin);
@@ -47,7 +44,7 @@ public class GrapplingHookItem implements Item, Listener {
                 .decoration(TextDecoration.ITALIC, false));
 
         meta.lore(List.of(
-                Component.text("Grapple like your favourite fictional character.",
+                Component.text("Grapple like your favorite fictional character.",
                         TextColor.color(46, 46, 46),
                         TextDecoration.ITALIC)
         ));

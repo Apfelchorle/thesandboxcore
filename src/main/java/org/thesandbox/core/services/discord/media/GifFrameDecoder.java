@@ -180,9 +180,7 @@ public final class GifFrameDecoder {
      */
     private static int clampDelay(int ms) {
         if (ms <= 0) return 100; // Treat 0-delay as 100ms
-        if (ms < 50) return 50;
-        if (ms > 1000) return 1000;
-        return ms;
+        return Math.clamp(ms, 50, 1000);
     }
 
     private static Result empty() {

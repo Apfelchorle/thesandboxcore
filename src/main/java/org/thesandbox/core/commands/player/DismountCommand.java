@@ -29,7 +29,7 @@ public class DismountCommand extends BaseCommand {
 
     /**
      * Survival builds do not register custom items or the dragon controller,
-     * so keep the basic force-dismount behaviour available without them.
+     * so keep the basic force-dismount behavior available without them.
      */
     public DismountCommand() {
         this(null, null);

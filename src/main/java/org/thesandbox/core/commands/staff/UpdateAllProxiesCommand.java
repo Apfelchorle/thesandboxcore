@@ -28,7 +28,7 @@ public class UpdateAllProxiesCommand extends BaseCommand {
 
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        if (!hasSuperuserPermission(sender)) {
+        if (lacksSuperuserPermission(sender)) {
             return true;
         }
 

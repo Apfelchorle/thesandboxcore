@@ -41,7 +41,7 @@ public class LoginMessageCommand extends BaseCommand {
             return true;
         }
 
-        if (!ownsLoginMessages(player)) {
+        if (doesNotOwnLoginMessages(player)) {
             player.sendMessage(Component.text("You don't own the Login Messages item! Buy it from /shop.", NamedTextColor.RED));
             return true;
         }
@@ -60,8 +60,8 @@ public class LoginMessageCommand extends BaseCommand {
         return true;
     }
 
-    private boolean ownsLoginMessages(Player player) {
-        return !"not_owned".equalsIgnoreCase(loginMessages.GetLoginMessagesState(player));
+    private boolean doesNotOwnLoginMessages(Player player) {
+        return "not_owned".equalsIgnoreCase(loginMessages.GetLoginMessagesState(player));
     }
 
     private void show(Player player, String label) {
@@ -82,11 +82,11 @@ public class LoginMessageCommand extends BaseCommand {
     }
 
     private void clear(Player player) {
-        if (!loginMessages.SetLoginMessage(player, "")) {
+        if (loginMessages.setLoginMessage(player, "")) {
+            player.sendMessage(Component.text("Your login message has been cleared.", NamedTextColor.GOLD));
+        } else {
             player.sendMessage(Component.text("Your login message could not be cleared. Please try again.", NamedTextColor.RED));
-            return;
         }
-        player.sendMessage(Component.text("Your login message has been cleared.", NamedTextColor.GOLD));
     }
 
     private void set(Player player, String label, String[] args, int start) {
@@ -112,13 +112,12 @@ public class LoginMessageCommand extends BaseCommand {
             return;
         }
 
-        if (!loginMessages.SetLoginMessage(player, sanitized)) {
+        if (loginMessages.setLoginMessage(player, sanitized)) {
+            player.sendMessage(Component.text("Login message set to: ", NamedTextColor.GREEN));
+            player.sendMessage(Colors.component(sanitized));
+        } else {
             player.sendMessage(Component.text("Your login message could not be saved. Please try again.", NamedTextColor.RED));
-            return;
         }
-
-        player.sendMessage(Component.text("Login message set to: ", NamedTextColor.GREEN));
-        player.sendMessage(Colors.component(sanitized));
     }
 
     private void sendUsage(Player player, String label) {
@@ -134,12 +133,12 @@ public class LoginMessageCommand extends BaseCommand {
         if (player.hasPermission("sandbox.staff")) {
             return raw;
         }
-        return raw.replaceAll("(?i)[&\u00a7]k", "");
+        return raw.replaceAll("(?i)[&§]k", "");
     }
 
     @Override
     public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (!(sender instanceof Player player) || args.length == 0 || !ownsLoginMessages(player)) {
+        if (!(sender instanceof Player player) || args.length == 0 || doesNotOwnLoginMessages(player)) {
             return List.of();
         }
 

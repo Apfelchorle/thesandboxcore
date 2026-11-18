@@ -185,12 +185,7 @@ public class AnimatedMapService implements AutoCloseable {
             return null;
         }
 
-        // Create a virtual MapView — Paper requires a non-null world; use the player's world
-        if (player.getWorld() == null) {
-            renderer.dispose();
-            plugin.getLogger().warning("[GifMap] Player " + player.getName() + " has no world — cannot create map.");
-            return null;
-        }
+        // Create a virtual MapView — Paper requires a world, and an online player always has one.
         MapView mapView = Bukkit.createMap(player.getWorld());
         mapView.setLocked(true);
         mapView.setScale(MapView.Scale.CLOSEST);
@@ -234,6 +229,7 @@ public class AnimatedMapService implements AutoCloseable {
             if (!(hand.getItemMeta() instanceof MapMeta meta) || !meta.hasMapView()) continue;
 
             MapView mapView = meta.getMapView();
+            if (mapView == null) continue;
             removeHolder(mapView.getId(), uuid);
         }
     }
@@ -282,24 +278,6 @@ public class AnimatedMapService implements AutoCloseable {
             }
             return false;
         });
-    }
-
-    /**
-     * Returns the number of currently active animated maps.
-     */
-    public int getActiveMapCount() {
-        return activeMaps.size();
-    }
-
-    /**
-     * Returns the active maps tracking map.
-     */
-    Map<Integer, AnimatedMapEntry> getActiveMaps() {
-        return activeMaps;
-    }
-
-    private void debug(String message, Throwable throwable) {
-        plugin.getLogger().log(Level.FINE, "[GifMap] " + message, throwable);
     }
 
     @Override

@@ -68,6 +68,7 @@ public class LoginService {
     /**
      * Kept for the existing plugin lifecycle. No database setup is needed anymore.
      */
+    @SuppressWarnings("EmptyMethod")
     public void init() {
         // Custom login messages were removed. Rank lookup is permission-based only.
     }
@@ -75,6 +76,7 @@ public class LoginService {
     /**
      * Kept for the existing plugin lifecycle.
      */
+    @SuppressWarnings("EmptyMethod")
     public void shutdown() {
         // No resources to close.
     }
@@ -91,7 +93,7 @@ public class LoginService {
     }
 
     /**
-     * Highest → lowest permissions check.
+     * Checks permissions from the highest rank to the lowest.
      */
     public Rank getRank(Player p) {
         return Rank.fromPermissions(p);

@@ -5,7 +5,6 @@ import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.io.File;
@@ -17,16 +16,16 @@ final class WorldTeleportHelper {
     private WorldTeleportHelper() {
     }
 
-    static boolean teleport(CommandSender sender, String worldName, String displayName) {
+    static void teleport(CommandSender sender, String worldName, String displayName) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + "This command can only be used in-game."));
-            return true;
+            return;
         }
 
         World world = resolveWorld(worldName);
         if (world == null) {
             player.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + displayName + " is not loaded."));
-            return true;
+            return;
         }
 
         if (player.teleport(world.getSpawnLocation())) {
@@ -34,7 +33,7 @@ final class WorldTeleportHelper {
         } else {
             player.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + "Failed to teleport."));
         }
-        return true;
+        return;
     }
 
     static World resolveWorld(String worldName) {

@@ -10,7 +10,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.thesandbox.core.commands.BaseCommand;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.SplittableRandom;
 
@@ -58,12 +57,6 @@ public class DeafenCommand extends BaseCommand
         }
 
         return true;
-    }
-
-    @Override
-    public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args)
-    {
-        return Collections.emptyList();
     }
 
     /* ---------------- internals ---------------- */

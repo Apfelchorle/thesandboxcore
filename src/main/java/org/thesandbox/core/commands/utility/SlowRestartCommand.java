@@ -1,6 +1,5 @@
 package org.thesandbox.core.commands.utility;
 
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Sound;
 import org.bukkit.command.Command;
@@ -10,7 +9,6 @@ import org.bukkit.scheduler.BukkitTask;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.commands.CommandCenter;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.util.Utils;
 import org.thesandbox.core.services.login.LoginService;
 
@@ -23,8 +21,7 @@ import java.util.regex.Pattern;
 
 /**
  * /slowrestart [time] [reason...] | cancel | status
- *
- * Schedules a server restart with a visible countdown. Everything is configurable:
+ * <p>Schedules a server restart with a visible countdown. Everything is configurable:
  * <pre>
  * slowrestart:
  *   default-seconds: 10   # used when no time is given
@@ -78,18 +75,21 @@ public class SlowRestartCommand extends BaseCommand {
                 first.equals("abort") ||
                 first.equals("stop")
             ) {
-                return cancel(sender);
+                cancel(sender);
+                return true;
             }
             if (first.equals("status") || first.equals("info")) {
-                return status(sender);
+                status(sender);
+                return true;
             }
         }
-        return schedule(sender, label, args);
+        schedule(sender, label, args);
+        return true;
     }
 
     // ------------------------------------------------------------------ //
 
-    private boolean schedule(CommandSender sender, String label, String[] args) {
+    private void schedule(CommandSender sender, String label, String[] args) {
         if (isScheduled()) {
             sendError(
                 sender,
@@ -99,19 +99,17 @@ public class SlowRestartCommand extends BaseCommand {
                     label +
                     " cancel first."
             );
-            return true;
+            return;
         }
 
         int max = Math.max(
             1,
             plugin.getConfig().getInt("slowrestart.max-seconds", FALLBACK_MAX_SECONDS)
         );
-        int seconds = Math.min(
-            max,
-            Math.max(
-                1,
-                plugin.getConfig().getInt("slowrestart.default-seconds", FALLBACK_DEFAULT_SECONDS)
-            )
+        int seconds = Math.clamp(
+            plugin.getConfig().getInt("slowrestart.default-seconds", FALLBACK_DEFAULT_SECONDS),
+            1,
+            max
         );
         int reasonStart = 0;
 
@@ -126,7 +124,7 @@ public class SlowRestartCommand extends BaseCommand {
                     sender,
                     "\"" + args[0] + "\" is not a valid time. Examples: 30, 90s, 5m, 1h30m."
                 );
-                return true;
+                return;
             }
         }
 
@@ -135,7 +133,7 @@ public class SlowRestartCommand extends BaseCommand {
                 sender,
                 "Time must be between 1 second and " + formatDuration(max) + "."
             );
-            return true;
+            return;
         }
 
         String rawReason = String.join(
@@ -169,22 +167,22 @@ public class SlowRestartCommand extends BaseCommand {
             20L,
             20L
         );
-        return true;
+        return;
     }
 
-    private boolean cancel(CommandSender sender) {
+    private void cancel(CommandSender sender) {
         if (!isScheduled()) {
             sendError(sender, "No restart is currently scheduled.");
-            return true;
+            return;
         }
         String who = (sender instanceof Player) ? sender.getName() : "Console";
         stopTask();
-        broadcast(who + " - Cancelled the scheduled server restart.");
-        Utils.blog("Restart cancelled", "By : " + who);
-        return true;
+        broadcast(who + " - Canceled the scheduled server restart.");
+        Utils.blog("Restart canceled", "By : " + who);
+        return;
     }
 
-    private boolean status(CommandSender sender) {
+    private void status(CommandSender sender) {
         if (!isScheduled()) {
             sendCommand(sender, "No restart is scheduled.");
         } else {
@@ -198,7 +196,7 @@ public class SlowRestartCommand extends BaseCommand {
                     ")."
             );
         }
-        return true;
+        return;
     }
 
     // ------------------------------------------------------------------ //
@@ -278,7 +276,7 @@ public class SlowRestartCommand extends BaseCommand {
         StringBuilder sb = new StringBuilder();
         if (h > 0) sb.append(h).append(h == 1 ? " hour " : " hours ");
         if (m > 0) sb.append(m).append(m == 1 ? " minute " : " minutes ");
-        if (s > 0 || sb.length() == 0) {
+        if (s > 0 || sb.isEmpty()) {
             sb.append(s).append(s == 1 ? " second" : " seconds");
         }
         return sb.toString().trim();

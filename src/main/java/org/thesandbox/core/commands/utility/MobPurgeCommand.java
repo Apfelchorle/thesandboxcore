@@ -8,9 +8,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.ArrayList;
@@ -19,13 +17,6 @@ import java.util.List;
 
 public class MobPurgeCommand extends BaseCommand
 {
-    private final JavaPlugin plugin;
-
-    public MobPurgeCommand(JavaPlugin plugin)
-    {
-        this.plugin = plugin;
-    }
-
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args)
     {

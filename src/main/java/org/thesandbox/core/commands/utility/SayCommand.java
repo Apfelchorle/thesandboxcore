@@ -7,7 +7,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.util.Utils;
 import org.thesandbox.core.util.colors.Colors;
 
@@ -31,7 +30,7 @@ public class SayCommand extends BaseCommand
         final String coloredMessage = Utils.AdventureAPI(rawMessage);
 
         final String senderName = (sender instanceof Player p) ? p.getName() : "CONSOLE";
-        //refrence message :  • Server » usfl » test
+        // Example layout: [Server] usfl -> test
         final String prefix = Utils.AdventureAPI("&6" + senderName + "&r&8 » &r");
 
         // Detect @everyone (case-insensitive)
@@ -44,17 +43,14 @@ public class SayCommand extends BaseCommand
             // Highlight @everyone for ALL viewers (yellow)
             if (pingEveryone)
             {
-                perViewer = highlightInsensitive(perViewer, "@everyone",
-                        Colors.YELLOW, Colors.LIGHT_PURPLE);
+                perViewer = highlightInsensitive(perViewer, "@everyone");
             }
 
             // Highlight THIS viewer's @Name (yellow)
-            perViewer = highlightInsensitive(perViewer, "@" + viewer.getName(),
-                    Colors.YELLOW, Colors.LIGHT_PURPLE);
+            perViewer = highlightInsensitive(perViewer, "@" + viewer.getName());
 
             // Highlight THIS viewer's bare Name (yellow)
-            perViewer = highlightInsensitive(perViewer, viewer.getName(),
-                    Colors.YELLOW, Colors.LIGHT_PURPLE);
+            perViewer = highlightInsensitive(perViewer, viewer.getName());
 
             // Send message (baseline magenta remains unless sender’s & codes override it)
             viewer.sendMessage(org.thesandbox.core.commands.MessageService.plain(org.thesandbox.core.commands.MessageService.legacy(org.thesandbox.core.commands.MessageService.Prefix.SERVER, "") + prefix + perViewer));
@@ -133,11 +129,10 @@ public class SayCommand extends BaseCommand
      * Case-insensitive highlight of all occurrences of 'term'.
      * - If 'term' contains non-word chars (like '@'), we do a plain case-insensitive find.
      * - Otherwise we use word boundaries so "Ann" doesn't match "Annika".
-     * Inserts startColor before the match and resetColor after, preserving surrounding Colors.
+     * Inserts the highlight colors before and after the match, preserving surrounding Colors.
      * Runs after color-code translation.
      */
-    private static String highlightInsensitive(String input, String term,
-                                               String startColor, String resetColor)
+    private static String highlightInsensitive(String input, String term)
     {
         if (input == null || term == null || term.isEmpty()) return input;
 
@@ -147,12 +142,12 @@ public class SayCommand extends BaseCommand
         String pattern = hasNonWord ? "(?i)" + core : "(?i)\\b" + core + "\\b";
 
         Matcher m = Pattern.compile(pattern).matcher(input);
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         while (m.find())
         {
             String matched = m.group();
             m.appendReplacement(sb,
-                    Matcher.quoteReplacement(startColor + matched + resetColor));
+                    Matcher.quoteReplacement(Colors.YELLOW + matched + Colors.LIGHT_PURPLE));
         }
         m.appendTail(sb);
         return sb.toString();

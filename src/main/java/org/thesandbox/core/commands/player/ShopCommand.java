@@ -22,11 +22,12 @@ import org.thesandbox.core.services.economy.BalanceManager;
 import org.thesandbox.core.services.items.*;
 import org.thesandbox.core.services.items.util.Item;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.*;
 
 public class ShopCommand extends BaseCommand implements Listener {
 
-    private final TheSandboxCore plugin;
     private final PlayerDataListener playerDataListener;
     private final BalanceManager balanceManager;
     private final LightningRodItem lightningRodItem;
@@ -41,7 +42,6 @@ public class ShopCommand extends BaseCommand implements Listener {
     private final Map<Integer, Item> shopSlots = new HashMap<>();
 
     public ShopCommand(TheSandboxCore plugin, PlayerDataListener playerDataListener, LightningRodItem lightningRodItem, LoginMessagesItem loginMessagesItem, ClownFishItem clownFishItem, Rideable_Ender_Pearl_Item rideableEnderPearlItem, GrapplingHookItem grapplingHookItem, StackingPotatoItem stackingPotatoItem, FloatBoatItem floatBoatItem, WindRodItem windRodItem) {
-        this.plugin = plugin;
         this.playerDataListener = playerDataListener;
         this.balanceManager = plugin.getBalanceManager();
         this.lightningRodItem = lightningRodItem;
@@ -97,7 +97,6 @@ public class ShopCommand extends BaseCommand implements Listener {
         UUID puuid = player.getUniqueId();
         int balance = balanceManager.getCoins(puuid);
         String item_status = playerDataListener.get(puuid, itemName, "not_owned");
-        if (item_status == null) item_status = "not_owned";
 
         if (owned_statuses.contains(item_status.toLowerCase())) {
             var leftover = player.getInventory().addItem(item.create());
@@ -184,7 +183,8 @@ public class ShopCommand extends BaseCommand implements Listener {
             return stack;
         }
 
-        List<Component> lore = meta.lore() != null ? new ArrayList<>(meta.lore()) : new ArrayList<>();
+        List<Component> existingLore = meta.lore();
+        List<Component> lore = existingLore != null ? new ArrayList<>(existingLore) : new ArrayList<>();
         if (!lore.isEmpty()) {
             lore.add(Component.empty());
         }
@@ -226,7 +226,7 @@ public class ShopCommand extends BaseCommand implements Listener {
         private Inventory inventory;
 
         @Override
-        public Inventory getInventory() {
+        public @NotNull Inventory getInventory() {
             return inventory;
         }
 

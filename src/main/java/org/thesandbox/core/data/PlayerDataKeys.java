@@ -30,7 +30,7 @@ public final class PlayerDataKeys {
     public static final String VANISHED = "Vanished";
     // CHATFILTER
     public static final String CHATFILTER = "ChatFilterStatus";
-    // IP TRACKING : we only store the first octet, i think i should remove this to avoid a tfm typa leak poor ivan they got him thrice
+    // IP tracking: only the first octet is stored so player addresses are not leaked.
     public static final String LAST_IP = "LastIp";
     // RANK TRACKING
     public static final String LAST_RANK = "LastRank";

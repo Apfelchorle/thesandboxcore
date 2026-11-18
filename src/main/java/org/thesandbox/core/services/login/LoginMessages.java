@@ -30,7 +30,7 @@ public class LoginMessages implements Listener {
      * @return {@code false} if the player does not own the Login Messages item,
      * {@code true} once the message has been stored.
      */
-    public boolean SetLoginMessage(Player player, String message) {
+    public boolean setLoginMessage(Player player, String message) {
         String state = GetLoginMessagesState(player);
 
         // Disabled messages can still be edited; only ownership is required.
@@ -70,7 +70,7 @@ public class LoginMessages implements Listener {
         String msg = datalistener.get(player.getUniqueId(), PlayerDataKeys.LOGIN_MESSAGE, "");
 
         if (!"not_owned".equalsIgnoreCase(loginmessages_status)) {
-            return msg == null ? "" : msg;
+            return msg;
         }
         return "";
     }
@@ -79,11 +79,9 @@ public class LoginMessages implements Listener {
         String name = player.getName();
 
 
-        String out = msg
+        return msg
                 .replace("%name%", name)
                 .replace("%rank%", GetRankPrefix(player));
-
-        return out;
     }
 
     public String GetRankPrefix(Player player) {

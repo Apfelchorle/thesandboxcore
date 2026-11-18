@@ -7,12 +7,12 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.ThrownPotion;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.services.moderation.PotionSpyService; // <-- UPDATED PACKAGE
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class PotionSpyCommand extends BaseCommand
 {
@@ -150,7 +150,7 @@ Component m) { s.sendMessage(m); }
     public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args)
     {
         if (args.length == 1) {
-            return List.of("on","off","history").stream()
+            return Stream.of("on","off","history")
                     .filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT)))
                     .collect(Collectors.toList());
         }

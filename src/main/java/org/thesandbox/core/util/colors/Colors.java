@@ -13,7 +13,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Single entry point for legacy colour handling.
+ * Single entry point for legacy color handling.
  *
  * <p>Commands still speak in legacy strings, but every conversion now goes through
  * this class instead of the deprecated {@code ChatColor} API. The section-sign
@@ -22,30 +22,30 @@ import java.util.regex.Pattern;
  */
 public final class Colors {
 
-    public static final String BLACK = "\u00a70";
-    public static final String DARK_BLUE = "\u00a71";
-    public static final String DARK_GREEN = "\u00a72";
-    public static final String DARK_AQUA = "\u00a73";
-    public static final String DARK_RED = "\u00a74";
-    public static final String DARK_PURPLE = "\u00a75";
-    public static final String GOLD = "\u00a76";
-    public static final String GRAY = "\u00a77";
-    public static final String DARK_GRAY = "\u00a78";
-    public static final String BLUE = "\u00a79";
-    public static final String GREEN = "\u00a7a";
-    public static final String AQUA = "\u00a7b";
-    public static final String RED = "\u00a7c";
-    public static final String LIGHT_PURPLE = "\u00a7d";
-    public static final String YELLOW = "\u00a7e";
-    public static final String WHITE = "\u00a7f";
-    public static final String MAGIC = "\u00a7k";
-    public static final String BOLD = "\u00a7l";
-    public static final String STRIKETHROUGH = "\u00a7m";
-    public static final String UNDERLINE = "\u00a7n";
-    public static final String ITALIC = "\u00a7o";
-    public static final String RESET = "\u00a7r";
+    public static final String BLACK = "§0";
+    public static final String DARK_BLUE = "§1";
+    public static final String DARK_GREEN = "§2";
+    public static final String DARK_AQUA = "§3";
+    public static final String DARK_RED = "§4";
+    public static final String DARK_PURPLE = "§5";
+    public static final String GOLD = "§6";
+    public static final String GRAY = "§7";
+    public static final String DARK_GRAY = "§8";
+    public static final String BLUE = "§9";
+    public static final String GREEN = "§a";
+    public static final String AQUA = "§b";
+    public static final String RED = "§c";
+    public static final String LIGHT_PURPLE = "§d";
+    public static final String YELLOW = "§e";
+    public static final String WHITE = "§f";
+    public static final String MAGIC = "§k";
+    public static final String BOLD = "§l";
+    public static final String STRIKETHROUGH = "§m";
+    public static final String UNDERLINE = "§n";
+    public static final String ITALIC = "§o";
+    public static final String RESET = "§r";
     /**
-     * All 16 plain colours, in Bukkit's historical order.
+     * All 16 plain colors, in Bukkit's historical order.
      */
     public static final List<String> LEGACY_COLORS = List.of(
             BLACK, DARK_BLUE, DARK_GREEN, DARK_AQUA,
@@ -71,13 +71,13 @@ public final class Colors {
             NamedTextColor.YELLOW,
             NamedTextColor.WHITE
     );
-    private static final Pattern SECTION_HEX = Pattern.compile("(?i)\u00a7#([0-9a-f]{6})");
+    private static final Pattern SECTION_HEX = Pattern.compile("(?i)§#([0-9a-f]{6})");
     private static final Pattern AMP_HEX = Pattern.compile("(?i)&?#([0-9a-f]{6})");
     private static final Pattern LEGACY_HEX =
-            Pattern.compile("(?i)(?:\u00a7x((?:\u00a7[0-9a-f]){6})|&x((?:&[0-9a-f]){6}))");
+            Pattern.compile("(?i)(?:§x((?:§[0-9a-f]){6})|&x((?:&[0-9a-f]){6}))");
     private static final LegacyComponentSerializer SECTION_SERIALIZER =
             LegacyComponentSerializer.builder()
-                    .character('\u00a7')
+                    .character('§')
                     .hexColors()
                     .useUnusualXRepeatedCharacterHexFormat()
                     .build();
@@ -99,15 +99,15 @@ public final class Colors {
         if (hex == null) return "";
         hex = hex.replace("#", "");
         if (hex.length() != 6 || !hex.matches("(?i)[0-9a-f]{6}")) return "";
-        StringBuilder sb = new StringBuilder("\u00a7x");
+        StringBuilder sb = new StringBuilder("§x");
         for (char c : hex.toCharArray()) {
-            sb.append('\u00a7').append(Character.toUpperCase(c));
+            sb.append('§').append(Character.toUpperCase(c));
         }
         return sb.toString();
     }
 
     /**
-     * Maps a legacy colour string such as {@code §c} to an Adventure colour.
+     * Maps a legacy color string such as {@code §c} to an Adventure color.
      */
     public static NamedTextColor namedColor(String legacy) {
         if (legacy == null || legacy.length() < 2) return NamedTextColor.WHITE;
@@ -132,7 +132,7 @@ public final class Colors {
     }
 
     /**
-     * Maps an RGB value to an Adventure true-colour component colour.
+     * Maps an RGB value to an Adventure true-color component color.
      */
     public static TextColor textColor(int rgb) {
         return TextColor.color(
@@ -143,7 +143,7 @@ public final class Colors {
     }
 
     /**
-     * Finds the closest of Minecraft's 16 legacy chat colours.
+     * Finds the closest of Minecraft's 16 legacy chat colors.
      */
     public static NamedTextColor nearestLegacyColor(int rgb) {
         int red = (rgb >> 16) & 0xFF;
@@ -186,7 +186,7 @@ public final class Colors {
     }
 
     /**
-     * Serialises a legacy or ampersand string into an Adventure component.
+     * Serializes a legacy or ampersand string into an Adventure component.
      */
     public static Component component(String input) {
         if (input == null || input.isEmpty()) return Component.empty();
@@ -196,7 +196,7 @@ public final class Colors {
     /**
      * Converts {@code &}-codes and {@code #RRGGBB}/{@code &#RRGGBB}/{@code §#RRGGBB}
      * into section-sign legacy Colors. The repeated legacy hex form
-     * ({@code &x&R&R&G&G&B&B} / {@code §x§R§R§G§G§B§B}) is normalised as well.
+     * ({@code &x&R&R&G&G&B&B} / {@code §x§R§R§G§G§B§B}) is normalized as well.
      * This replaces {@code ChatColor.translateAlternateColorCodes('&', ...)}.
      */
     public static String color(String input) {
@@ -210,7 +210,7 @@ public final class Colors {
         for (int i = 0; i < out.length(); i++) {
             char c = out.charAt(i);
             if (c == '&' && i + 1 < out.length() && isLegacyCode(out.charAt(i + 1))) {
-                sb.append('\u00a7').append(Character.toLowerCase(out.charAt(i + 1)));
+                sb.append('§').append(Character.toLowerCase(out.charAt(i + 1)));
                 i++;
             } else {
                 sb.append(c);
@@ -224,7 +224,7 @@ public final class Colors {
      */
     private static String replaceLegacyHex(String input) {
         Matcher matcher = LEGACY_HEX.matcher(input);
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         while (matcher.find()) {
             String sequence = matcher.group(1) != null ? matcher.group(1) : matcher.group(2);
             StringBuilder hex = new StringBuilder(6);
@@ -239,7 +239,7 @@ public final class Colors {
 
     private static String replaceHex(String input, Pattern pattern) {
         Matcher matcher = pattern.matcher(input);
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         while (matcher.find()) {
             matcher.appendReplacement(sb, Matcher.quoteReplacement(toLegacyHex(matcher.group(1))));
         }
@@ -251,10 +251,10 @@ public final class Colors {
         return (c >= '0' && c <= '9')
                 || (c >= 'a' && c <= 'f')
                 || (c >= 'k' && c <= 'o')
-                || (c >= 'r' && c <= 'r')
+                || c == 'r'
                 || (c >= 'A' && c <= 'F')
                 || (c >= 'K' && c <= 'O')
-                || (c >= 'R' && c <= 'R');
+                || c == 'R';
     }
 
     /**
@@ -265,14 +265,14 @@ public final class Colors {
     }
 
     /**
-     * Removes legacy colours and hex sequences.
+     * Removes legacy colors and hex sequences.
      */
     public static String strip(String input) {
         if (input == null) return "";
         String out = color(input);
         out = LEGACY_HEX.matcher(out).replaceAll("");
-        out = out.replaceAll("(?i)\u00a7#[0-9A-F]{6}", "");
-        return out.replaceAll("(?i)[\u00a7&][0-9A-FK-OR]", "");
+        out = out.replaceAll("(?i)§#[0-9A-F]{6}", "");
+        return out.replaceAll("(?i)[§&][0-9A-FK-OR]", "");
     }
 
     /**

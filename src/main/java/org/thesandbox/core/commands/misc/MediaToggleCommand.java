@@ -5,7 +5,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.services.discord.DiscordBridge;
 
 import java.util.List;
@@ -24,7 +23,7 @@ public class MediaToggleCommand extends BaseCommand {
 
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        if (!hasStaffPermission(sender)) {
+        if (lacksStaffPermission(sender)) {
             return true;
         }
 

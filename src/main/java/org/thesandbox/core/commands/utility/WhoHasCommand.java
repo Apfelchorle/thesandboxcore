@@ -5,9 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.*;
@@ -15,13 +13,6 @@ import java.util.stream.Collectors;
 
 public class WhoHasCommand extends BaseCommand
 {
-    private final JavaPlugin plugin;
-
-    public WhoHasCommand(JavaPlugin plugin)
-    {
-        this.plugin = plugin;
-    }
-
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args)
     {

@@ -48,7 +48,7 @@ public class ConfigCommand extends BaseCommand {
         switch (sub) {
             case "get" -> handleGet(sender, label, args);
             case "set" -> handleSet(sender, label, args);
-            case "list" -> handleList(sender, label, args);
+            case "list" -> handleList(sender, args);
             case "keys" -> handleKeys(sender);
             default -> sendUsage(sender, String.format(USAGE, label));
         }
@@ -305,7 +305,7 @@ public class ConfigCommand extends BaseCommand {
     // list / keys
     // ------------------------------------------------------------------
 
-    private void handleList(CommandSender sender, String label, String[] args) {
+    private void handleList(CommandSender sender, String[] args) {
         if (args.length == 1 || args[1].equalsIgnoreCase("keys")) {
             handleKeys(sender);
             return;

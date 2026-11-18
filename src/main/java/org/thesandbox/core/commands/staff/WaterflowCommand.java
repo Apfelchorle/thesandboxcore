@@ -9,6 +9,7 @@ import org.thesandbox.core.util.config.PluginConfigManager;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Stream;
 
 /**
  * /waterflow [on|off] – toggles (or sets) whether water and lava can flow.
@@ -26,7 +27,7 @@ public class WaterflowCommand extends BaseCommand {
 
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        if (!hasStaffPermission(sender)) {
+        if (lacksStaffPermission(sender)) {
             return true;
         }
 
@@ -54,7 +55,7 @@ public class WaterflowCommand extends BaseCommand {
     @Override
     public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return List.of("on", "off").stream()
+            return Stream.of("on", "off")
                     .filter(s -> s.startsWith(args[0].toLowerCase(Locale.ROOT)))
                     .toList();
         }

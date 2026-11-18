@@ -77,7 +77,7 @@ public final class DiscordMediaRenderer implements AutoCloseable {
             return completedEmpty();
         }
 
-        MediaItem item = plan.images().get(0);
+        MediaItem item = plan.images().getFirst();
         String key = item.cacheKey() + "|" + settings.cacheSignature();
         Component cached = cache.get(key);
         if (cached != null) {
@@ -97,7 +97,7 @@ public final class DiscordMediaRenderer implements AutoCloseable {
         final CompletableFuture<Optional<Component>> future;
         try {
             future = CompletableFuture
-                    .supplyAsync(() -> renderItem(item, plan.jumpUrl()), executor)
+                    .supplyAsync(() -> renderItem(item), executor)
                     .orTimeout(settings.timeoutMs(), TimeUnit.MILLISECONDS)
                     .exceptionally(throwable -> {
                         debug("render failed for " + item.formatHint() + ": " + throwable.getMessage(), throwable);
@@ -132,7 +132,7 @@ public final class DiscordMediaRenderer implements AutoCloseable {
         }
     }
 
-    private Optional<Component> renderItem(MediaItem item, String jumpUrl) {
+    private Optional<Component> renderItem(MediaItem item) {
         if (item == null || item.downloader() == null) return Optional.empty();
 
         try {
@@ -285,10 +285,10 @@ public final class DiscordMediaRenderer implements AutoCloseable {
             Window authorWindow = null;
             if (authorId != null && !authorId.isBlank()) {
                 authorWindow = authors.computeIfAbsent(authorId, ignored -> new Window());
-                if (!authorWindow.canAllow(now, authorLimit)) return false;
+                if (authorWindow.isRateLimited(now, authorLimit)) return false;
             }
 
-            if (!global.canAllow(now, globalLimit)) return false;
+            if (global.isRateLimited(now, globalLimit)) return false;
 
             global.record(now, globalLimit);
             if (authorWindow != null) {
@@ -306,9 +306,9 @@ public final class DiscordMediaRenderer implements AutoCloseable {
         private long start;
         private int count;
 
-        private boolean canAllow(long now, int limit) {
-            if (limit <= 0) return true;
-            return now - start >= 60_000L || count < limit;
+        private boolean isRateLimited(long now, int limit) {
+            if (limit <= 0) return false;
+            return now - start < 60_000L && count >= limit;
         }
 
         private void record(long now, int limit) {

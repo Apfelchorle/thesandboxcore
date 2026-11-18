@@ -63,12 +63,10 @@ public class PlayerDataListener implements Listener {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
         String ip = Utils.censorIp(getPlayerIp(player)); // fix horrible doxxing issue.
-        if (ip != null) {
-            set(uuid, PlayerDataKeys.LAST_IP, ip);
-        }
+        set(uuid, PlayerDataKeys.LAST_IP, ip);
         // Save the player's current rank so offline lookups show the last-known rank
         String rank = getRankName(player);
-        if (rank != null && !rank.isEmpty()) {
+        if (!rank.isEmpty()) {
             set(uuid, PlayerDataKeys.LAST_RANK, rank);
         }
     }
@@ -96,9 +94,7 @@ public class PlayerDataListener implements Listener {
         data.put(PlayerDataKeys.LAST_LOCATION, encodeLocation(player.getLocation()));
         Map<String, Object> snapshot = new HashMap<>(data);
 
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            dataManager.saveAllData(uuid, snapshot);
-        });
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> dataManager.saveAllData(uuid, snapshot));
     }
 
     private static String encodeLocation(Location location) {
@@ -176,9 +172,7 @@ public class PlayerDataListener implements Listener {
             Map<String, Object> data = playerCache.get(uuid);
             if (data != null) {
                 Map<String, Object> snapshot = new HashMap<>(data);
-                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-                    dataManager.saveAllData(uuid, snapshot);
-                });
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> dataManager.saveAllData(uuid, snapshot));
             }
         }
     }

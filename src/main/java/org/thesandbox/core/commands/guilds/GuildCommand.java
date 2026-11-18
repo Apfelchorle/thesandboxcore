@@ -4,13 +4,10 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.services.guilds.Guild;
 import org.thesandbox.core.services.guilds.GuildManager;
 import org.thesandbox.core.util.colors.Colors;
@@ -20,11 +17,9 @@ import java.util.stream.Collectors;
 
 public final class GuildCommand extends BaseCommand {
 
-    private final JavaPlugin plugin;
     private final GuildManager guilds;
 
-    public GuildCommand(JavaPlugin plugin, GuildManager guilds) {
-        this.plugin = plugin;
+    public GuildCommand(GuildManager guilds) {
         this.guilds = guilds;
     }
 
@@ -37,6 +32,7 @@ public final class GuildCommand extends BaseCommand {
     }
 
     @Override
+    @SuppressWarnings("IfCanBeSwitch") // Linear guard chain with large per-branch bodies reads better than a switch.
     public boolean execute(CommandSender sender, Command cmd, String label, String[] args) {
         if (args.length == 0 || args[0].equalsIgnoreCase("help")) {
             sendHelp(sender, label);
@@ -46,7 +42,8 @@ public final class GuildCommand extends BaseCommand {
         String sub = args[0].toLowerCase(Locale.ROOT);
 
         if (sub.equals("admin")) {
-            return executeAdmin(sender, label, args);
+            executeAdmin(sender, label, args);
+            return true;
         }
 
         if (sub.equals("spy")) {
@@ -366,7 +363,7 @@ public final class GuildCommand extends BaseCommand {
             }
             var res = guilds.toggle(p.getUniqueId(), args[1]);
             switch (res) {
-                case OK -> sendToggles(p, label, guilds.guildOf(p.getUniqueId()));
+                case OK -> sendToggles(p, label, g);
                 case NO_GUILD -> sendError(p, "&cYou are not in a guild.");
                 case NO_PERMISSION ->
                         sendError(p, "&cYou do not have permission to change guild toggles.");
@@ -528,21 +525,22 @@ public final class GuildCommand extends BaseCommand {
             sendError(sender, "&c(SUPERUSER) &7/" + label + " admin <guild> <command>");
     }
 
-    private boolean executeAdmin(CommandSender sender, String label, String[] args) {
+    @SuppressWarnings("IfCanBeSwitch")
+    private void executeAdmin(CommandSender sender, String label, String[] args) {
         if (!isSuperuser(sender)) {
             sendError(sender, "&cNo permission.");
-            return true;
+            return;
         }
         if (args.length < 3) {
             sendUsage(sender, "&cUsage: /" + label + " admin <guild> <command>");
             sendCommand(sender, "&7Example: /" + label + " admin GuildName kick <player>");
-            return true;
+            return;
         }
 
         Guild g = guilds.getGuildByName(args[1]);
         if (g == null) {
             sendError(sender, "&cGuild not found.");
-            return true;
+            return;
         }
 
         String adminSub = args[2].toLowerCase(Locale.ROOT);
@@ -552,13 +550,13 @@ public final class GuildCommand extends BaseCommand {
             guilds.disbandGuild(g);
             sendCommand(sender, "&aDisbanded guild &f" + guildName + "&a.");
             Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, "&cThe guild &f" + guildName + " &chas been disbanded by an admin."));
-            return true;
+            return;
         }
 
         if (adminSub.equals("kick")) {
             if (args.length < 4) {
                 sendUsage(sender, "&cUsage: /" + label + " admin " + g.name() + " kick <player>");
-                return true;
+                return;
             }
             GuildManager.KickResult res = guilds.kickMemberFromGuild(g, args[3]);
             switch (res) {
@@ -575,144 +573,138 @@ public final class GuildCommand extends BaseCommand {
                 case CANNOT_KICK_OWNER ->
                         sendError(sender, "&cYou cannot kick the guild owner.");
             }
-            return true;
+            return;
         }
 
         if (adminSub.equals("tag")) {
             if (args.length < 4) {
                 sendUsage(sender, "&cUsage: /" + label + " admin " + g.name() + " tag <tag>");
-                return true;
+                return;
             }
             String tag = String.join(" ", Arrays.copyOfRange(args, 3, args.length));
             g.setTag(tag);
             guilds.save();
             sendCommand(sender, "&aUpdated &f" + g.name() + "&a's guild tag to &r" + tag);
-            return true;
+            return;
         }
 
         if (adminSub.equals("sethome")) {
             if (!(sender instanceof Player p)) {
                 sendError(sender, "&cOnly players can set a guild home from their location.");
-                return true;
+                return;
             }
             guilds.adminSetHome(g, p.getLocation());
             sendCommand(sender, "&aSet &f" + g.name() + "&a's guild home to your current location.");
-            return true;
+            return;
         }
 
         if (adminSub.equals("delwarp")) {
             if (args.length < 4) {
                 sendUsage(sender, "&cUsage: /" + label + " admin " + g.name() + " delwarp <warp>");
-                return true;
+                return;
             }
             boolean ok = guilds.adminDeleteWarp(g, args[3]);
             if (ok) sendCommand(sender, "&aDeleted guild warp &f" + args[3] + "&a."); else sendError(sender, "&cGuild warp not found.");
-            return true;
+            return;
         }
 
         if (adminSub.equals("toggle")) {
             if (args.length < 4) {
                 sendToggles(sender, label, g);
-                return true;
+                return;
             }
             String toggle = args[3].toLowerCase(Locale.ROOT);
             if (toggle.equals("open")) g.setOpen(!g.isOpen());
             else if (toggle.equals("public")) g.setPublicHome(!g.isPublicHome());
             else {
                 sendError(sender, "&cInvalid toggle. Try &eopen &cor &epublic&c.");
-                return true;
+                return;
             }
             guilds.save();
             sendToggles(sender, label, g);
-            return true;
+            return;
         }
 
         if (adminSub.equals("rank")) {
             if (args.length < 5) {
                 sendUsage(sender, "&cUsage: /" + label + " admin " + g.name() + " rank <create|delete|set|rank> ...");
-                return true;
+                return;
             }
             String action = args[3].toLowerCase(Locale.ROOT);
             if (action.equals("create")) {
                 if (args.length < 6) {
                     sendUsage(sender, "&cUsage: /" + label + " admin " + g.name() + " rank create <name> <prefix>");
-                    return true;
+                    return;
                 }
                 String rankName = args[4].toUpperCase(Locale.ROOT);
                 if (rankName.equals("OWNER") || rankName.equals("MEMBER")) {
                     sendError(sender, "&cOWNER and MEMBER are reserved.");
-                    return true;
+                    return;
                 }
                 String prefix = String.join(" ", Arrays.copyOfRange(args, 5, args.length));
                 g.createRank(rankName, prefix);
                 guilds.save();
                 sendCommand(sender, "&aCreated rank &f" + rankName + " &ain &f" + g.name() + "&a.");
-                return true;
+                return;
             }
             if (action.equals("delete")) {
                 String rankName = args[4].toUpperCase(Locale.ROOT);
                 if (rankName.equals("OWNER") || rankName.equals("MEMBER") || !g.rankExists(rankName)) {
                     sendError(sender, "&cRank not found or protected.");
-                    return true;
+                    return;
                 }
                 Map<UUID, String> oldPrefixes = guilds.oldPrefixesForRank(g, rankName);
                 g.deleteRank(rankName);
                 guilds.save();
                 guilds.refreshGuildRankPrefixes(oldPrefixes);
                 sendCommand(sender, "&aDeleted rank &f" + rankName + " &afrom &f" + g.name() + "&a.");
-                return true;
+                return;
             }
             if (action.equals("set")) {
                 if (args.length < 6) {
                     sendUsage(sender, "&cUsage: /" + label + " admin " + g.name() + " rank set <player> <rank>");
-                    return true;
+                    return;
                 }
                 UUID target = guilds.memberByName(g, args[4]);
                 if (target == null) {
                     sendError(sender, "&cThat player is not in that guild.");
-                    return true;
+                    return;
                 }
                 String rankName = args[5].toUpperCase(Locale.ROOT);
                 if (!g.rankExists(rankName)) {
                     sendError(sender, "&cRank not found.");
-                    return true;
+                    return;
                 }
                 String oldPrefix = g.visiblePrefixFor(target);
                 g.setMemberRank(target, rankName);
                 guilds.save();
                 guilds.refreshGuildRankPrefix(target, oldPrefix);
                 sendCommand(sender, "&aSet &f" + guilds.nameOf(target) + "&a to rank &f" + rankName + "&a.");
-                return true;
+                return;
             }
             if (args.length >= 6 && (args[4].equalsIgnoreCase("allow") || args[4].equalsIgnoreCase("deny"))) {
                 String rankName = args[3].toUpperCase(Locale.ROOT);
                 String permission = GuildManager.normalizePermission(args[5]);
                 if (!GuildManager.RANK_PERMISSIONS.contains(permission)) {
                     sendError(sender, "&cInvalid permission. Try one of: &7" + String.join(", ", GuildManager.RANK_PERMISSIONS));
-                    return true;
+                    return;
                 }
                 if (!g.rankExists(rankName)) {
                     sendError(sender, "&cRank not found.");
-                    return true;
+                    return;
                 }
                 if (args[4].equalsIgnoreCase("allow")) g.allowPermission(rankName, permission);
                 else g.denyPermission(rankName, permission);
                 guilds.save();
                 sendCommand(sender, "&aUpdated permission &f" + permission + " &afor rank &f" + rankName + "&a.");
-                return true;
+                return;
             }
             sendUsage(sender, "&cUsage: /" + label + " admin " + g.name() + " rank <create|delete|set> ...");
             sendUsage(sender, "&cUsage: /" + label + " admin " + g.name() + " rank <rank> allow/deny <permission>");
-            return true;
+            return;
         }
 
         sendError(sender, "&cUnknown admin guild command. Try /" + label + " admin <guild> <kick|tag|rank|toggle|sethome|delwarp|disband>");
-        return true;
-    }
-
-    private void broadcast(String message) {
-        Component component = Colors.c(message);
-        for (Player player : Bukkit.getOnlinePlayers()) player.sendMessage(component);
     }
 
     private Component inviteButtons(String label) {
@@ -794,9 +786,9 @@ public final class GuildCommand extends BaseCommand {
         if (args.length == 2 && (sub.equals("warp") || sub.equals("delwarp")) && sender instanceof Player p)
             return prefix(args[1], new ArrayList<>(guilds.warpNames(p.getUniqueId())));
 
-        if (args.length >= 2 && sub.equals("admin") && isSuperuser(sender)) return adminTab(sender, args);
+        if (sub.equals("admin") && isSuperuser(sender)) return adminTab(args);
 
-        if (args.length >= 2 && sub.equals("rank")) {
+        if (sub.equals("rank")) {
             Guild g = sender instanceof Player p ? guilds.guildOf(p.getUniqueId()) : null;
             if (args.length == 2) {
                 List<String> options = new ArrayList<>(List.of("create", "delete", "set"));
@@ -839,7 +831,7 @@ public final class GuildCommand extends BaseCommand {
         return options;
     }
 
-    private List<String> adminTab(CommandSender sender, String[] args) {
+    private List<String> adminTab(String[] args) {
         if (args.length == 2) return prefix(args[1], guilds.allGuilds().stream().map(Guild::name).toList());
 
         Guild g = guilds.getGuildByName(args[1]);

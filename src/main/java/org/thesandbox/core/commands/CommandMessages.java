@@ -53,7 +53,7 @@ public final class CommandMessages {
     }
 
     /**
-     * Removes leading legacy colour/formatting codes from a string.
+     * Removes leading legacy color/formatting codes from a string.
      */
     public static String stripLeadingColor(String input) {
         if (input == null || input.isEmpty()) {
@@ -71,7 +71,7 @@ public final class CommandMessages {
                 char marker = value.charAt(0);
                 boolean valid = true;
                 for (int i = 2; i < 14; i += 2) {
-                    if (value.charAt(i) != marker || !isHex(value.charAt(i + 1))) {
+                    if (value.charAt(i) != marker || isNotHex(value.charAt(i + 1))) {
                         valid = false;
                         break;
                     }
@@ -87,7 +87,7 @@ public final class CommandMessages {
             if (value.length() >= 8 && (value.startsWith("&#") || value.startsWith("§#"))) {
                 boolean valid = true;
                 for (int i = 2; i < 8; i++) {
-                    if (!isHex(value.charAt(i))) {
+                    if (isNotHex(value.charAt(i))) {
                         valid = false;
                         break;
                     }
@@ -99,7 +99,7 @@ public final class CommandMessages {
                 }
             }
 
-            // Standard legacy colour/formatting codes (&0-&f, &k-&o, &r)
+            // Standard legacy color/formatting codes (&0-&f, &k-&o, &r)
             if (value.length() >= 2 && (value.charAt(0) == '§' || value.charAt(0) == '&')) {
                 char code = Character.toLowerCase(value.charAt(1));
                 if (isFormattingOrColor(code)) {
@@ -119,8 +119,8 @@ public final class CommandMessages {
                 || code == 'r';
     }
 
-    public static boolean isHex(char c) {
+    public static boolean isNotHex(char c) {
         c = Character.toLowerCase(c);
-        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+        return (c < '0' || c > '9') && (c < 'a' || c > 'f');
     }
 }

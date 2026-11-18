@@ -8,11 +8,11 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class PluginControlCommand extends BaseCommand {
     // Plugins that must never be disabled or hot-reloaded through this command.
@@ -44,10 +44,10 @@ public class PluginControlCommand extends BaseCommand {
         this.untouchable.add(plugin.getName().toLowerCase(Locale.ROOT));
     }
 
-    private boolean canUse(CommandSender sender)
+    private boolean cannotUse(CommandSender sender)
     {
         // Previously sandbox.staff could disable protection/logging plugins.
-        return sender.hasPermission("sandbox.admin");
+        return !sender.hasPermission("sandbox.admin");
     }
 
     private boolean isUntouchable(Plugin plugin)
@@ -79,7 +79,7 @@ public class PluginControlCommand extends BaseCommand {
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args)
     {
-        if (!canUse(sender))
+        if (cannotUse(sender))
         {
             msg(sender, org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + "You don't have permission to use this."));
             return true;
@@ -92,8 +92,8 @@ public class PluginControlCommand extends BaseCommand {
             for (Plugin pl : pm.getPlugins())
             {
                 var meta = pl.getPluginMeta();
-                String version = meta.getVersion() == null ? "" : meta.getVersion().trim();
-                List<String> authors = meta.getAuthors() == null ? List.of() : meta.getAuthors();
+                String version = meta.getVersion().trim();
+                List<String> authors = meta.getAuthors();
 
                 String stateColor = pl.isEnabled() ? Colors.GREEN : Colors.RED;
                 String authorsJoined = authors.isEmpty() ? "Unknown" : String.join(", ", authors);
@@ -178,15 +178,14 @@ public class PluginControlCommand extends BaseCommand {
     @Override
     public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args)
     {
-        if (!canUse(sender))
+        if (cannotUse(sender))
         {
             return List.of();
         }
 
         if (args.length == 1)
         {
-            return Arrays.asList("enable", "disable", "reload", "list")
-                    .stream()
+            return Stream.of("enable", "disable", "reload", "list")
                     .filter(opt -> opt.startsWith(args[0].toLowerCase(Locale.ROOT)))
                     .collect(Collectors.toList());
         }

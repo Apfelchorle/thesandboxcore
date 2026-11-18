@@ -14,13 +14,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jspecify.annotations.NonNull;
 import org.thesandbox.core.TheSandboxCore;
-import org.thesandbox.core.data.PlayerDataListener;
 import org.thesandbox.core.services.login.LoginService;
 import org.thesandbox.core.util.colors.HexColorUtil;
 
 import java.awt.Color;
 import java.util.*;
-import java.util.List;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -37,11 +35,9 @@ public class Utils {
     private static final Random random = new Random();
     private static TheSandboxCore plugin;
     private static boolean warnedEmptyTrustList = false;
-    private final PlayerDataListener playerDataListener;
 
-    public Utils(TheSandboxCore plugin, PlayerDataListener playerDataListener) {
+    public Utils(TheSandboxCore plugin) {
         Utils.plugin = plugin;
-        this.playerDataListener = playerDataListener;
     }
 
     public static void Feedback(
@@ -117,7 +113,7 @@ public class Utils {
 
     public static void dump(Throwable t, String msg) {
         if (plugin == null) {
-            t.printStackTrace();
+            java.util.logging.Logger.getLogger("TheSandboxCore").log(java.util.logging.Level.SEVERE, msg, t);
             return;
         }
         Logger logger = plugin.getLogger();
@@ -141,7 +137,7 @@ public class Utils {
         if (plugin != null) {
             plugin.getLogger().info(msg);
         } else {
-            Bukkit.getLogger().info(msg);
+            Logger.getLogger("TheSandboxCore").info(msg);
         }
     }
 
@@ -352,7 +348,7 @@ public class Utils {
         return text
                 .replaceAll("(?i)(^|\\s)&\\s+(?=\\[Media])", "$1")
                 .replaceAll("(?i)(^|\\s)&(?=\\[Media])", "$1")
-                .replaceAll("(?i)\\[MEDIA\\]", "[Media]")
+                .replaceAll("(?i)\\[MEDIA]", "[Media]")
                 .replaceAll("\\s{2,}", " ")
                 .trim();
     }
@@ -360,7 +356,7 @@ public class Utils {
     public static String replaceLinksWithMediaTag(String text) {
         if (text == null || text.isEmpty()) return "";
         Matcher m = ANY_URL.matcher(text);
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         while (m.find()) {
             String raw = m.group();
             String url = trimTrailingUrlPunctuation(raw);
@@ -564,22 +560,15 @@ public class Utils {
             if (user == null) return LoginService.Rank.DEFAULT;
 
             String group = user.getPrimaryGroup();
-            if (group == null) return LoginService.Rank.DEFAULT;
 
-            switch (group.toLowerCase(java.util.Locale.ENGLISH)) {
-                case "operator":
-                    return LoginService.Rank.OPERATOR;
-                case "administrator":
-                    return LoginService.Rank.ADMIN;
-                case "staff":
-                    return LoginService.Rank.STAFF;
-                case "masterbuilder":
-                    return LoginService.Rank.MB;
-                case "vip":
-                    return LoginService.Rank.VIP;
-                default:
-                    return LoginService.Rank.DEFAULT;
-            }
+            return switch (group.toLowerCase(java.util.Locale.ENGLISH)) {
+                case "operator" -> LoginService.Rank.OPERATOR;
+                case "administrator" -> LoginService.Rank.ADMIN;
+                case "staff" -> LoginService.Rank.STAFF;
+                case "masterbuilder" -> LoginService.Rank.MB;
+                case "vip" -> LoginService.Rank.VIP;
+                default -> LoginService.Rank.DEFAULT;
+            };
         } catch (Throwable ignored) {
             return LoginService.Rank.DEFAULT;
         }
@@ -590,11 +579,10 @@ public class Utils {
     public boolean dm(long discordId, String content, JDA jda) {
         if (jda == null) return false;
         try {
-            jda.retrieveUserById(discordId).queue(user -> {
-                user.openPrivateChannel().queue(ch ->
-                        ch.sendMessage(content).queue()
-                );
-            });
+            jda.retrieveUserById(discordId).queue(user ->
+                    user.openPrivateChannel().queue(ch ->
+                            ch.sendMessage(content).queue()
+                    ));
             return true;
         } catch (Exception e) {
             plugin

@@ -43,7 +43,8 @@ public class CommandSpyManager {
                 ps.setBoolean(2, enabled);
                 ps.executeUpdate();
             } catch (SQLException e) {
-                e.printStackTrace();
+                java.util.logging.Logger.getLogger(CommandSpyManager.class.getName())
+                        .log(java.util.logging.Level.WARNING, "Failed to persist command spy state", e);
             }
         });
     }
@@ -69,7 +70,6 @@ public class CommandSpyManager {
         if (rawCommand == null) return "";
         String placeholder = plugin.getConfig().getString("commandspy.redact_placeholder", "(REDACTED)");
         List<String> blacklist = plugin.getConfig().getStringList("commandspy.blacklist");
-        if (blacklist == null) blacklist = Collections.emptyList();
 
         String msg = rawCommand.trim();
 

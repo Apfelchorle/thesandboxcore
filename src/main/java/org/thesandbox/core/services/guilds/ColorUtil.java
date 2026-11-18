@@ -4,7 +4,7 @@ import net.kyori.adventure.text.Component;
 import org.thesandbox.core.util.colors.Colors;
 
 /**
- * Guild colour helpers now delegate to the shared {@link Colors} utility.
+ * Guild color helpers now delegate to the shared {@link Colors} utility.
  */
 public final class ColorUtil {
 

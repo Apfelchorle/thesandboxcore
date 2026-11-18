@@ -6,10 +6,11 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.services.world.AutoTpService;
 import org.thesandbox.core.util.colors.Colors;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,11 +19,9 @@ import java.util.UUID;
 
 public class AutoTpCommand extends BaseCommand implements TabCompleter {
 
-    private final JavaPlugin plugin;
     private final AutoTpService service;
 
-    public AutoTpCommand(JavaPlugin plugin, AutoTpService service) {
-        this.plugin = plugin;
+    public AutoTpCommand(AutoTpService service) {
         this.service = service;
     }
 
@@ -58,7 +57,7 @@ public class AutoTpCommand extends BaseCommand implements TabCompleter {
             String prefix = args[0].toLowerCase(Locale.ROOT);
             for (Player p : Bukkit.getOnlinePlayers()) {
                 String name = p.getName();
-                if (name != null && name.toLowerCase(Locale.ROOT).startsWith(prefix)) {
+                if (name.toLowerCase(Locale.ROOT).startsWith(prefix)) {
                     out.add(name);
                 }
             }
@@ -68,7 +67,7 @@ public class AutoTpCommand extends BaseCommand implements TabCompleter {
 
     // Bukkit TabCompleter method (needed to satisfy the interface)
     @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+    public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         // Delegate to the same logic
         List<String> result = tabComplete(sender, command, alias, args);
         return (result != null) ? result : List.of();

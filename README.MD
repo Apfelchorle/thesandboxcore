@@ -329,4 +329,4 @@ legacy `&` / `&#RRGGBB` syntax, so existing text keeps working.
 
 Project Was Started By @ivannomoly And Was Continued by @apfelchorle and contributors
 
-[This Was Made Using AI ;P]
+This Was Made Using AI ;P

@@ -6,7 +6,6 @@ import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerInput;
-import io.papermc.paper.entity.TeleportFlag;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.DragonFireball;
@@ -247,7 +246,6 @@ public class RideableDragonEntity extends PacketListenerAbstract implements List
         dragon.setFallDistance(0);
     }
 
-    @SuppressWarnings({"deprecation", "removal"})
     private void moveDragon(EnderDragon dragon, Vector movement, float yaw, float pitch) {
         Location current = dragon.getLocation();
         double startX = current.getX();
@@ -281,7 +279,7 @@ public class RideableDragonEntity extends PacketListenerAbstract implements List
             Location target = current.add(movement);
             target.setYaw(yaw);
             target.setPitch(pitch);
-            dragon.teleport(target, TeleportFlag.EntityState.RETAIN_PASSENGERS);
+            dragon.teleport(target);
         }
     }
 

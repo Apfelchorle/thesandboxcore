@@ -38,17 +38,17 @@ public record MediaRenderSettings(
         FileConfiguration config = plugin.getConfig();
 
         String palette = config.getString("discord.image-render.palette", "hex");
-        ColorMode mode = palette != null && palette.equalsIgnoreCase("legacy")
+        ColorMode mode = palette.equalsIgnoreCase("legacy")
                 ? ColorMode.LEGACY
                 : ColorMode.HEX;
 
         String style = config.getString("discord.image-render.style", "block");
         RenderStyle renderStyle;
-        if (style != null && style.equalsIgnoreCase("emoji")) {
+        if (style.equalsIgnoreCase("emoji")) {
             renderStyle = RenderStyle.EMOJI;
-        } else if (style != null && style.equalsIgnoreCase("braille")) {
+        } else if (style.equalsIgnoreCase("braille")) {
             renderStyle = RenderStyle.BRAILLE;
-        } else if (style != null && style.equalsIgnoreCase("shade")) {
+        } else if (style.equalsIgnoreCase("shade")) {
             renderStyle = RenderStyle.SHADE;
         } else {
             renderStyle = RenderStyle.BLOCK;
@@ -63,13 +63,13 @@ public record MediaRenderSettings(
                 config.getBoolean("discord.image-render.thumbnails", true),
                 clamp(config.getInt("discord.image-render.width", 40), 8, 80),
                 clamp(config.getInt("discord.image-render.height", 22), 4, 40),
-                clamp(config.getDouble("discord.image-render.char-aspect", 0.9), 0.4, 2.0),
+                Math.clamp(config.getDouble("discord.image-render.char-aspect", 0.9), 0.4, 2.0),
                 mode,
                 renderStyle,
                 clamp(config.getInt("discord.image-render.colors", 64), 2, 256),
                 clamp(config.getInt("discord.image-render.alpha-threshold", 32), 0, 255),
-                parseColor(config.getString("discord.image-render.background", "#1F1F1F"), 0x1F1F1F),
-                clamp(config.getLong("discord.image-render.timeout-ms", 2000L), 500L, 15_000L),
+                parseColor(config.getString("discord.image-render.background", "#1F1F1F")),
+                Math.clamp(config.getLong("discord.image-render.timeout-ms", 2000L), 500L, 15_000L),
                 clamp(config.getInt("discord.image-render.cache-size", 128), 0, 1024),
                 clamp(config.getInt("discord.image-render.max-per-minute", 12), 1, 240),
                 clamp(config.getInt("discord.image-render.max-per-author-per-minute", 3), 1, 120),
@@ -81,27 +81,19 @@ public record MediaRenderSettings(
     }
 
     private static int clamp(int value, int min, int max) {
-        return Math.max(min, Math.min(max, value));
+        return Math.clamp(value, min, max);
     }
 
-    private static double clamp(double value, double min, double max) {
-        return Math.max(min, Math.min(max, value));
-    }
-
-    private static int parseColor(String raw, int fallback) {
-        if (raw == null) return fallback;
+    private static int parseColor(String raw) {
+        if (raw == null) return 0x1F1F1F;
         String value = raw.trim();
         if (value.startsWith("#")) value = value.substring(1);
-        if (value.length() != 6) return fallback;
+        if (value.length() != 6) return 0x1F1F1F;
         try {
             return Integer.parseInt(value, 16) & 0xFFFFFF;
         } catch (NumberFormatException ignored) {
-            return fallback;
+            return 0x1F1F1F;
         }
-    }
-
-    private static long clamp(long value, long min, long max) {
-        return Math.max(min, Math.min(max, value));
     }
 
     public static MediaRenderSettings disabled() {

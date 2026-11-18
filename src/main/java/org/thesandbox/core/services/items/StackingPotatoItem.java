@@ -5,7 +5,6 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.*;
@@ -19,9 +18,7 @@ import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.thesandbox.core.TheSandboxCore;
-import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.data.PlayerDataListener;
 import org.thesandbox.core.services.entities.RideableDragonEntity;
 import org.thesandbox.core.util.Utils;
@@ -100,7 +97,7 @@ public class StackingPotatoItem implements Item, Listener {
         dropStack(player);
     }
 
-    private void modebasedoutcome(Player player, LivingEntity target) {
+    private void applyModeBasedOutcome(Player player, LivingEntity target) {
         // Ender Dragons can only be ridden, not stacked
         if (target instanceof EnderDragon dragon) {
             potato_ride(player, dragon);
@@ -181,7 +178,7 @@ public class StackingPotatoItem implements Item, Listener {
             Utils.SendMessage(player, "Maximum Stack Size Reached: " + MAX_STACK_SIZE, TextColor.color(255, 3, 0));
             return;
         }
-        stack = stacks.computeIfAbsent(player.getUniqueId(), k -> new ArrayDeque<>());
+        stack = stacks.computeIfAbsent(player.getUniqueId(), _ -> new ArrayDeque<>());
         Entity mountOnto = stack.isEmpty() ? player : stack.peekLast();
         if (!mountOnto.isValid()) {
             stack.clear();
@@ -264,14 +261,14 @@ public class StackingPotatoItem implements Item, Listener {
         LivingEntity target;
         if (clicked instanceof LivingEntity living) {
             target = living;
-        } else if (clicked instanceof ComplexEntityPart part && part.getParent() != null) {
+        } else if (clicked instanceof ComplexEntityPart part) {
             target = part.getParent();
         } else {
             return;
         }
 
         e.setCancelled(true);
-        modebasedoutcome(player, target);
+        applyModeBasedOutcome(player, target);
     }
 
     @EventHandler

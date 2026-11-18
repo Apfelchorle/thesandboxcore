@@ -47,6 +47,7 @@ public class TagService {
         }
     }
 
+    @SuppressWarnings("EmptyMethod")
     public void shutdown() {
         // The shared Database owns the pool.
     }

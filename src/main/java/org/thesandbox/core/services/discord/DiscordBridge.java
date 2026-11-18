@@ -54,13 +54,10 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.thesandbox.core.util.Utils.*;
 
@@ -72,7 +69,6 @@ public class DiscordBridge extends ListenerAdapter {
     private static final String ROLE_SRADMIN = "1160233133837385809"; // Senior Admin [This is OP in discord]
     private static final String ROLE_DEV = "1397614604640587837"; // Developer [Doesnt Exist]
     // Verified role (configurable with fallback)
-    private static final String DEFAULT_VERIFIED_ROLE = "1415327115150360617";
     private static final String DEFAULT_MEMBER_ROLE_ID = "1227366929426157578";
     private static final long MAX_SCHEM_SIZE = 20 * 1024 * 1024; // 20 MegaBytes
     private final TheSandboxCore plugin;
@@ -109,21 +105,21 @@ public class DiscordBridge extends ListenerAdapter {
         this.playerDataListener = playerDataListener;
     }
 
-    public boolean start() {
+    public void start() {
         if (!plugin.getConfig().getBoolean("discord.enabled", false)) {
             plugin.getLogger().info("[Discord] Disabled by config.");
-            return false;
+            return;
         }
 
         String token = cfg("discord.token", "discord.token");
-        if (token == null || token.isEmpty()) {
+        if (token.isEmpty()) {
             plugin.getLogger().warning("[Discord] No token configured.");
-            return false;
+            return;
         }
 
         synchronized (startLock) {
             if (jda != null || pendingJda != null) {
-                return true; // already connected or connecting
+                return; // already connected or connecting
             }
         }
 
@@ -141,7 +137,7 @@ public class DiscordBridge extends ListenerAdapter {
                     .build();
         } catch (Throwable t) {
             plugin.getLogger().warning("[Discord] Failed to create client: " + t.getMessage());
-            return false;
+            return;
         }
 
         this.pendingJda = candidate;
@@ -170,8 +166,6 @@ public class DiscordBridge extends ListenerAdapter {
                 plugin.getLogger().warning("[Discord] Could not finish startup: " + t.getMessage());
             }
         });
-
-        return true;
     }
 
     private void failStart(JDA candidate, String reason) {
@@ -288,11 +282,11 @@ public class DiscordBridge extends ListenerAdapter {
 
         // Backwards compatibility: older configs only used discord.channel-id.
         // If a separate public chat channel is not configured, use that channel too.
-        if (id == null || id.isEmpty()) {
+        if (id.isEmpty()) {
             id = cfg("discord.channel-id", "discord.channel_id");
         }
 
-        if (id == null || id.isEmpty()) {
+        if (id.isEmpty()) {
             plugin.getLogger().warning("[Discord] No public chat channel configured. Set discord.chat-channel-id, or discord.channel-id as fallback.");
             return null;
         }
@@ -309,20 +303,14 @@ public class DiscordBridge extends ListenerAdapter {
         String v = plugin.getConfig().getString(hyphen);
         if (v == null || v.isEmpty())
             v = plugin.getConfig().getString(underscoreFallback, "");
-        return v == null ? "" : v;
-    }
-
-    private Role getVerifiedRole(Guild g) {
-        String verifiedRoleId = plugin.getConfig().getString("discord.verified-role-id", DEFAULT_VERIFIED_ROLE);
-        if (verifiedRoleId == null || verifiedRoleId.isEmpty()) return null;
-        return g.getRoleById(verifiedRoleId);
+        return v;
     }
 
     private TextChannel getSchemUploadsChannel() {
         if (jda == null) return null;
         if (schemuploadsChannel != null) return schemuploadsChannel;
         String id = cfg("discord.schem-uploads", "discord.schem_uploads");
-        if (id == null || id.isEmpty()) return null;
+        if (id.isEmpty()) return null;
         schemuploadsChannel = jda.getTextChannelById(id);
         if (schemuploadsChannel == null) plugin.getLogger().warning("[Discord] Schem uploads channel not found: " + id);
         return schemuploadsChannel;
@@ -333,7 +321,7 @@ public class DiscordBridge extends ListenerAdapter {
         if (ch == null) return;
 
         String memberRoleId = plugin.getConfig().getString("discord.chat-bridge.member-role-id", DEFAULT_MEMBER_ROLE_ID);
-        if (memberRoleId == null || memberRoleId.isBlank()) return;
+        if (memberRoleId.isBlank()) return;
 
         Role memberRole = ch.getGuild().getRoleById(memberRoleId);
         if (memberRole == null) {
@@ -346,14 +334,14 @@ public class DiscordBridge extends ListenerAdapter {
             ch.upsertPermissionOverride(memberRole)
                     .grant(Permission.MESSAGE_SEND)
                     .queue(
-                            ok -> plugin.getLogger().info("[Discord] Chat bridge enabled; granted Send Messages for Member role in MC chat channel."),
+                            _ -> plugin.getLogger().info("[Discord] Chat bridge enabled; granted Send Messages for Member role in MC chat channel."),
                             err -> plugin.getLogger().warning("[Discord] Failed to restore Member Send Messages permission: " + err.getMessage())
                     );
         } else {
             ch.upsertPermissionOverride(memberRole)
                     .deny(Permission.MESSAGE_SEND)
                     .queue(
-                            ok -> plugin.getLogger().info("[Discord] Chat bridge disabled; denied Send Messages for Member role in MC chat channel."),
+                            _ -> plugin.getLogger().info("[Discord] Chat bridge disabled; denied Send Messages for Member role in MC chat channel."),
                             err -> plugin.getLogger().warning("[Discord] Failed to deny Member Send Messages permission: " + err.getMessage())
                     );
         }
@@ -382,14 +370,10 @@ public class DiscordBridge extends ListenerAdapter {
         if (jda == null) return null;
         if (logsChannel != null) return logsChannel;
         String id = cfg("discord.logs-channel-id", "discord.logs_channel_id");
-        if (id == null || id.isEmpty()) return null;
+        if (id.isEmpty()) return null;
         logsChannel = jda.getTextChannelById(id);
         if (logsChannel == null) plugin.getLogger().warning("[Discord] Logs channel not found: " + id);
         return logsChannel;
-    }
-
-    public void sendVanishEmbeds(Player player, String message) {
-        sendVanishEmbed(player, message);
     }
 
     private void sendVanishEmbed(Player p, String message) {
@@ -419,42 +403,16 @@ public class DiscordBridge extends ListenerAdapter {
             return;
         }
 
-        if (cmd.equals("update")) {
-            handleUpdate(event);
-            return;
-        }
-
-        if (cmd.equals("list")) {
-            handleList(event);
-            return;
-        }
-
-        if (cmd.equals("console")) {
-            IssueInGameCommand(event);
-            return;
-        }
-
-//        if (cmd.equals("ban")) {
-//            return;
-//        }
-
-        if (cmd.equals("uploadschem")) {
-            handleSchemUploads(event);
-            return;
-        }
-
-        if (cmd.equals("masterbuilder")) {
-            handleMasterbuilder(event);
-            return;
-        }
-
-        if (cmd.equals("chatbridge")) {
-            handleChatBridge(event);
-            return;
-        }
-
-        if (cmd.equals("devtoggle")) {
-            handleDevToggle(event);
+        switch (cmd) {
+            case "update" -> handleUpdate(event);
+            case "list" -> handleList(event);
+            case "console" -> IssueInGameCommand(event);
+            case "uploadschem" -> handleSchemUploads(event);
+            case "masterbuilder" -> handleMasterbuilder(event);
+            case "chatbridge" -> handleChatBridge(event);
+            case "devtoggle" -> handleDevToggle(event);
+            default -> {
+            }
         }
     }
 
@@ -528,7 +486,7 @@ public class DiscordBridge extends ListenerAdapter {
         if (jda == null) return null;
         if (staffChannel != null) return staffChannel;
         String id = cfg("discord.channel-id", "discord.channel_id");
-        if (id == null || id.isEmpty()) return null;
+        if (id.isEmpty()) return null;
         staffChannel = jda.getTextChannelById(id);
         if (staffChannel == null) plugin.getLogger().warning("[Discord] Staff channel not found: " + id);
         return staffChannel;
@@ -607,30 +565,24 @@ public class DiscordBridge extends ListenerAdapter {
                     "&8[&3&lDISCORD&8] | [&b&lSTAFF&8]&r %role%%rolecolor%%name% &8» &f%message%"
             );
 
+            RoleDisplay role = roleDisplay(event.getMember());
+            String roleName = role.name();
+            String roleColorCode = role.colorCode();
             Member m = event.getMember();
-            String roleName = "";
-            String roleColorCode = "";
-
-            if (m != null && !m.getRoles().isEmpty()) {
-                Role top = m.getRoles().get(0);
-                roleName = top.getName() != null ? top.getName() : "";
-                java.awt.Color c = top.getColor();
-                if (c != null) roleColorCode = toLegacyHex(c);
-            }
 
             String name = (m != null ? m.getEffectiveName() : event.getAuthor().getName());
             String msg = event.getMessage().getContentDisplay();
 
             String bracketedRole = "";
             if (!roleName.isEmpty()) {
-                bracketedRole = "&8[" + (roleColorCode == null ? "" : roleColorCode) + roleName + "&8] ";
+                bracketedRole = "&8[" + roleColorCode + roleName + "&8] ";
             }
 
             final String MESSAGE_TOKEN = "%MESSAGE_TOKEN%";
 
             String outAmpWithToken = template
                     .replace("%role%", bracketedRole)
-                    .replace("%rolecolor%", roleColorCode == null ? "" : roleColorCode)
+                    .replace("%rolecolor%", roleColorCode)
                     .replace("%name%", name)
                     .replace("%message%", MESSAGE_TOKEN)
                     .replace("  ", " ");
@@ -649,7 +601,7 @@ public class DiscordBridge extends ListenerAdapter {
                     String before = i >= 0 ? perViewer.substring(0, i) : perViewer;
                     String after = i >= 0 ? perViewer.substring(i + MESSAGE_TOKEN.length()) : "";
 
-                    Component finalMsg = composeMessage(before, msg, after, mediaPlan, ascii, p.getName(), "&f");
+                    Component finalMsg = composeMessage(before, msg, after, mediaPlan, ascii.orElse(null), p.getName(), "&f");
                     p.sendMessage(finalMsg);
 
                     if (messageMentions(msg, p.getName())) {
@@ -672,24 +624,17 @@ public class DiscordBridge extends ListenerAdapter {
                     "%role% %user% &8» &r%message%"
             );
 
+            RoleDisplay role = roleDisplay(event.getMember());
+            String roleName = role.name();
+            String roleColorCode = role.colorCode();
             Member m = event.getMember();
-            String roleName = "";
-            String roleColorCode = "";
 
-            if (m != null && !m.getRoles().isEmpty()) {
-                Role top = m.getRoles().get(0);
-                roleName = top.getName() != null ? top.getName() : "";
-                java.awt.Color c = top.getColor();
-                if (c != null) roleColorCode = toLegacyHex(c);
-            }
-
-            boolean noRoles = (m == null || m.getRoles().isEmpty());
             String userBase = (m != null ? m.getEffectiveName() : event.getAuthor().getName());
-            String userColored = ((roleColorCode != null && !roleColorCode.isEmpty()) ? roleColorCode : "&a") + userBase;
+            String userColored = (roleColorCode.isEmpty() ? "&a" : roleColorCode) + userBase;
 
             String roleFormatted = "";
             if (!roleName.isEmpty()) {
-                roleFormatted = "&8[" + (roleColorCode == null ? "" : roleColorCode) + roleName + "&8]";
+                roleFormatted = "&8[" + roleColorCode + roleName + "&8]";
             }
 
             String msg = event.getMessage().getContentDisplay();
@@ -699,7 +644,7 @@ public class DiscordBridge extends ListenerAdapter {
             String outAmpWithToken = template
                     .replace("%role%", roleFormatted)
                     .replace("%roletag%", roleFormatted)
-                    .replace("%rolecolor%", roleColorCode == null ? "" : roleColorCode)
+                    .replace("%rolecolor%", roleColorCode)
                     .replace("%user%", userColored)
                     .replace("%message%", MESSAGE_TOKEN)
                     .replace("  ", " ");
@@ -720,7 +665,7 @@ public class DiscordBridge extends ListenerAdapter {
                     String before = i >= 0 ? perViewer.substring(0, i) : perViewer;
                     String after = i >= 0 ? perViewer.substring(i + MESSAGE_TOKEN.length()) : "";
 
-                    Component finalMsg = composeMessage(before, viewerMsg, after, mediaPlan, ascii, p.getName(), "&r");
+                    Component finalMsg = composeMessage(before, viewerMsg, after, mediaPlan, ascii.orElse(null), p.getName(), "&r");
                     p.sendMessage(finalMsg);
 
                     if (messageMentions(msg, p.getName())) {
@@ -750,11 +695,11 @@ public class DiscordBridge extends ListenerAdapter {
                     : rendered;
 
             CompletableFuture<Void> next = base
-                    .handle((unused, failure) -> null)
-                    .thenCompose(unused -> resultFuture)
+                    .handle((_, _) -> null)
+                    .thenCompose(_ -> resultFuture)
                     .handle((ascii, failure) -> {
-                        Optional<Component> result = failure == null && ascii != null
-                                ? ascii
+                        Optional<Component> result = failure == null
+                                ? Objects.requireNonNullElse(ascii, Optional.empty())
                                 : Optional.empty();
 
                         if (plugin.isEnabled()) {
@@ -770,6 +715,7 @@ public class DiscordBridge extends ListenerAdapter {
                                     }
                                 });
                             } catch (Throwable schedulingFailure) {
+                                // The scheduler is shutting down, so the delivery task will never run.
                             }
                         }
                         return null;
@@ -781,7 +727,7 @@ public class DiscordBridge extends ListenerAdapter {
 
         CompletableFuture<Void> next = created.get();
         if (next != null) {
-            next.whenComplete((done, failure) -> mediaChains.remove(key, next));
+            next.whenComplete((_, _) -> mediaChains.remove(key, next));
         }
     }
 
@@ -790,7 +736,7 @@ public class DiscordBridge extends ListenerAdapter {
             String messageText,
             String afterAmp,
             MediaPlan plan,
-            Optional<Component> ascii,
+            Component ascii,
             String playerName,
             String mentionColor
     ) {
@@ -803,8 +749,8 @@ public class DiscordBridge extends ListenerAdapter {
         Component head = join(legacy(beforeAmp), message);
         Component tail = legacy(afterAmp);
 
-        if (ascii != null && ascii.isPresent()) {
-            Component art = MinecraftAsciiComponent.clickable(ascii.get(), plan.jumpUrl());
+        if (ascii != null) {
+            Component art = MinecraftAsciiComponent.clickable(ascii, plan.jumpUrl());
             Component out = Colors.plain(head).isBlank()
                     ? art
                     : head.append(Component.newline()).append(art);
@@ -843,7 +789,8 @@ public class DiscordBridge extends ListenerAdapter {
     /* ===================== Reports (Discord ✅ -> archive) ===================== */
     @Override
     public void onMessageReactionAdd(@NotNull MessageReactionAddEvent event) {
-        if (event.getUser() == null || event.getUser().isBot()) return;
+        net.dv8tion.jda.api.entities.User reactor = event.getUser();
+        if (reactor == null || reactor.isBot()) return;
 
         TextChannel reports = getReportsChannel();
         TextChannel archive = getArchivedReportsChannel();
@@ -875,14 +822,14 @@ public class DiscordBridge extends ListenerAdapter {
                     .addField("Reason", safe(rec.reason), false)
                     .addField("Coordinates", "X: " + rec.x + " Y: " + rec.y + " Z: " + rec.z, false)
                     // MENTION the Discord user who reacted:
-                    .setDescription("*Handled by: " + event.getUser().getAsMention() + "; DISCORD*")
+                    .setDescription("*Handled by: " + reactor.getAsMention() + "; DISCORD*")
                     .setTimestamp(Instant.now());
 
-            getArchivedReportsChannel().sendMessageEmbeds(archived.build()).queue(v -> {
+            archive.sendMessageEmbeds(archived.build()).queue(_ -> {
                 message.delete().queue();
                 cleanup(reportId, messageId, rec);
             }, t -> plugin.getLogger().warning("[Discord] Failed to archive report: " + t.getMessage()));
-        }, t -> cleanup(reportId, messageId, rec));
+        }, _ -> cleanup(reportId, messageId, rec));
     }
 
     @Override
@@ -982,7 +929,7 @@ public class DiscordBridge extends ListenerAdapter {
         }
 
         g.updateCommands().addCommands(commands).queue(
-                __ -> plugin.getLogger().info("[Discord] Registered slash cmds in: " + g.getName()
+                _ -> plugin.getLogger().info("[Discord] Registered slash cmds in: " + g.getName()
                         + " (" + commands.size() + " enabled for the " + BuildFlavor.name() + " flavor)"),
                 err -> plugin.getLogger().warning("[Discord] Slash cmd register failed in " + g.getName() + ": " + err.getMessage())
         );
@@ -1063,7 +1010,7 @@ public class DiscordBridge extends ListenerAdapter {
     private void handleUpdate(@NotNull SlashCommandInteractionEvent event) {
         Member member = event.getMember();
         Guild guild = event.getGuild();
-        Boolean hasroles = hasRole(member, ROLE_ADMIN) || hasRole(member, ROLE_SRADMIN);
+        boolean hasroles = hasRole(member, ROLE_ADMIN) || hasRole(member, ROLE_SRADMIN);
 
         if (guild == null) {
             event.reply("Not In Guild").queue();
@@ -1106,47 +1053,12 @@ public class DiscordBridge extends ListenerAdapter {
                 .queue();
     }
 
-    /**
-     * Accepts Ns/Nm/Nd (max 1d). Senior Admin may use "0" for permanent.
-     */
-    private ParseResult parseDuration(String raw, boolean isSrAdmin) {
-        if (raw == null) return ParseResult.fail("Duration is required.");
-        String s = raw.trim().toLowerCase(Locale.ROOT);
-
-        if (s.equals("0")) {
-            return isSrAdmin ? ParseResult.okPerm()
-                    : ParseResult.fail("Only Senior Admin may use 0 for a permanent ban.");
-        }
-
-        Matcher m = Pattern.compile("^(\\d+)([smd])$").matcher(s);
-        if (!m.matches()) {
-            return ParseResult.fail("Duration must be like 30s, 10m, or 1d (or 0 for Senior Admin).");
-        }
-
-        long n = Long.parseLong(m.group(1));
-        char u = m.group(2).charAt(0);
-
-        if (n <= 0) return ParseResult.fail("Duration must be greater than 0.");
-
-        long seconds = switch (u) {
-            case 's' -> n;
-            case 'm' -> n * 60L;
-            case 'd' -> n * 86400L;
-            default -> Long.MAX_VALUE;
-        };
-
-        if (seconds > 86400L) return ParseResult.fail("Duration cannot exceed 1d.");
-        if (u == 'd' && n > 1) return ParseResult.fail("Maximum is 1d.");
-
-        return ParseResult.okWith(n + String.valueOf(u));
-    }
-
     // SCHEM UPLOADS LOGIC
 
     private void IssueInGameCommand(@NotNull SlashCommandInteractionEvent event) {
         Guild g = event.getGuild();
         Member m = event.getMember();
-        if (g == null) {
+        if (g == null || m == null) {
             event.reply("Please run this command in a server channel, not in DMs.")
                     .setEphemeral(true).queue();
             return;
@@ -1182,24 +1094,23 @@ public class DiscordBridge extends ListenerAdapter {
             return;
         }
 
-        event.deferReply(true).queue(hook -> {
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                String cmd = command;
-                boolean ok = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
-                if (ok) {
-                    hook.editOriginal("Ran Command: " + cmd)
-                            .queue();
-                    sendGenericEmbed("Ran Command: " + cmd, new Color(0x570000), event.getMember().getUser().getName(), event.getMember().getAvatarUrl(), "Logs");
-                } else {
-                    hook.editOriginal("Failed to execute: " + cmd)
-                            .queue();
-                    sendGenericEmbed("Failed To Run Command: " + cmd, new Color(0x570000), event.getMember().getUser().getName(), event.getMember().getAvatarUrl(), "Logs");
-                }
-            });
-        });
+        event.deferReply(true).queue(hook ->
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    boolean ok = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+                    if (ok) {
+                        hook.editOriginal("Ran Command: " + command)
+                                .queue();
+                        sendGenericEmbed("Ran Command: " + command, new Color(0x570000), m.getUser().getName(), m.getAvatarUrl(), "Logs");
+                    } else {
+                        hook.editOriginal("Failed to execute: " + command)
+                                .queue();
+                        sendGenericEmbed("Failed To Run Command: " + command, new Color(0x570000), m.getUser().getName(), m.getAvatarUrl(), "Logs");
+                    }
+                }));
     }
 
     /* -------------------- /list implementation -------------------- */
+    @SuppressWarnings("ConstantValue") // The compile-time PremiumVanish stub always returns false; the real API is present at runtime.
     private void handleList(@NotNull SlashCommandInteractionEvent event) {
         Guild g = event.getGuild();
         Member m = event.getMember();
@@ -1217,11 +1128,12 @@ public class DiscordBridge extends ListenerAdapter {
         int vanishedCount = 0; // total vanished online (for footer visible to privileged users)
 
         for (Player p : Bukkit.getOnlinePlayers()) {
-            boolean vanished = false;
+            boolean vanished;
             try {
                 vanished = de.myzelyam.api.vanish.VanishAPI.isInvisible(p);
             } catch (Throwable ignored) {
                 // Vanish API missing or failed — treat as not vanished
+                vanished = false;
             }
             if (vanished) vanishedCount++;
 
@@ -1232,7 +1144,7 @@ public class DiscordBridge extends ListenerAdapter {
 
             // Determine the player's rank
             LoginService.Rank rank = LoginService.Rank.DEFAULT;
-            boolean isStaffByRank = false;
+            boolean isStaffByRank;
             try {
                 rank = plugin.getLoginService().getRank(p);
                 isStaffByRank = isStaffRank(rank); // MB is not staff here
@@ -1255,8 +1167,8 @@ public class DiscordBridge extends ListenerAdapter {
             }
         }
 
-        java.util.Collections.sort(staffNames, String.CASE_INSENSITIVE_ORDER);
-        java.util.Collections.sort(playerNames, String.CASE_INSENSITIVE_ORDER);
+        staffNames.sort(String.CASE_INSENSITIVE_ORDER);
+        playerNames.sort(String.CASE_INSENSITIVE_ORDER);
 
         int totalVisible = staffNames.size() + playerNames.size();
 
@@ -1311,28 +1223,27 @@ public class DiscordBridge extends ListenerAdapter {
             return;
         }
 
-        boolean rankedabove = p.hasPermission("sandbox.staff") || p.hasPermission("sandbox.superuser");
+        boolean rankedAbove = p.hasPermission("sandbox.staff") || p.hasPermission("sandbox.superuser");
 
-        if (rankedabove) {
+        if (rankedAbove) {
             event.reply("Player Already Possess A Higher Rank")
                     .queue();
             return;
         }
 
 
-        event.deferReply(true).queue(hook -> {
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                String cmd = "rank set " + username + " masterbuilder";
-                boolean ok = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
-                if (ok) {
-                    hook.editOriginal("Set rank for **" + username + "** to `masterbuilder` via console.")
-                            .queue();
-                } else {
-                    hook.editOriginal("Failed to execute `rank set " + username + " masterbuilder` in the console.")
-                            .queue();
-                }
-            });
-        });
+        event.deferReply(true).queue(hook ->
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    String cmd = "rank set " + username + " masterbuilder";
+                    boolean ok = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+                    if (ok) {
+                        hook.editOriginal("Set rank for **" + username + "** to `masterbuilder` via console.")
+                                .queue();
+                    } else {
+                        hook.editOriginal("Failed to execute `rank set " + username + " masterbuilder` in the console.")
+                                .queue();
+                    }
+                }));
     }
 
     private void handleSchemUploads(@NotNull SlashCommandInteractionEvent event) {
@@ -1385,10 +1296,8 @@ public class DiscordBridge extends ListenerAdapter {
             return;
         }
 
-        /* Protects Against Path Traversal and Various Other Exploits
-         You Could For Some Of These Just Use attachment.getExtension
-         No Idea How To Do That, Will Figure it out later if i stumbe upon this again
-         */
+        // Guards against path traversal and similar exploits. Some of these could use
+        // attachment.getExtension, but that approach is not used here.
         String rawName = attachment.getFileName();
 
         String baseName = Paths.get(rawName).getFileName().toString();
@@ -1399,7 +1308,7 @@ public class DiscordBridge extends ListenerAdapter {
         }
 
         String safeName = baseName
-                .replaceAll("[\0\\/\\\\:\\*\\?\"<>\\|%\\$&;]", "_")
+                .replaceAll("[\0\\\\/:*?\"<>|%$&;]", "_")
                 + "_Schematica.schem";
 
         sendGenericEmbed(safeName + " Uploaded To Server Files", Color.BLUE, m.getNickname(), m.getAvatarUrl(), "Logs");
@@ -1502,7 +1411,7 @@ public class DiscordBridge extends ListenerAdapter {
         if (jda == null) return null;
         if (reportsChannel != null) return reportsChannel;
         String id = cfg("discord.reports-channel-id", "discord.reports_channel_id");
-        if (id == null || id.isEmpty()) return null;
+        if (id.isEmpty()) return null;
         reportsChannel = jda.getTextChannelById(id);
         if (reportsChannel == null) plugin.getLogger().warning("[Discord] Reports channel not found: " + id);
         return reportsChannel;
@@ -1510,7 +1419,7 @@ public class DiscordBridge extends ListenerAdapter {
 
     private void pushIndex(String playerName, String reportId) {
         String k = playerName == null ? "" : playerName.toLowerCase(Locale.ENGLISH);
-        byPlayer.computeIfAbsent(k, __ -> new java.util.concurrent.ConcurrentLinkedDeque<>()).addLast(reportId);
+        byPlayer.computeIfAbsent(k, _ -> new java.util.concurrent.ConcurrentLinkedDeque<>()).addLast(reportId);
     }
 
     /* -------------------- Staff chat: MC -> Discord -------------------- */
@@ -1569,11 +1478,11 @@ public class DiscordBridge extends ListenerAdapter {
                         .setDescription("*Handled by: " + safe(handlerName) + "; MINECRAFT*")
                         .setTimestamp(Instant.now());
 
-                archive.sendMessageEmbeds(archived.build()).queue(v -> {
+                archive.sendMessageEmbeds(archived.build()).queue(_ -> {
                     message.delete().queue();
                     cleanup(id, msgId, rec);
                 }, t -> plugin.getLogger().warning("[Discord] Failed to archive report: " + t.getMessage()));
-            }, t -> cleanup(id, msgId, rec));
+            }, _ -> cleanup(id, msgId, rec));
 
             dq.pollLast();
             break; // only one per click
@@ -1584,7 +1493,7 @@ public class DiscordBridge extends ListenerAdapter {
         if (jda == null) return null;
         if (archivedReportsChannel != null) return archivedReportsChannel;
         String id = cfg("discord.archived-reports-channel-id", "discord.archived_reports_channel_id");
-        if (id == null || id.isEmpty()) return null;
+        if (id.isEmpty()) return null;
         archivedReportsChannel = jda.getTextChannelById(id);
         if (archivedReportsChannel == null)
             plugin.getLogger().warning("[Discord] Archived reports channel not found: " + id);
@@ -1622,7 +1531,7 @@ public class DiscordBridge extends ListenerAdapter {
 
         reports.getHistory().retrievePast(1).queue(firstBatch -> {
             if (firstBatch == null || firstBatch.isEmpty()) return;
-            String beforeId = firstBatch.get(0).getId();
+            String beforeId = firstBatch.getFirst().getId();
             fetchArchivePage(reports, archive, beforeId, 0, maxProcessed, pageSize);
         }, err -> plugin.getLogger().warning("[Discord] Startup scan (seed) failed: " + err.getMessage()));
     }
@@ -1633,7 +1542,7 @@ public class DiscordBridge extends ListenerAdapter {
 
         reports.getHistoryBefore(beforeId, pageSize).queue((MessageHistory history) -> {
             List<Message> messages = history.getRetrievedHistory();
-            if (messages == null || messages.isEmpty()) return;
+            if (messages.isEmpty()) return;
 
             String lastId = beforeId;
 
@@ -1642,13 +1551,12 @@ public class DiscordBridge extends ListenerAdapter {
                 EmbedBuilder archived = buildArchivedFromMessage(message);
                 if (archived == null) continue;
 
-                archive.sendMessageEmbeds(archived.build()).queue(v -> {
-                    message.delete().queue(
-                            ok -> {
-                            },
-                            err -> plugin.getLogger().warning("[Discord] Failed to delete old report: " + err.getMessage())
-                    );
-                }, t -> plugin.getLogger().warning("[Discord] Failed to move old report: " + t.getMessage()));
+                archive.sendMessageEmbeds(archived.build()).queue(_ ->
+                        message.delete().queue(
+                                _ -> {
+                                },
+                                err -> plugin.getLogger().warning("[Discord] Failed to delete old report: " + err.getMessage())
+                        ), t -> plugin.getLogger().warning("[Discord] Failed to move old report: " + t.getMessage()));
             }
 
             int newProcessed = processed + messages.size();
@@ -1663,7 +1571,7 @@ public class DiscordBridge extends ListenerAdapter {
         Integer x = null, y = null, z = null;
 
         if (!msg.getEmbeds().isEmpty()) {
-            MessageEmbed emb = msg.getEmbeds().get(0);
+            MessageEmbed emb = msg.getEmbeds().getFirst();
             if (emb.getTitle() != null && emb.getTitle().toLowerCase(Locale.ENGLISH).contains("in-game report")) {
                 for (MessageEmbed.Field f : emb.getFields()) {
                     String name = f.getName() == null ? "" : f.getName().toLowerCase(Locale.ENGLISH);
@@ -1754,20 +1662,11 @@ public class DiscordBridge extends ListenerAdapter {
     }
 
     public void sendGenericEmbed(String msg, Color color, String sender, String avatarurl, String channel) {
-        TextChannel ch;
-        switch (channel) {
-            case "Logs":
-                ch = getStaffLogsChannel();
-                break;
-            case "Staff":
-                ch = getStaffChannel();
-                break;
-            case "Schems":
-                ch = getSchemUploadsChannel();
-                break;
-            default:
-                ch = getStaffLogsChannel();
-        }
+        TextChannel ch = switch (channel) {
+            case "Staff" -> getStaffChannel();
+            case "Schems" -> getSchemUploadsChannel();
+            default -> getStaffLogsChannel();
+        };
         if (ch == null) return;
         EmbedBuilder eb = new EmbedBuilder()
                 .setColor(new Color(color.getRGB()))
@@ -1833,12 +1732,12 @@ public class DiscordBridge extends ListenerAdapter {
 
         if (plugin.getConfig().getBoolean("discord.use-embeds", false)) {
             ch.sendMessageEmbeds(new EmbedBuilder().setDescription(safeOut).build()).queue(
-                    ok -> {
+                    _ -> {
                     },
                     err -> {
                         plugin.getLogger().warning("[Discord] Failed to send public chat embed, trying plain message: " + err.getMessage());
                         ch.sendMessage(safeOut).queue(
-                                ok2 -> {
+                                _ -> {
                                 },
                                 err2 -> plugin.getLogger().warning("[Discord] Failed to send public chat message: " + err2.getMessage())
                         );
@@ -1846,7 +1745,7 @@ public class DiscordBridge extends ListenerAdapter {
             );
         } else {
             ch.sendMessage(safeOut).queue(
-                    ok -> {
+                    _ -> {
                     },
                     err -> plugin.getLogger().warning("[Discord] Failed to send public chat message: " + err.getMessage())
             );
@@ -1887,6 +1786,16 @@ public class DiscordBridge extends ListenerAdapter {
         }
     }
 
+    private static RoleDisplay roleDisplay(Member m) {
+        if (m == null || m.getRoles().isEmpty()) return new RoleDisplay("", "");
+        Role top = m.getRoles().getFirst();
+        java.awt.Color c = top.getColor();
+        return new RoleDisplay(top.getName(), c == null ? "" : toLegacyHex(c));
+    }
+
+    private record RoleDisplay(String name, String colorCode) {
+    }
+
     private boolean hasRole(Member m, String roleId) {
         if (m == null || roleId == null) return false;
         for (Role r : m.getRoles()) {
@@ -1896,45 +1805,7 @@ public class DiscordBridge extends ListenerAdapter {
     }
 
     /* ---------------------- Rank role sync helpers ---------------------- */
-    private String rankRoleIdFor(LoginService.Rank r) {
-        if (r == null) return null;
-        switch (r) {
-            case ADMIN:
-                return ROLE_SRADMIN; // existing Discord Senior Admin role now represents Admin
-            case STAFF:
-                return ROLE_MOD;     // existing Discord Moderator role now represents Staff
-            case MB:
-                return ROLE_MB;
-            // OPERATOR / VIP / DEFAULT -> no managed role id provided here
-            default:
-                return null;
-        }
-    }
-
-    private Set<String> managedRankRoleIds() {
-        Set<String> s = new HashSet<>();
-        s.add(ROLE_SRADMIN); // Admin
-        s.add(ROLE_MOD);     // Staff
-        s.add(ROLE_MB);
-        return s;
-    }
-
     // ===== Used by older moderation commands (kept for now but unused) =====
-    private record ParseResult(boolean ok, boolean permanent, String durationToken, String error) {
-
-        static ParseResult okPerm() {
-            return new ParseResult(true, true, null, null);
-        }
-
-        static ParseResult okWith(String tok) {
-            return new ParseResult(true, false, tok, null);
-        }
-
-        static ParseResult fail(String msg) {
-            return new ParseResult(false, false, null, msg);
-        }
-    }
-
     private final class ServerActivityListener implements Listener {
         @EventHandler
         public void onJoin(PlayerJoinEvent e) {

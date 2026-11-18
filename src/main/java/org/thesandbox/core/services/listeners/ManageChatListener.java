@@ -9,7 +9,7 @@ import org.thesandbox.core.util.colors.Colors;
 
 /**
  * Cancels chat while muted and informs the speaker in red.
- * Runs early so ChatMentionFormatListener sees the cancelled event and does not
+ * Runs early so ChatMentionFormatListener sees the canceled event and does not
  * rebroadcast the message.
  */
 public class ManageChatListener implements Listener {
@@ -21,9 +21,9 @@ public class ManageChatListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onAsyncChat(AsyncChatEvent e) {
-        if (!service.isMuted()) return;
-
-        e.setCancelled(true);
-        e.getPlayer().sendMessage(Colors.component(Colors.RED + "A staff member has muted the chat. You cannot speak at this time."));
+        if (service.isMuted()) {
+            e.setCancelled(true);
+            e.getPlayer().sendMessage(Colors.component(Colors.RED + "A staff member has muted the chat. You cannot speak at this time."));
+        }
     }
 }

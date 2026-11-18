@@ -8,9 +8,10 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.util.colors.Colors;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
@@ -18,8 +19,8 @@ public class ColorMeCommand extends BaseCommand implements TabCompleter {
 
     private final Map<String, String> colors = new LinkedHashMap<>();
 
-    public ColorMeCommand(JavaPlugin plugin) {
-        // Plain colours only (no magic/underline/italic/strike/reset)
+    public ColorMeCommand() {
+        // Plain colors only (no magic/underline/italic/strike/reset)
         colors.put("black", Colors.BLACK);
         colors.put("dark_blue", Colors.DARK_BLUE);
         colors.put("dark_green", Colors.DARK_GREEN);
@@ -97,7 +98,7 @@ public class ColorMeCommand extends BaseCommand implements TabCompleter {
 
     // Bukkit TabCompleter bridge
     @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+    public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         List<String> r = tabComplete(sender, command, alias, args);
         return (r != null) ? r : List.of();
     }

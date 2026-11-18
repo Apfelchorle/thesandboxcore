@@ -34,7 +34,6 @@ import org.thesandbox.core.services.world.AutoTpService;
 import org.thesandbox.core.services.world.EntityWiper;
 import org.thesandbox.core.services.world.WorldPreloadService;
 import org.thesandbox.core.util.BuildFlavor;
-import org.thesandbox.core.util.FunctionsHolder;
 import org.thesandbox.core.util.Utils;
 import org.thesandbox.core.util.config.PluginConfigManager;
 import org.thesandbox.core.util.registry.CommandAutoRegistrar;
@@ -86,7 +85,6 @@ public class TheSandboxCore extends JavaPlugin {
     private List<Item> registeredItems = new ArrayList<>();
     private PluginConfigManager pluginConfigManager;
     private BalanceManager balanceManager;
-    private FunctionsHolder functionsHolder;
     private AutoClearService autoClearService;
     private AutoTpService autoTpService;
     private ManageChatService manageChatService;
@@ -188,10 +186,6 @@ public class TheSandboxCore extends JavaPlugin {
         return entityWiper;
     }
 
-    public FunctionsHolder getFunctionsHolder() {
-        return functionsHolder;
-    }
-
     // ==================== Lifecycle Hooks ====================
 
     @Override
@@ -249,7 +243,7 @@ public class TheSandboxCore extends JavaPlugin {
             rankScoreboardManager.setupRankScoreboardTeams();
             rankScoreboardManager.refreshAllRankScoreboardTeams();
         } catch (Throwable t) {
-            // Don't leave a half-initialised plugin running (listeners without services, etc.).
+            // Don't leave a half-initialized plugin running (listeners without services, etc.).
             Utils.dump(t, "TheSandboxCore failed to start - disabling");
             getServer().getPluginManager().disablePlugin(this);
             return;
@@ -276,12 +270,11 @@ public class TheSandboxCore extends JavaPlugin {
         this.legacySqlStore = new LegacySqlStore(this, database);
         this.legacySqlStore.setup();
 
-        this.balanceSqlStore = new BalanceSqlStore(this, database);
+        this.balanceSqlStore = new BalanceSqlStore(database);
         this.balanceSqlStore.setup();
     }
 
     private void initServices() {
-        this.functionsHolder = new FunctionsHolder();
         this.pluginConfigManager = new PluginConfigManager(this);
 
         this.dataManager = new DataManager(this);
@@ -313,7 +306,7 @@ public class TheSandboxCore extends JavaPlugin {
             legacySqlStore.getDataSource()
         );
 
-        this.manageChatService = new ManageChatService(this);
+        this.manageChatService = new ManageChatService();
         this.guildManager = new GuildManager(this, database.getDelegatingDataSource());
         this.chatFilterEngine = new ChatFilterEngine(pluginConfigManager, this);
 
@@ -455,8 +448,9 @@ public class TheSandboxCore extends JavaPlugin {
     }
 
     /**
-     * Checks that the critical services exist. Runs right after initServices() (it used to run last,
-     * and used Map.of which throws NPE on a null value - so the "is it null" check could never report anything).
+     * Checks that the critical services exist. Runs right after initServices().
+     * It used to run last and used Map.of, which throws an NPE on a null value,
+     * so the null check could never report anything.
      */
     private boolean verifyInstances() {
         Map<String, Object> criticalServices = new LinkedHashMap<>();
@@ -468,7 +462,6 @@ public class TheSandboxCore extends JavaPlugin {
         criticalServices.put("LegacySqlStore", legacySqlStore);
         criticalServices.put("BalanceSqlStore", balanceSqlStore);
         criticalServices.put("LoginService", loginService);
-        criticalServices.put("FunctionsHolder", functionsHolder);
         criticalServices.put("EntityWiper", entityWiper);
 
         for (Map.Entry<String, Object> entry : criticalServices.entrySet()) {
@@ -532,7 +525,7 @@ public class TheSandboxCore extends JavaPlugin {
         });
 
         safely("terminate PacketEvents", () -> {
-            if (PacketEvents.getAPI() != null) PacketEvents.getAPI().terminate();
+            PacketEvents.getAPI().terminate();
         });
 
         // Close database connections last
@@ -584,14 +577,13 @@ public class TheSandboxCore extends JavaPlugin {
         return isDiscordChatBridgeEnabled();
     }
 
-    public boolean setDiscordChatBridgeEnabled(boolean enabled) {
+    public void setDiscordChatBridgeEnabled(boolean enabled) {
         boolean current = isDiscordChatBridgeEnabled();
-        if (current == enabled) return false;
+        if (current == enabled) return;
         getConfig().set("discord.chat-bridge.enabled", enabled);
         saveConfig();
         if (discord != null) {
             discord.applyChatBridgePermissionState();
         }
-        return true;
     }
 }

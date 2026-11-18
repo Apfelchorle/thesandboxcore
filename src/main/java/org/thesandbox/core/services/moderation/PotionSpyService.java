@@ -58,7 +58,7 @@ public class PotionSpyService implements Listener {
                 Player shooter = Bukkit.getPlayer(shooterId);
                 if (shooter == null) continue;
 
-                ThrownPotion latest = list.get(list.size() - 1);
+                ThrownPotion latest = list.getLast();
                 int total = list.size();
                 int troll = 0;
                 for (ThrownPotion p : list) if (isTrollPotion(p)) troll++;
@@ -190,8 +190,8 @@ public class PotionSpyService implements Listener {
         allThrownPotions.add(new AbstractMap.SimpleEntry<>(potion, System.currentTimeMillis()));
 
         List<ThrownPotion> list = recentlyThrownPotions.get(shooter.getUniqueId());
-        if (list.size() > 128) list.remove(0);
-        if (allThrownPotions.size() > 1024) allThrownPotions.remove(0);
+        if (list.size() > 128) list.removeFirst();
+        if (allThrownPotions.size() > 1024) allThrownPotions.removeFirst();
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

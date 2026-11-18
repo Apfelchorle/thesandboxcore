@@ -9,7 +9,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.ArrayList;
@@ -75,7 +74,7 @@ public class ExplodeCommand extends BaseCommand {
         safeDisableFlight(target);
         target.setVelocity(new Vector(0, initialBoost, 0));
 
-        playSoundSafe(target, target.getLocation(), fireworkLaunchSound(), 1.0f, 1.0f);
+        playSoundSafe(target.getLocation(), fireworkLaunchSound(), 1.0f, 1.0f);
 
         new BukkitRunnable()
         {
@@ -115,7 +114,7 @@ public class ExplodeCommand extends BaseCommand {
                 }
                 // Bigger visual explosion
                 spawnParticleSafe(boomAt, bigExplosionParticle(), 60, 1.5, 1.5, 1.5, 0.1);
-                playSoundSafe(target, boomAt, Sound.ENTITY_GENERIC_EXPLODE, 1.5f, 0.9f);
+                playSoundSafe(boomAt, Sound.ENTITY_GENERIC_EXPLODE, 1.5f, 0.9f);
 
                 try { target.setHealth(0.0D); }
                 catch (Throwable ignored) {
@@ -186,7 +185,7 @@ public class ExplodeCommand extends BaseCommand {
         catch (Throwable ignored) {}
     }
 
-    private void playSoundSafe(Player ctx, Location loc, Sound s, float vol, float pitch)
+    private void playSoundSafe(Location loc, Sound s, float vol, float pitch)
     {
         try { loc.getWorld().playSound(loc, s, vol, pitch); }
         catch (Throwable ignored) {}

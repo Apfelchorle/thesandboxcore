@@ -39,7 +39,7 @@ public class TheSandboxCoreCommand extends BaseCommand {
         String sub = args[0].toLowerCase(Locale.ROOT);
 
         if (sub.equals("config")) {
-            if (!hasStaffPermission(sender)) {
+            if (lacksStaffPermission(sender)) {
                 return true;
             }
             return configCommand.execute(

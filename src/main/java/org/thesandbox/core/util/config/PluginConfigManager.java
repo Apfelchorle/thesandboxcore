@@ -2,13 +2,11 @@ package org.thesandbox.core.util.config;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.util.Utils;
-import org.yaml.snakeyaml.Yaml;
 
 public class PluginConfigManager {
 
@@ -46,7 +44,7 @@ public class PluginConfigManager {
 
     public <T> T getOrCreateCustom(String key, T defaultValue, File file) {
         if (!file.exists()) {
-            Utils.log("File Non Existant.");
+            Utils.log("File does not exist.");
             createFile(file.getName());
         }
         FileConfiguration config = YamlConfiguration.loadConfiguration(file);
@@ -79,8 +77,7 @@ public class PluginConfigManager {
 
     public File createFile(String fileName) {
         Utils.log("Creating file:  " + fileName);
-        File file = new File(plugin.getDataFolder(), fileName);
-        return file;
+        return new File(plugin.getDataFolder(), fileName);
     }
 
     public void saveDataCustom(String key, Object value, File file) {
@@ -147,7 +144,7 @@ public class PluginConfigManager {
         saveDataCustom(key, value, file);
     }
 
-    public <T> T safeGet(String key, T Defaultvalue, File file) {
+    public <T> T safeGet(String key, T defaultValue, File file) {
         FileConfiguration config = YamlConfiguration.loadConfiguration(file);
 
         Object raw = config.get(key);
@@ -160,7 +157,7 @@ public class PluginConfigManager {
                     e,
                     "Config type mismatch for key '" + key + "', returning default."
             );
-            return Defaultvalue;
+            return defaultValue;
         }
     }
 

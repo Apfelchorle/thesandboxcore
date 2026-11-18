@@ -4,9 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.util.colors.Colors;
 import org.thesandbox.core.util.permissions.PermissionTier;
 
@@ -15,12 +13,6 @@ import java.util.Collections;
 import java.util.List;
 
 public class SudoCommand extends BaseCommand {
-    private final JavaPlugin plugin;
-
-    public SudoCommand(JavaPlugin plugin) {
-        this.plugin = plugin;
-    }
-
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
         if (args.length < 2) {
@@ -41,7 +33,7 @@ public class SudoCommand extends BaseCommand {
         }
 
         // Build the command string (strip any leading slash if provided)
-        String cmd = joinArgs(args, 1);
+        String cmd = joinArgs(args);
         while (cmd.startsWith("/")) {
             cmd = cmd.substring(1);
         }
@@ -87,18 +79,18 @@ public class SudoCommand extends BaseCommand {
         int targetLevel = roleLevel(target);
 
         // Console (or non-player senders) can control anyone
-        if (!(actor instanceof Player)) return true;
+        if (!(actor instanceof Player ap)) return true;
 
         // You can always run commands as yourself, but never as an equal or higher level
         // (otherwise staff could impersonate each other).
-        if (actor instanceof Player ap && ap.getUniqueId().equals(target.getUniqueId())) return true;
+        if (ap.getUniqueId().equals(target.getUniqueId())) return true;
         return actorLevel > targetLevel;
     }
 
-    private static String joinArgs(String[] arr, int startIdx) {
+    private static String joinArgs(String[] arr) {
         StringBuilder sb = new StringBuilder();
-        for (int i = startIdx; i < arr.length; i++) {
-            if (i > startIdx) sb.append(' ');
+        for (int i = 1; i < arr.length; i++) {
+            if (i > 1) sb.append(' ');
             sb.append(arr[i]);
         }
         return sb.toString();

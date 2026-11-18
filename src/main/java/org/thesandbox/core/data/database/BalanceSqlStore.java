@@ -1,7 +1,5 @@
 package org.thesandbox.core.data.database;
 
-import org.bukkit.plugin.java.JavaPlugin;
-
 import javax.sql.DataSource;
 
 /**
@@ -14,13 +12,14 @@ public class BalanceSqlStore {
 
     private final Database database;
 
-    public BalanceSqlStore(JavaPlugin plugin, Database database) {
+    public BalanceSqlStore(Database database) {
         this.database = database;
     }
 
     /**
      * Kept for startup ordering; the shared pool is created by {@link Database}.
      */
+    @SuppressWarnings("EmptyMethod")
     public void setup() {
         // no-op
     }
@@ -28,6 +27,7 @@ public class BalanceSqlStore {
     /**
      * Kept for shutdown ordering; the shared pool is closed by {@link Database}.
      */
+    @SuppressWarnings("EmptyMethod")
     public void close() {
         // no-op
     }

@@ -10,7 +10,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.ArrayList;
@@ -59,7 +58,7 @@ public class NickGradientCommand extends BaseCommand {
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (p == player) continue;
             String strippedDisplay = Colors.strip(Colors.plain(p.displayName()));
-            if (p.getName().equalsIgnoreCase(nickRaw) || (strippedDisplay != null && strippedDisplay.trim().equalsIgnoreCase(nickRaw))) {
+            if (p.getName().equalsIgnoreCase(nickRaw) || strippedDisplay.trim().equalsIgnoreCase(nickRaw)) {
                 sendError(sender, Colors.RED + "That nickname is already in use.");
                 return true;
             }
@@ -68,7 +67,7 @@ public class NickGradientCommand extends BaseCommand {
         // Parse colors (support #RRGGBB or "random"/"r")
         java.awt.Color awt1;
         java.awt.Color awt2;
-        boolean showFrom = false, showTo = false;
+        boolean showFrom, showTo;
 
         try {
             awt1 = parseOrRandom(args[0]);
@@ -170,6 +169,6 @@ public class NickGradientCommand extends BaseCommand {
     }
 
     private static int clamp(int v) {
-        return Math.max(0, Math.min(255, v));
+        return Math.clamp(v, 0, 255);
     }
 }

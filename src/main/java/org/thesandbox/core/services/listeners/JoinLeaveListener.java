@@ -51,6 +51,7 @@ public class JoinLeaveListener implements Listener {
         event.joinMessage(vanished ? null : Colors.component(buildJoinMessageFor(p)));
     }
 
+    @SuppressWarnings("ConstantValue") // The compile-time PremiumVanish stub always returns false; the real API is present at runtime.
     private String buildJoinMessageFor(Player p) {
         if (VanishAPI.isInvisible(p)) {
             return null;

@@ -14,7 +14,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.services.guilds.Guild;
 import org.thesandbox.core.services.guilds.GuildManager;
 import org.thesandbox.core.services.tags.TagService;
@@ -134,16 +133,12 @@ public class TagCommand extends BaseCommand {
         return stripColorsAndFormatting(s == null ? "" : s).length();
     }
 
-    private static String labelFrom(CommandSender sender) {
-        return "tag";
-    }
-
     /**
-     * Returns the current prefix value at a given priority, or null if none.
+     * Returns the current prefix value at the managed priority, or null if none.
      */
-    private static String currentPrefixAtPriority(User user, int priority) {
+    private static String currentPrefixAtPriority(User user) {
         for (Node n : user.data().toCollection()) {
-            if (n instanceof PrefixNode pn && pn.getPriority() == priority) {
+            if (n instanceof PrefixNode pn && pn.getPriority() == PREFIX_PRIORITY) {
                 return pn.getMetaValue();
             }
         }
@@ -167,7 +162,7 @@ public class TagCommand extends BaseCommand {
         boolean changed = false;
         for (Node n : toRemove) {
             DataMutateResult res = map.remove(n);
-            if (res != null && res.wasSuccessful()) {
+            if (res.wasSuccessful()) {
                 changed = true;
             }
         }
@@ -186,7 +181,7 @@ public class TagCommand extends BaseCommand {
         if (args[0].equalsIgnoreCase("-s") || args[0].equalsIgnoreCase("-save")) {
             saveFlag = true;
             idx = 1;
-            if (args.length <= 1) {
+            if (args.length == 1) {
                 sendUsage(sender, Colors.RED + "Usage: /" + label + " -save <set|gradient|save ...>");
                 return true;
             }
@@ -211,7 +206,7 @@ public class TagCommand extends BaseCommand {
     public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> out = new ArrayList<>();
         int idx = 0;
-        if (args.length >= 1 && (args[0].equalsIgnoreCase("-s") || args[0].equalsIgnoreCase("-save"))) {
+        if (args.length != 0 && (args[0].equalsIgnoreCase("-s") || args[0].equalsIgnoreCase("-save"))) {
             idx = 1;
         }
         if (args.length == 1) {
@@ -278,7 +273,7 @@ public class TagCommand extends BaseCommand {
         String legacy = HexColorUtil.translate(raw);
         // CHANGED: no trailing space is appended anymore; only a trailing reset
         String finalPrefix = ensureSingleSpaceAfterTag(legacy);
-        applyPrefixAsync(p.getName(), p.getUniqueId(), finalPrefix, save, true);
+        applyPrefixAsync(p.getName(), p.getUniqueId(), finalPrefix, save);
     }
 
     // ---- /tag gradient <hex> <hex> <tag..> ----
@@ -318,7 +313,7 @@ public class TagCommand extends BaseCommand {
         String gradient = gradientify(c1, c2, text);
         // CHANGED: no trailing space is appended anymore; only a trailing reset
         String finalPrefix = ensureSingleSpaceAfterTag(gradient);
-        applyPrefixAsync(p.getName(), p.getUniqueId(), finalPrefix, save, true);
+        applyPrefixAsync(p.getName(), p.getUniqueId(), finalPrefix, save);
     }
 
     // ---- /tag list ----
@@ -337,14 +332,14 @@ public class TagCommand extends BaseCommand {
                 }
                 CompletableFuture
                         .allOf(futures.toArray(CompletableFuture[]::new))
-                        .exceptionally(t -> null)
+                        .exceptionally(_ -> null)
                         .get(5, TimeUnit.SECONDS);
 
                 List<String> lines = new ArrayList<>();
                 for (int i = 0; i < online.size(); i++) {
                     User u = futures.get(i).getNow(null);
                     if (u == null) continue;
-                    String tag = currentPrefixAtPriority(u, PREFIX_PRIORITY);
+                    String tag = currentPrefixAtPriority(u);
                     if (tag != null && !tag.isEmpty()) {
                         lines.add(Colors.DARK_AQUA + " - " + online.get(i).getName() + Colors.GRAY + " -> " + tag);
                     }
@@ -379,7 +374,7 @@ public class TagCommand extends BaseCommand {
                     sendError(p, Colors.RED + "LuckPerms user not found.");
                     return;
                 }
-                String current = currentPrefixAtPriority(user, PREFIX_PRIORITY);
+                String current = currentPrefixAtPriority(user);
                 if (current == null || current.isEmpty()) {
                     sendError(p, Colors.YELLOW + "You don't have a tag to save yet.");
                     return;
@@ -399,7 +394,7 @@ public class TagCommand extends BaseCommand {
             return;
         }
         tagService.deleteTag(p.getName()); // also remove from MySQL per spec
-        applyFallbackPrefixAsync(p.getName(), p.getUniqueId(), true);
+        applyFallbackPrefixAsync(p.getUniqueId());
     }
 
     // ---- /tag clear <player> ----
@@ -409,7 +404,7 @@ public class TagCommand extends BaseCommand {
             return;
         }
         if (args.length != 1) {
-            sendUsage(sender, Colors.RED + "Usage: /" + labelFrom(sender) + " clear <player>");
+            sendUsage(sender, Colors.RED + "Usage: /tag clear <player>");
             return;
         }
         String targetName = args[0];
@@ -519,23 +514,21 @@ public class TagCommand extends BaseCommand {
 
     private List<String> getTagBlacklist() {
         List<String> list = plugin.getConfig().getStringList("tags.blacklist");
-        if (list == null || list.isEmpty()) {
+        if (list.isEmpty()) {
             list = plugin.getConfig().getStringList("tag.blacklist");
         }
-        return (list != null) ? list : Collections.emptyList();
+        return list;
     }
 
-    private void applyPrefixAsync(String playerName, UUID uuid, String prefix, boolean save, boolean notify) {
+    private void applyPrefixAsync(String playerName, UUID uuid, String prefix, boolean save) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
                 LuckPerms lp = LuckPermsProvider.get();
                 UserManager um = lp.getUserManager();
                 User user = um.loadUser(uuid).get(5, TimeUnit.SECONDS);
                 if (user == null) {
-                    if (notify) {
-                        Player pl = Bukkit.getPlayer(uuid);
-                        if (pl != null) sendError(pl, Colors.RED + "LuckPerms user not found.");
-                    }
+                    Player pl = Bukkit.getPlayer(uuid);
+                    if (pl != null) sendError(pl, Colors.RED + "LuckPerms user not found.");
                     return;
                 }
                 removePrefixNodes(user);
@@ -544,14 +537,12 @@ public class TagCommand extends BaseCommand {
                 user.getCachedData().invalidate();
                 um.saveUser(user).get(5, TimeUnit.SECONDS);
                 if (save) tagService.saveTag(playerName, decolor(prefix));
-                if (notify) {
-                    Player p = Bukkit.getPlayer(uuid);
-                    if (p != null) {
-                        sendCommand(p, Colors.GREEN + "Tag updated!");
-                        String nameToShow = getEssentialsNickOrName(p);
-                        // Preview shows exactly what was set (no forced space)
-                        sendCommand(p, Colors.GRAY + "Preview: " + prefix + " " + Colors.RESET + nameToShow);
-                    }
+                Player p = Bukkit.getPlayer(uuid);
+                if (p != null) {
+                    sendCommand(p, Colors.GREEN + "Tag updated!");
+                    String nameToShow = getEssentialsNickOrName(p);
+                    // Preview shows exactly what was set (no forced space)
+                    sendCommand(p, Colors.GRAY + "Preview: " + prefix + " " + Colors.RESET + nameToShow);
                 }
             } catch (Exception e) {
                 Player p = Bukkit.getPlayer(uuid);
@@ -579,7 +570,7 @@ public class TagCommand extends BaseCommand {
             Guild guild = guildManager.guildOf(uuid);
             if (guild == null) return null;
             String prefix = guild.visiblePrefixFor(uuid);
-            return (prefix == null || prefix.isBlank()) ? null : prefix;
+            return prefix.isBlank() ? null : prefix;
         } catch (Throwable ignored) {
             return null;
         }
@@ -590,17 +581,15 @@ public class TagCommand extends BaseCommand {
      * 1) guild rank prefix in the managed tag slot, if the player has one;
      * 2) otherwise remove the managed tag slot so LuckPerms' normal rank prefix is used.
      */
-    private void applyFallbackPrefixAsync(String playerName, UUID uuid, boolean notify) {
+    private void applyFallbackPrefixAsync(UUID uuid) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
                 LuckPerms lp = LuckPermsProvider.get();
                 UserManager um = lp.getUserManager();
                 User user = um.loadUser(uuid).get(5, TimeUnit.SECONDS);
                 if (user == null) {
-                    if (notify) {
-                        Player p = Bukkit.getPlayer(uuid);
-                        if (p != null) sendError(p, Colors.RED + "LuckPerms user not found.");
-                    }
+                    Player p = Bukkit.getPlayer(uuid);
+                    if (p != null) sendError(p, Colors.RED + "LuckPerms user not found.");
                     return;
                 }
 
@@ -608,14 +597,12 @@ public class TagCommand extends BaseCommand {
                 user.getCachedData().invalidate();
                 um.saveUser(user).get(5, TimeUnit.SECONDS);
 
-                if (notify) {
-                    Player p = Bukkit.getPlayer(uuid);
-                    if (p != null) {
-                        if (fallback != null) {
-                            sendCommand(p, Colors.YELLOW + "Tag cleared. " + Colors.GRAY + "Using your " + fallback + " now.");
-                        } else {
-                            sendCommand(p, Colors.YELLOW + "Tag cleared. " + Colors.GRAY + "Using your normal LuckPerms rank prefix now.");
-                        }
+                Player p = Bukkit.getPlayer(uuid);
+                if (p != null) {
+                    if (fallback != null) {
+                        sendCommand(p, Colors.YELLOW + "Tag cleared. " + Colors.GRAY + "Using your " + fallback + " now.");
+                    } else {
+                        sendCommand(p, Colors.YELLOW + "Tag cleared. " + Colors.GRAY + "Using your normal LuckPerms rank prefix now.");
                     }
                 }
             } catch (Exception e) {

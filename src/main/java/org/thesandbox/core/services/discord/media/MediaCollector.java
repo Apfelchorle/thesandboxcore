@@ -40,10 +40,8 @@ public final class MediaCollector {
         if (message == null) return MediaPlan.empty("");
 
         String jumpUrl = safe(message.getJumpUrl());
-        String authorId = message.getAuthor() == null ? "" : safe(message.getAuthor().getId());
-        String channelId = channel == null
-                ? (message.getChannel() == null ? "" : safe(message.getChannel().getId()))
-                : safe(channel.getId());
+        String authorId = safe(message.getAuthor().getId());
+        String channelId = channel == null ? safe(message.getChannel().getId()) : safe(channel.getId());
 
         LinkedHashSet<String> mediaUrls = new LinkedHashSet<>();
         for (Message.Attachment attachment : message.getAttachments()) {

@@ -8,25 +8,15 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
 public class DebugStickCommand extends BaseCommand
 {
-    private final JavaPlugin plugin;
-
-    public DebugStickCommand(JavaPlugin plugin)
-    {
-        this.plugin = plugin;
-    }
-
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args)
     {
@@ -66,12 +56,6 @@ public class DebugStickCommand extends BaseCommand
         }
 
         return true;
-    }
-
-    @Override
-    public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args)
-    {
-        return Collections.emptyList();
     }
 
     private Material getDebugStickMaterial()

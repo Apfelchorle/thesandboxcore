@@ -14,7 +14,8 @@ public abstract class WorldTeleportWrapper extends BaseCommand {
 
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        return WorldTeleportHelper.teleport(sender, worldName(), displayName());
+        WorldTeleportHelper.teleport(sender, worldName(), displayName());
+        return true;
     }
 
     /**

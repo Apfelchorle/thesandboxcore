@@ -25,6 +25,7 @@ import org.thesandbox.core.util.colors.HexColorUtil;
 import org.thesandbox.core.util.colors.TextSanitizer;
 import org.thesandbox.core.data.PlayerDataKeys;
 
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,7 +39,7 @@ public class ChatMentionFormatListener implements Listener {
     private final MiniMessage miniMessage = MiniMessage.miniMessage();
     private final LegacyComponentSerializer legacySerializer =
             LegacyComponentSerializer.builder()
-                    .character('\u00a7')
+                    .character('§')
                     .hexColors()
                     .useUnusualXRepeatedCharacterHexFormat()
                     .build();
@@ -118,8 +119,8 @@ public class ChatMentionFormatListener implements Listener {
     private static String joinPrefixes(String first, String second) {
         if (first == null || first.isEmpty()) return second;
         if (second == null || second.isEmpty()) return first;
-        if (!hasVisibleText(first)) return first + second;
-        if (!hasVisibleText(second)) return first + second;
+        if (hasNoVisibleText(first)) return first + second;
+        if (hasNoVisibleText(second)) return first + second;
         return joinWithSingleSpace(first, second);
     }
 
@@ -161,8 +162,8 @@ public class ChatMentionFormatListener implements Listener {
         return HexColorUtil.stripColors(s);
     }
 
-    private static boolean hasVisibleText(String s) {
-        return !stripColorCodes(s).trim().isEmpty();
+    private static boolean hasNoVisibleText(String s) {
+        return stripColorCodes(s).trim().isEmpty();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -190,8 +191,7 @@ public class ChatMentionFormatListener implements Listener {
         var guilds = core.getGuildManager();
         if (guilds != null && guilds.isInGuild(sender.getUniqueId()) && guilds.isGuildChatToggled(sender.getUniqueId())) {
             event.setCancelled(true);
-            final String msg = rawText;
-            Bukkit.getScheduler().runTask(core, () -> guilds.sendGuildChat(sender, msg));
+            Bukkit.getScheduler().runTask(core, () -> guilds.sendGuildChat(sender, rawText));
             return;
         }
 
@@ -218,7 +218,7 @@ public class ChatMentionFormatListener implements Listener {
 //        } else {
 //            colored = HexColorUtil.translate(sanitized);
 //            if (!sender.hasPermission("sandbox.staff")) {
-//                colored = colored.replaceAll("(?i)\u00A7k", "");
+//                colored = colored.replaceAll("(?i)§k", "");
 //            }
 //        }
 
@@ -226,7 +226,7 @@ public class ChatMentionFormatListener implements Listener {
         event.setCancelled(true);
 
         // Since this listener cancels and manually rebroadcasts normal chat, mirror it to Discord here.
-        // If another plugin cancelled the event first (like ChatReaction), the early return above prevents mirroring.
+        // If another plugin canceled the event first (like ChatReaction), the early return above prevents mirroring.
         DiscordBridge discord = core.getDiscord();
         if (discord != null && discord.isReady()) {
             discord.sendPublicMessageFromMinecraft(sender, rawText);
@@ -406,7 +406,7 @@ public class ChatMentionFormatListener implements Listener {
             base = p.getName();
         }
 
-        // Normalise to section signs first so nicknames mixing & codes (for example
+        // Normalize to section signs first so nicknames mixing & codes (for example
         // the /marrytag heart prefix) and § hex codes (from /nickgradient) both parse.
         String legacy = Colors.color(base);
         if (legacy.indexOf('§') >= 0) {
@@ -417,7 +417,7 @@ public class ChatMentionFormatListener implements Listener {
     }
 
     /**
-     * Rank colour used as the default name colour. Explicit nickname colours
+     * Rank color used as the default name color. Explicit nickname colors
      * (for example from /colorme or /nickrainbow) still take precedence.
      */
     private NamedTextColor rankNameTextColor(Player p) {
@@ -436,9 +436,7 @@ public class ChatMentionFormatListener implements Listener {
             base = p.getName();
         }
 
-        if (hasColorCode(base)) {
-            base = base;
-        } else {
+        if (!hasColorCode(base)) {
             base = rankNameColor(p) + stripLegacyColorsKeepFormatting(base);
         }
 
@@ -453,7 +451,7 @@ public class ChatMentionFormatListener implements Listener {
             return base;
         }
 
-        if (!hasVisibleText(prefix)) {
+        if (hasNoVisibleText(prefix)) {
             return prefix + base;
         }
 
@@ -487,10 +485,10 @@ public class ChatMentionFormatListener implements Listener {
 
     private String rankNameColor(Player p) {
         try {
-            if (core.getLoginService() == null) return Colors.GRAY.toString();
+            if (core.getLoginService() == null) return Colors.GRAY;
             return colorizeLegacy(core.getLoginService().getRank(p).color);
         } catch (Throwable ignored) {
-            return Colors.GRAY.toString();
+            return Colors.GRAY;
         }
     }
 
@@ -536,46 +534,41 @@ public class ChatMentionFormatListener implements Listener {
             String out = replaceMention(
                     message,
                     Pattern.compile("(?i)(?<!\\w)@" + Pattern.quote(name) + "(?!\\w)"),
-                    m -> "<yellow>@" + name + "</yellow>"
+                    () -> "<yellow>@" + name + "</yellow>"
             );
             out = replaceMention(
                     out,
                     Pattern.compile("(?i)(?<!\\w)" + Pattern.quote(name) + "(?!\\w)"),
-                    m -> "<yellow>" + name + "</yellow>"
+                    () -> "<yellow>" + name + "</yellow>"
             );
             return out;
         } else {
             // Legacy highlighting with ChatColor
-            final String reset = Colors.RESET.toString();
-            final String yellow = Colors.YELLOW.toString();
+            final String reset = Colors.RESET;
+            final String yellow = Colors.YELLOW;
 
             String out = replaceMention(
                     message,
                     Pattern.compile("(?i)(?<!\\w)@" + Pattern.quote(name) + "(?!\\w)"),
-                    m -> yellow + "@" + name + reset
+                    () -> yellow + "@" + name + reset
             );
             out = replaceMention(
                     out,
                     Pattern.compile("(?i)(?<!\\w)" + Pattern.quote(name) + "(?!\\w)"),
-                    m -> yellow + name + reset
+                    () -> yellow + name + reset
             );
 
             return out;
         }
     }
 
-    private String replaceMention(String input, Pattern pattern, Replacer replacer) {
+    private String replaceMention(String input, Pattern pattern, Supplier<String> replacer) {
         Matcher matcher = pattern.matcher(input);
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         while (matcher.find()) {
-            matcher.appendReplacement(sb, Matcher.quoteReplacement(replacer.apply(matcher)));
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(replacer.get()));
         }
         matcher.appendTail(sb);
         return sb.toString();
-    }
-
-    @FunctionalInterface
-    private interface Replacer {
-        String apply(Matcher m);
     }
 }

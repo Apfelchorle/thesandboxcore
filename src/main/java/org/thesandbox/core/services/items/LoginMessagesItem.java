@@ -14,7 +14,6 @@ import org.thesandbox.core.services.login.LoginMessages;
 import org.thesandbox.core.services.items.util.Item;
 import org.thesandbox.core.services.items.util.ItemKeys;
 import org.thesandbox.core.data.PlayerDataKeys;
-import org.thesandbox.core.data.PlayerDataListener;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,14 +27,12 @@ public class LoginMessagesItem implements Item {
     private final ItemKeys keys;
     private final long cooldownMs;
     private final Map<UUID, Long> cooldowns = new HashMap<>();
-    private final PlayerDataListener playerDataListener;
     private final LoginMessages loginMessages;
 
-    public LoginMessagesItem(TheSandboxCore plugin, ItemKeys keys, PlayerDataListener playerDataListener, LoginMessages loginMessages) {
+    public LoginMessagesItem(TheSandboxCore plugin, ItemKeys keys, LoginMessages loginMessages) {
         this.plugin = plugin;
         this.keys = keys;
         this.cooldownMs = plugin.getConfig().getLong("items.loginMessages.cooldown", 1500);
-        this.playerDataListener = playerDataListener;
         this.loginMessages = loginMessages;
     }
 

@@ -13,7 +13,6 @@ import org.thesandbox.core.util.colors.Colors;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
 
 public class BlockCmdCommand extends BaseCommand {
 
@@ -38,7 +37,6 @@ public class BlockCmdCommand extends BaseCommand {
             return true;
         }
 
-        final String actor = (sender instanceof Player p) ? p.getName() : "CONSOLE";
         final String sub = args[0].toLowerCase(Locale.ENGLISH);
 
         // /blockcmd all  -> block everyone except staff
@@ -102,7 +100,7 @@ public class BlockCmdCommand extends BaseCommand {
                             .map(Player::getName)
                             .filter(n -> n.toLowerCase(Locale.ENGLISH).startsWith(args[0].toLowerCase(Locale.ENGLISH)))
                             .sorted(String.CASE_INSENSITIVE_ORDER)
-                            .collect(Collectors.toList())
+                            .toList()
             );
         }
         return out;

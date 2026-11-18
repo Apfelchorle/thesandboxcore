@@ -391,12 +391,12 @@ public final class GuildManager {
     }
 
     private void ensureMysqlGuildColumns(Connection c) throws SQLException {
-        ensureColumn(c, "sandbox_guilds", "open_join", "TINYINT(1) NOT NULL DEFAULT 0");
-        ensureColumn(c, "sandbox_guilds", "public_home", "TINYINT(1) NOT NULL DEFAULT 0");
+        ensureColumn(c, "open_join");
+        ensureColumn(c, "public_home");
         // Compatibility with the existing s2_sandbox schema.
-        ensureColumn(c, "sandbox_guilds", "is_open", "TINYINT(1) NOT NULL DEFAULT 0");
-        ensureColumn(c, "sandbox_guilds", "is_public_home", "TINYINT(1) NOT NULL DEFAULT 0");
-        ensureColumn(c, "sandbox_guilds", "public_guild", "TINYINT(1) NOT NULL DEFAULT 0");
+        ensureColumn(c, "is_open");
+        ensureColumn(c, "is_public_home");
+        ensureColumn(c, "public_guild");
     }
 
     private Location readLocation(String path) {
@@ -510,7 +510,7 @@ public final class GuildManager {
                             }
 
                             if (g.home() != null && g.home().getWorld() != null) {
-                                bindLocation(homePs, g.name(), g.home(), 1);
+                                bindLocation(homePs, g.name(), g.home());
                                 homePs.addBatch();
                             }
 
@@ -536,7 +536,7 @@ public final class GuildManager {
                         homePs.executeBatch();
                         warpPs.executeBatch();
 
-                        // A disbanded guild may still be present in a snapshot captured before the delete.
+                        // A disbanded guild may still be present in a snapshot captured before it was deleted.
                         for (String deleted : snapshot.deletedGuilds()) {
                             deleteGuildRows(c, "sandbox_guild_rank_permissions", deleted);
                             deleteGuildRows(c, "sandbox_guild_ranks", deleted);
@@ -570,23 +570,23 @@ public final class GuildManager {
         }
     }
 
-    private void ensureColumn(Connection c, String table, String column, String definition) throws SQLException {
-        try (ResultSet rs = c.getMetaData().getColumns(c.getCatalog(), null, table, column)) {
+    private void ensureColumn(Connection c, String column) throws SQLException {
+        try (ResultSet rs = c.getMetaData().getColumns(c.getCatalog(), null, "sandbox_guilds", column)) {
             if (rs.next()) return;
         }
         try (Statement st = c.createStatement()) {
-            st.executeUpdate("ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition);
+            st.executeUpdate("ALTER TABLE sandbox_guilds ADD COLUMN " + column + " TINYINT(1) NOT NULL DEFAULT 0");
         }
     }
 
-    private void bindLocation(PreparedStatement ps, String guildName, Location loc, int start) throws SQLException {
-        ps.setString(start, guildName);
-        ps.setString(start + 1, loc.getWorld().getName());
-        ps.setDouble(start + 2, loc.getX());
-        ps.setDouble(start + 3, loc.getY());
-        ps.setDouble(start + 4, loc.getZ());
-        ps.setFloat(start + 5, loc.getYaw());
-        ps.setFloat(start + 6, loc.getPitch());
+    private void bindLocation(PreparedStatement ps, String guildName, Location loc) throws SQLException {
+        ps.setString(1, guildName);
+        ps.setString(2, loc.getWorld().getName());
+        ps.setDouble(3, loc.getX());
+        ps.setDouble(4, loc.getY());
+        ps.setDouble(5, loc.getZ());
+        ps.setFloat(6, loc.getYaw());
+        ps.setFloat(7, loc.getPitch());
     }
 
     private void deleteGuildRows(Connection c, String table, String guildName) throws SQLException {
@@ -705,19 +705,19 @@ public final class GuildManager {
         }
     }
 
-    private boolean upsertHomeMysql(String guildName, Location loc) {
-        if (!mysqlGuildsAvailable || guildName == null || loc == null || loc.getWorld() == null) return false;
+    private boolean upsertHomeMysqlFailed(String guildName, Location loc) {
+        if (!mysqlGuildsAvailable || guildName == null || loc == null || loc.getWorld() == null) return true;
         String sql = "INSERT INTO sandbox_guild_homes (guild_name, world, x, y, z, yaw, pitch) VALUES (?, ?, ?, ?, ?, ?, ?) " +
                 "ON DUPLICATE KEY UPDATE world = VALUES(world), x = VALUES(x), y = VALUES(y), z = VALUES(z), yaw = VALUES(yaw), pitch = VALUES(pitch)";
         synchronized (mysqlWriteLock) {
             try (Connection c = guildDataSource.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
-                bindLocation(ps, guildName, loc, 1);
+                bindLocation(ps, guildName, loc);
                 ps.executeUpdate();
                 plugin.getLogger().info("[Guilds] Saved guild home to MySQL for " + guildName + ".");
-                return true;
+                return false;
             } catch (SQLException e) {
                 plugin.getLogger().severe("[Guilds] Failed to save guild home to MySQL for " + guildName + ": " + e.getMessage());
-                return false;
+                return true;
             }
         }
     }
@@ -788,14 +788,14 @@ public final class GuildManager {
         }
     }
 
-    public boolean sendGuildChat(Player sender, String rawMessage) {
-        if (sender == null || rawMessage == null) return false;
+    public void sendGuildChat(Player sender, String rawMessage) {
+        if (sender == null || rawMessage == null) return;
         Guild g = guildOf(sender.getUniqueId());
-        if (g == null) return false;
+        if (g == null) return;
 
         Component line = Colors.c("&6&l[GUILD]&r ");
         String rankTag = g.visiblePrefixFor(sender.getUniqueId());
-        if (rankTag != null && !rankTag.isBlank()) {
+        if (!rankTag.isBlank()) {
             line = line.append(rich(rankTag)).append(Component.space()).append(Colors.c("&r"));
         }
         line = line
@@ -821,7 +821,6 @@ public final class GuildManager {
         }
 
         plugin.getLogger().info("[GuildChat:" + g.name() + "] " + PlainTextComponentSerializer.plainText().serialize(line));
-        return true;
     }
 
     public Guild guildOf(UUID uuid) {
@@ -833,7 +832,7 @@ public final class GuildManager {
         if (input == null || input.isEmpty()) return Component.empty();
 
         // Player-controlled guild/nickname text: strip interactive MiniMessage
-        // tags before deserialising so nobody can inject click/hover actions.
+        // tags before deserializing so nobody can inject click/hover actions.
         String safeInput = TextSanitizer.sanitizeMiniMessage(input);
 
         // Supports mixed guild-chat formatting in one message:
@@ -871,7 +870,7 @@ public final class GuildManager {
         java.util.regex.Matcher repeatedHex = java.util.regex.Pattern
                 .compile("(?i)&x&([0-9a-f])&([0-9a-f])&([0-9a-f])&([0-9a-f])&([0-9a-f])&([0-9a-f])")
                 .matcher(out);
-        StringBuffer hexBuffer = new StringBuffer();
+        StringBuilder hexBuffer = new StringBuilder();
         while (repeatedHex.find()) {
             String hex = "#" + repeatedHex.group(1) + repeatedHex.group(2) + repeatedHex.group(3)
                     + repeatedHex.group(4) + repeatedHex.group(5) + repeatedHex.group(6);
@@ -884,7 +883,7 @@ public final class GuildManager {
         java.util.regex.Matcher hex = java.util.regex.Pattern
                 .compile("(?i)&?#([0-9a-f]{6})")
                 .matcher(out);
-        StringBuffer directHexBuffer = new StringBuffer();
+        StringBuilder directHexBuffer = new StringBuilder();
         while (hex.find()) {
             hex.appendReplacement(directHexBuffer, java.util.regex.Matcher.quoteReplacement("<#" + hex.group(1) + ">"));
         }
@@ -912,7 +911,7 @@ public final class GuildManager {
         out = out.replaceAll("(?i)&n", "<underlined>");
         out = out.replaceAll("(?i)&o", "<italic>");
         out = out.replaceAll("(?i)&r", "<reset>");
-        // There is no safe direct obfuscated conversion needed for chat content here.
+        // Obfuscated formatting is removed; chat content has no safe direct equivalent.
         out = out.replaceAll("(?i)&k", "");
 
         return out;
@@ -933,7 +932,7 @@ public final class GuildManager {
                 return s;
             }
         } catch (Throwable ignored) {
-            // Essentials is optional; fall back to the player's username.
+            // The Essentials plugin is optional; fall back to the player's username.
         }
         return null;
     }
@@ -973,8 +972,8 @@ public final class GuildManager {
         return CreateResult.OK;
     }
 
-    public boolean disbandGuild(Guild g) {
-        if (g == null) return false;
+    public void disbandGuild(Guild g) {
+        if (g == null) return;
         for (UUID u : new ArrayList<>(g.members().keySet())) {
             guildOfPlayer.remove(u);
             guildChatToggled.remove(u);
@@ -983,7 +982,6 @@ public final class GuildManager {
         deletedGuildNames.add(g.name().toLowerCase(Locale.ROOT));
         deleteGuildFromMysql(g.name());
         save();
-        return true;
     }
 
     public TransferResult transferOwnership(UUID actor, String targetName) {
@@ -1186,7 +1184,7 @@ public final class GuildManager {
         Guild g = guildOf(actor);
         if (g == null || !hasGuildPermission(actor, "sethome") || location == null || location.getWorld() == null)
             return false;
-        if (mysqlGuildsAvailable && !upsertHomeMysql(g.name(), location)) return false;
+        if (mysqlGuildsAvailable && upsertHomeMysqlFailed(g.name(), location)) return false;
         g.setHome(location.clone());
         save();
         return true;
@@ -1314,12 +1312,11 @@ public final class GuildManager {
         return loaded;
     }
 
-    public boolean adminSetHome(Guild g, Location location) {
-        if (g == null || location == null || location.getWorld() == null) return false;
-        if (mysqlGuildsAvailable && !upsertHomeMysql(g.name(), location)) return false;
+    public void adminSetHome(Guild g, Location location) {
+        if (g == null || location == null || location.getWorld() == null) return;
+        if (mysqlGuildsAvailable && upsertHomeMysqlFailed(g.name(), location)) return;
         g.setHome(location.clone());
         save();
-        return true;
     }
 
     public boolean adminDeleteWarp(Guild g, String warpName) {
@@ -1473,17 +1470,14 @@ public final class GuildManager {
         return null;
     }
 
-    private int removePrefixNodesAtPriority(NodeMap map) {
+    private void removePrefixNodesAtPriority(NodeMap map) {
         List<Node> toRemove = new ArrayList<>();
         for (Node n : map.toCollection()) {
             if (n instanceof PrefixNode pn && pn.getPriority() == TAG_PREFIX_PRIORITY) toRemove.add(n);
         }
-        int removed = 0;
         for (Node n : toRemove) {
-            DataMutateResult res = map.remove(n);
-            if (res != null && res.wasSuccessful()) removed++;
+            map.remove(n);
         }
-        return removed;
     }
 
     public enum CreateResult {OK, ALREADY_IN_GUILD, NAME_TAKEN}
@@ -1511,12 +1505,9 @@ public final class GuildManager {
         static GuildSnapshot capture(Collection<Guild> source, Set<String> deletedGuilds) {
             List<GuildRow> rows = new ArrayList<>(source.size());
             for (Guild g : source) {
-                if (deletedGuilds.contains(g.name().toLowerCase(Locale.ROOT))) {
-                    // A newer guild with this name exists; the tombstone is obsolete.
-                    deletedGuilds.remove(g.name().toLowerCase(Locale.ROOT));
-                }
-                Map<String, String> ranks = new HashMap<>();
-                for (var e : g.ranks().entrySet()) ranks.put(e.getKey(), e.getValue());
+                // A newer guild with this name exists; the tombstone is obsolete.
+                deletedGuilds.remove(g.name().toLowerCase(Locale.ROOT));
+                Map<String, String> ranks = new HashMap<>(g.ranks());
 
                 Map<String, Set<String>> permissions = new HashMap<>();
                 for (var e : g.rankPermissions().entrySet()) {

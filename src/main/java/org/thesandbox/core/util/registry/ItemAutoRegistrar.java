@@ -52,7 +52,7 @@ public final class ItemAutoRegistrar {
 
             // Filter before construction: item constructors register Bukkit and
             // PacketEvents listeners, so building a disabled item would still
-            // leave its behaviour active.
+            // leave its behavior active.
             if (!BuildFlavor.isItemEnabled(clazz)) {
                 plugin.getLogger().info("[ItemAutoRegistrar] Skipping " + clazz.getSimpleName()
                         + " (not enabled in the " + BuildFlavor.name() + " build flavor).");
@@ -82,7 +82,7 @@ public final class ItemAutoRegistrar {
         stack.push(type);
         while (!stack.isEmpty()) {
             Class<?> t = stack.pop();
-            if (t == null || !seen.add(t)) continue;
+            if (!seen.add(t)) continue;
             map.putIfAbsent(t, instance);
             for (Class<?> i : t.getInterfaces()) stack.push(i);
             Class<?> sup = t.getSuperclass();

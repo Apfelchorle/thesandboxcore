@@ -21,8 +21,7 @@ import java.util.Locale;
  * /entitywipe            – remove clutter (items, arrows, boats, minecarts, ...) in every world
  * /entitywipe <entity>   – remove every entity of that type
  * /entitywipe -a         – remove EVERY non-player entity (admin+), skipping vehicles that carry players
- *
- * Previously running it with no arguments wiped everything and "-a" (documented in plugin.yml) was rejected
+ * <p>Previously running it with no arguments wiped everything and "-a" (documented in plugin.yml) was rejected
  * as an invalid entity type.
  */
 public class EntityWipeCommand extends BaseCommand

@@ -15,9 +15,9 @@ import java.util.List;
 /**
  * /gtfo <player> [reason...] – temporarily bans a player (config: gtfo.duration, default 24h).
  * <p>
- * Uses /tempban (EssentialsX is a hard dependency, LiteBans overrides it when present). The previous
- * "ban <name> 24h" form only works with LiteBans; with vanilla /ban it created a PERMANENT ban
- * whose reason started with "24h".
+ * Uses /tempban. EssentialsX is a hard dependency, and LiteBans overrides it when present.
+ * The previous "ban <name> 24h" form only works with LiteBans. With vanilla /ban it created
+ * a PERMANENT ban whose reason started with "24h".
  */
 public class GtfoCommand extends BaseCommand {
 
@@ -71,7 +71,7 @@ public class GtfoCommand extends BaseCommand {
                 Bukkit.getConsoleSender(),
                 "tempban " + target.getName() + " " + duration + " " + reason
         );
-        // The ban kicks the player, so there is nothing to message them afterwards.
+        // The ban kicks the player, so there is nothing to message them afterward.
         return true;
     }
 

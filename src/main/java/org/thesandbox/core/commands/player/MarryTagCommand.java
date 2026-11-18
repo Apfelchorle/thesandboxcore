@@ -14,7 +14,6 @@ import org.thesandbox.core.data.PlayerDataListener;
 import java.util.*;
 
 public class MarryTagCommand extends BaseCommand {
-    private final JavaPlugin plugin;
     private final PlayerDataListener playerDataListener;
     private final Essentials essentials;
 
@@ -27,8 +26,7 @@ public class MarryTagCommand extends BaseCommand {
             "&#ff98cb❤ &r", "§x§f§f§9§8§c§b❤ §r"  // New Hex Female
     );
 
-    public MarryTagCommand(JavaPlugin plugin, PlayerDataListener playerDataListener) {
-        this.plugin = plugin;
+    public MarryTagCommand(PlayerDataListener playerDataListener) {
         this.playerDataListener = playerDataListener;
 
         Essentials found = null;
@@ -134,8 +132,8 @@ public class MarryTagCommand extends BaseCommand {
         if (gender == null) return "&a❤ &r";
 
         return switch (gender.toLowerCase()) {
-            case "male" -> "&#6dd0f7❤ &r";   // malers!
-            case "female" -> "&#ff98cb❤ &r"; // fremales
+            case "male" -> "&#6dd0f7❤ &r";   // males
+            case "female" -> "&#ff98cb❤ &r"; // females
             default -> "&a❤ &r";            // zoinklebirds
         };
     }

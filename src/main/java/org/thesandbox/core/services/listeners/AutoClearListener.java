@@ -8,6 +8,8 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.thesandbox.core.services.world.AutoClearService;
 import org.thesandbox.core.util.colors.Colors;
 
+import java.util.logging.Logger;
+
 public class AutoClearListener implements Listener {
     private final AutoClearService service;
 
@@ -21,11 +23,11 @@ public class AutoClearListener implements Listener {
         if (!service.contains(p.getUniqueId())) return;
 
         p.getInventory().clear();
-        p.getInventory().setArmorContents(null);
+        p.getInventory().setArmorContents(new org.bukkit.inventory.ItemStack[4]);
         p.getInventory().setItemInOffHand(null);
         p.setItemOnCursor(null);
         p.sendMessage(Colors.RED + "Your inventory has been cleared automatically by a staff member.");
-        Bukkit.getLogger().info("Cleared " + p.getName() + " automatically.");
+        Logger.getLogger("TheSandboxCore").info("Cleared " + p.getName() + " automatically.");
         service.remove(p.getUniqueId());
     }
 }

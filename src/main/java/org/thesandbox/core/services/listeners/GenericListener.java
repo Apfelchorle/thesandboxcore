@@ -14,22 +14,19 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.data.*;
 import org.thesandbox.core.services.party.Configinator;
-import org.thesandbox.core.util.Utils;
 import org.thesandbox.core.util.*;
 import org.thesandbox.core.util.config.*;
 
 public class GenericListener implements Listener {
 
-    private final PluginConfigManager pluginConfigManager;
     private final TheSandboxCore core = TheSandboxCore.getInstance();
     private final PlayerDataListener pdl = core.getDataListener();
     /**
      * Mirrors the persisted /waterflow state so the (very hot) flow event never touches config.
      */
-    private volatile boolean waterFlowEnabled = true;
+    private volatile boolean waterFlowEnabled;
 
     public GenericListener(PluginConfigManager pluginConfigManager) {
-        this.pluginConfigManager = pluginConfigManager;
         this.waterFlowEnabled = pluginConfigManager.getOrCreate(
                 GenericDataKeys.WATER_FLOW,
                 GenericDataKeys.WATER_FLOW_DEFAULT
@@ -95,7 +92,7 @@ public class GenericListener implements Listener {
                 core.getBalanceManager().addCoins(p.getUniqueId(), 15);
                 Utils.Feedback(
                         p,
-                        "You've Recieved 15 Coins!",
+                        "You've Received 15 Coins!",
                         NamedTextColor.GOLD,
                         Sound.ENTITY_FIREWORK_ROCKET_LAUNCH
                 );

@@ -10,10 +10,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.util.colors.Colors;
 
-import java.util.Collections;
 import java.util.List;
 
 public class DisguiseToggleCommand extends BaseCommand implements Listener
@@ -21,11 +19,8 @@ public class DisguiseToggleCommand extends BaseCommand implements Listener
     // Global toggle: disguises enabled by default
     private static boolean disguisesEnabled = true;
 
-    private final JavaPlugin plugin;
-
     public DisguiseToggleCommand(JavaPlugin plugin)
     {
-        this.plugin = plugin;
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
@@ -69,11 +64,5 @@ public class DisguiseToggleCommand extends BaseCommand implements Listener
                 event.getEntity().sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + "Disguises are currently disabled."));
             }
         }
-    }
-
-    @Override
-    public List<String> tabComplete(CommandSender sender, Command command, String alias, String[] args)
-    {
-        return Collections.emptyList();
     }
 }

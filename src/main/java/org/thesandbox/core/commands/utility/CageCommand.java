@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class CageCommand extends BaseCommand implements Listener
 {
@@ -98,7 +99,7 @@ public class CageCommand extends BaseCommand implements Listener
                 else
                 {
                     CageData d = cages.remove(id);
-                    if (d != null && !restoreAndRemove(d))
+                    if (d != null && restoreAndRemoveFailed(d))
                     {
                         pendingRestores.put(id, toPending(id, d));
                     }
@@ -117,7 +118,7 @@ public class CageCommand extends BaseCommand implements Listener
             List<Player> matches = Bukkit.getOnlinePlayers().stream()
                     .filter(p -> p.getName().toLowerCase().startsWith(args[0].toLowerCase()))
                     .collect(Collectors.toList());
-            if (matches.size() == 1) target = matches.get(0);
+            if (matches.size() == 1) target = matches.getFirst();
         }
         if (target == null)
         {
@@ -214,7 +215,7 @@ public class CageCommand extends BaseCommand implements Listener
         }
         if (args.length == 2)
         {
-            return Arrays.asList("skull", "block").stream()
+            return Stream.of("skull", "block")
                     .filter(s -> s.startsWith(args[1].toLowerCase()))
                     .collect(Collectors.toList());
         }
@@ -239,7 +240,7 @@ public class CageCommand extends BaseCommand implements Listener
             if (p != null) uncage(p);
             else {
                 CageData d = cages.remove(id);
-                if (d != null && !restoreAndRemove(d)) {
+                if (d != null && restoreAndRemoveFailed(d)) {
                     pendingRestores.put(id, toPending(id, d));
                 }
             }
@@ -329,12 +330,12 @@ public class CageCommand extends BaseCommand implements Listener
     //  - BLOCK: keep ALL CAPS via Material.name()
     private String broadcastSuffix(CageMode mode, Material mat, String skullUser)
     {
-        switch (mode)
+        return switch (mode)
         {
-            case SKULL: return " in " + (skullUser == null ? "UNKNOWN" : skullUser);
-            case BLOCK: return " in " + mat.name();
-            default: return "";
-        }
+            case SKULL -> " in " + (skullUser == null ? "UNKNOWN" : skullUser);
+            case BLOCK -> " in " + mat.name();
+            default -> "";
+        };
     }
 
     // Accept loose tokens and coerce to plausible blocks (e.g., "diamond" -> DIAMOND_BLOCK)
@@ -450,6 +451,7 @@ public class CageCommand extends BaseCommand implements Listener
 
     /* ============================== Skull profile via SkinsRestorer ============================== */
 
+    @SuppressWarnings("UnstableApiUsage") // ResolvableProfile is the only API that can carry the cached texture property.
     private void fetchAndApplySkullProfileAsync(UUID cagedPlayerId, String username)
     {
         if (!Bukkit.getPluginManager().isPluginEnabled("SkinsRestorer"))
@@ -483,7 +485,7 @@ public class CageCommand extends BaseCommand implements Listener
                     if (w == null) return;
 
                     PlayerProfile prof = Bukkit.createProfile(UUID.randomUUID(), username);
-                    if (signature != null && !signature.isBlank())
+                    if (!signature.isBlank())
                     {
                         prof.setProperty(new ProfileProperty("textures", value, signature));
                     }
@@ -530,7 +532,7 @@ public class CageCommand extends BaseCommand implements Listener
         UUID id = target.getUniqueId();
         CageData d = cages.remove(id);
         if (d == null) return;
-        if (!restoreAndRemove(d))
+        if (restoreAndRemoveFailed(d))
         {
             pendingRestores.put(id, toPending(id, d));
         }
@@ -538,10 +540,10 @@ public class CageCommand extends BaseCommand implements Listener
     }
 
     /**
-     * Puts every captured block back. Returns {@code false} when the cage's
+     * Puts every captured block back. Returns {@code true} when the cage's
      * world is not loaded yet so the caller can persist a deferred restore.
      */
-    private boolean restoreAndRemove(CageData d)
+    private boolean restoreAndRemoveFailed(CageData d)
     {
         unindexCage(d);
 
@@ -549,7 +551,7 @@ public class CageCommand extends BaseCommand implements Listener
         if (w == null)
         {
             plugin.getLogger().warning("[/cage] World " + d.worldId + " is not loaded; deferring cage restoration.");
-            return false;
+            return true;
         }
 
         // Restore in reverse build order without mutating the stored list.
@@ -576,7 +578,7 @@ public class CageCommand extends BaseCommand implements Listener
                         + "," + ob.location().getBlockZ() + ": " + ex.getMessage());
             }
         }
-        return true;
+        return false;
     }
 
     /* ============================== Persistence ============================== */
@@ -602,20 +604,23 @@ public class CageCommand extends BaseCommand implements Listener
         for (Map.Entry<UUID, CageData> e : cages.entrySet())
         {
             CageData d = e.getValue();
-            writeCageRecord(yaml, "cages." + e.getKey(), e.getKey(), d.playerName,
+            writeCageRecord(yaml, "cages." + e.getKey(), d.playerName,
                     d.worldId, worldName(d.worldId), savedBlocks(d));
         }
         for (Map.Entry<UUID, PendingRestore> e : pendingRestores.entrySet())
         {
             PendingRestore p = e.getValue();
-            writeCageRecord(yaml, "pending." + e.getKey(), p.playerId(), p.playerName(),
+            writeCageRecord(yaml, "pending." + e.getKey(), p.playerName(),
                     p.worldId(), p.worldName(), p.blocks());
         }
 
         try
         {
             File parent = cageFile.getParentFile();
-            if (parent != null) parent.mkdirs();
+            if (parent != null && !parent.isDirectory() && !parent.mkdirs())
+            {
+                plugin.getLogger().warning("[/cage] Could not create data folder " + parent + ".");
+            }
             yaml.save(cageFile);
         }
         catch (IOException ex)
@@ -624,7 +629,7 @@ public class CageCommand extends BaseCommand implements Listener
         }
     }
 
-    private void writeCageRecord(YamlConfiguration yaml, String path, UUID playerId, String playerName,
+    private void writeCageRecord(YamlConfiguration yaml, String path, String playerName,
                                  UUID worldId, String worldName, List<SavedBlock> blocks)
     {
         ConfigurationSection section = yaml.createSection(path);
@@ -680,7 +685,7 @@ public class CageCommand extends BaseCommand implements Listener
             UUID worldId;
             try
             {
-                worldId = UUID.fromString(String.valueOf(entry.getString("world", "")));
+                worldId = UUID.fromString(entry.getString("world", ""));
             }
             catch (IllegalArgumentException ex)
             {

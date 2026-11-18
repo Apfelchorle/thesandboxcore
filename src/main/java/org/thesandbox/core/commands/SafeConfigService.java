@@ -240,15 +240,15 @@ public final class SafeConfigService {
     }
 
     /**
-     * Safe display form for values shown in chat. Colour codes are removed so
-     * player-entered text cannot re-colour or spoof the command prefix.
+     * Safe display form for values shown in chat. Color codes are removed so
+     * player-entered text cannot re-color or spoof the command prefix.
      */
     public static String display(Object value) {
         if (value == null) {
             return "(not set)";
         }
-        // Strip legacy colours and collapse control characters so stored text
-        // cannot re-colour or break the command output.
+        // Strip legacy colors and collapse control characters so stored text
+        // cannot re-color or break the command output.
         return Colors.strip(String.valueOf(value))
                 .replaceAll("[\\p{Cntrl}&&[^\\n\\t]]", " ")
                 .replace('\n', ' ')

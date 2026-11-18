@@ -57,7 +57,7 @@ commands:
   updatelocal:
     permission: sandbox.superuser
     usage: /updatelocal
-    aliases: [ pyrorefrence,update ]
+    aliases: [ pyroreference,update ]
 
   dismount:
     description: Force dismount from an Entity.

@@ -6,11 +6,11 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.services.chat.ManageChatService;
 import org.thesandbox.core.util.colors.Colors;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,11 +23,9 @@ import java.util.Locale;
  */
 public class ManageChatCommand extends BaseCommand implements TabCompleter {
 
-    private final JavaPlugin plugin;
     private final ManageChatService service;
 
-    public ManageChatCommand(JavaPlugin plugin, ManageChatService service) {
-        this.plugin = plugin;
+    public ManageChatCommand(ManageChatService service) {
         this.service = service;
     }
 
@@ -42,12 +40,12 @@ public class ManageChatCommand extends BaseCommand implements TabCompleter {
         String sub = args[0].toLowerCase(Locale.ROOT);
         switch (sub) {
             case "mute": {
-                if (!service.isMuted()) {
-                    service.mute();
-                    Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.RED + sender.getName() + " - Muting the chat"));
-                } else {
+                if (service.isMuted()) {
                     service.unmute();
                     Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.RED + sender.getName() + " - Unmuting the chat"));
+                } else {
+                    service.mute();
+                    Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.RED + sender.getName() + " - Muting the chat"));
                 }
                 return true;
             }
@@ -86,7 +84,7 @@ public class ManageChatCommand extends BaseCommand implements TabCompleter {
     }
 
     @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+    public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         List<String> r = tabComplete(sender, command, alias, args);
         return (r != null) ? r : java.util.Collections.emptyList();
     }

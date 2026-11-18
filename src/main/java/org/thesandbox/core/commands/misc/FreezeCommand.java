@@ -13,12 +13,10 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 public class FreezeCommand extends BaseCommand implements Listener {
     // Global toggle (session only)
@@ -27,10 +25,7 @@ public class FreezeCommand extends BaseCommand implements Listener {
     // Frozen players (UUIDs)
     private static final Set<UUID> FROZEN = ConcurrentHashMap.newKeySet();
 
-    private final JavaPlugin plugin;
-
     public FreezeCommand(JavaPlugin plugin) {
-        this.plugin = plugin;
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
@@ -50,7 +45,7 @@ public class FreezeCommand extends BaseCommand implements Listener {
                 for (Player p : Bukkit.getOnlinePlayers())
                 {
                     if (isImmune(p)) continue;
-                    freezePlayer(p, true);
+                    freezePlayer(p);
                 }
             }
             else
@@ -105,7 +100,7 @@ public class FreezeCommand extends BaseCommand implements Listener {
             }
             else
             {
-                freezePlayer(target, true);
+                freezePlayer(target);
                 Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.RED + who + " - Freezing " + target.getName()));
             }
             return true;
@@ -123,7 +118,7 @@ public class FreezeCommand extends BaseCommand implements Listener {
             String prefix = args[0].toLowerCase();
             List<String> list = new ArrayList<>();
             list.add("purge");
-            list.addAll(Bukkit.getOnlinePlayers().stream().map(Player::getName).collect(Collectors.toList()));
+            list.addAll(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList());
             list.removeIf(s -> !s.toLowerCase().startsWith(prefix));
             return list;
         }
@@ -139,7 +134,7 @@ public class FreezeCommand extends BaseCommand implements Listener {
         Player p = event.getPlayer();
         if (globalFreezeEnabled && !isImmune(p))
         {
-            freezePlayer(p, true);
+            freezePlayer(p);
         }
     }
 
@@ -152,7 +147,6 @@ public class FreezeCommand extends BaseCommand implements Listener {
 
         Location from = event.getFrom();
         Location to = event.getTo();
-        if (to == null) return;
 
         // If coordinates change at all (even within same block), cancel
         if (from.getX() != to.getX() || from.getY() != to.getY() || from.getZ() != to.getZ())
@@ -186,13 +180,11 @@ public class FreezeCommand extends BaseCommand implements Listener {
         return p != null && !isImmune(p) && FROZEN.contains(p.getUniqueId());
     }
 
-    /** Freeze and optionally notify the player one time in gray. */
-    private void freezePlayer(Player p, boolean notify)
+    /** Freeze the player and notify them once in gray. */
+    private void freezePlayer(Player p)
     {
         if (p == null) return;
         FROZEN.add(p.getUniqueId());
-        if (notify) {
-            sendCommand(p, Colors.GRAY + "You have been frozen by a staff member.");
-        }
+        sendCommand(p, Colors.GRAY + "You have been frozen by a staff member.");
     }
 }

@@ -9,7 +9,6 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.HashMap;
@@ -32,7 +31,7 @@ public class OrbitCommand extends BaseCommand {
 
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        if (!hasStaffPermission(sender)) {
+        if (lacksStaffPermission(sender)) {
             return true;
         }
 
@@ -47,7 +46,7 @@ public class OrbitCommand extends BaseCommand {
                     .filter(p -> p.getName().toLowerCase().startsWith(args[0].toLowerCase()))
                     .collect(Collectors.toList());
             if (matches.size() == 1) {
-                target = matches.get(0);
+                target = matches.getFirst();
             }
         }
 
@@ -58,7 +57,7 @@ public class OrbitCommand extends BaseCommand {
 
         UUID tid = target.getUniqueId();
         // sender.getName() can be null for console
-        String actor = sender.getName() != null ? sender.getName() : "Console";
+        String actor = sender.getName();
 
         // Toggle OFF if already orbiting
         if (orbitTasks.containsKey(tid)) {

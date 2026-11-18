@@ -146,23 +146,21 @@ public final class Guild {
         return owner.equals(uuid);
     }
 
-    public boolean allowPermission(String rankName, String permission) {
-        if (permission == null) return false;
+    public void allowPermission(String rankName, String permission) {
+        if (permission == null) return;
         String key = rankName.toUpperCase(Locale.ROOT);
-        if (!rankExists(key)) return false;
+        if (!rankExists(key)) return;
         rankPermissions.computeIfAbsent(key, ignored -> new HashSet<>()).add(permission.toLowerCase(Locale.ROOT));
-        return true;
     }
 
     public boolean rankExists(String rankName) {
         return ranks.containsKey(rankName.toUpperCase(Locale.ROOT));
     }
 
-    public boolean denyPermission(String rankName, String permission) {
+    public void denyPermission(String rankName, String permission) {
         String key = rankName.toUpperCase(Locale.ROOT);
-        if (!rankExists(key)) return false;
+        if (!rankExists(key)) return;
         rankPermissions.computeIfAbsent(key, ignored -> new HashSet<>()).remove(permission.toLowerCase(Locale.ROOT));
-        return true;
     }
 
     public Set<String> permissionsFor(UUID uuid) {

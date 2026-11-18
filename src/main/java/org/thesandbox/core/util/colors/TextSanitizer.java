@@ -4,9 +4,9 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * Sanitises player-supplied MiniMessage before it is deserialised.
+ * Sanitizes player-supplied MiniMessage before it is deserialized.
  *
- * <p>Only colour and decoration tags survive. Interactive/structural tags
+ * <p>Only color and decoration tags survive. Interactive/structural tags
  * ({@code click}, {@code hover}, {@code font}, {@code keybind}, {@code score},
  * {@code selector}, {@code nbt}, {@code translatable}, ...) are removed so a
  * player cannot create clickable commands, phishing links, or spoofed UI.</p>
@@ -20,14 +20,14 @@ import java.util.Set;
 public final class TextSanitizer {
 
     private static final Set<String> ALLOWED_TAGS = Set.of(
-            // Colours
+            // Colors
             "black", "dark_blue", "dark_green", "dark_aqua", "dark_red",
             "dark_purple", "gold", "gray", "grey", "dark_gray", "dark_grey",
             "blue", "green", "aqua", "red", "light_purple", "yellow", "white",
             // Decorations
             "bold", "b", "italic", "i", "underlined", "u",
             "strikethrough", "st", "obfuscated", "obf", "reset", "r",
-            // Gradients / special colour tags
+            // Gradients / special color tags
             "gradient", "rainbow", "transition", "color", "c", "newline"
     );
 
@@ -35,7 +35,7 @@ public final class TextSanitizer {
     }
 
     /**
-     * Removes every tag that is not a colour or decoration tag. Text outside
+     * Removes every tag that is not a color or decoration tag. Text outside
      * tags is left untouched, including ordinary comparison symbols such as
      * {@code 1 < 2}.
      */
@@ -142,7 +142,7 @@ public final class TextSanitizer {
     }
 
     private static boolean isAllowed(String name) {
-        // <#ff00ff> true-colour tags have no name before the colon.
+        // <#ff00ff> true-color tags have no name before the colon.
         return "#".equals(name) || ALLOWED_TAGS.contains(name);
     }
 

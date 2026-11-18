@@ -55,6 +55,7 @@ public class LegacySqlStore {
     /**
      * Kept for shutdown ordering; the shared pool is closed by {@link Database}.
      */
+    @SuppressWarnings("EmptyMethod")
     public void close() {
         // no-op
     }

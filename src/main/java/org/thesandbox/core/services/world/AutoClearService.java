@@ -7,12 +7,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AutoClearService {
     private final Set<UUID> pending = ConcurrentHashMap.newKeySet();
 
-    public boolean add(UUID uuid) {
-        return pending.add(uuid);
+    public void add(UUID uuid) {
+        pending.add(uuid);
     }
 
-    public boolean remove(UUID uuid) {
-        return pending.remove(uuid);
+    public void remove(UUID uuid) {
+        pending.remove(uuid);
     }
 
     public boolean contains(UUID uuid) {

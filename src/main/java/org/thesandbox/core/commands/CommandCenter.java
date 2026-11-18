@@ -34,8 +34,8 @@ public class CommandCenter {
     }
 
     /**
-     * True if the sender holds the node of the required rank OR of any higher rank,
-     * so an Operator doesn't need an explicit sandbox.staff node to run staff commands.
+     * Returns true if the sender holds the node of the required rank or of any higher rank.
+     * This means an operator does not need an explicit sandbox.staff node to run staff commands.
      * Non-players (console) always pass.
      */
     public static boolean hasRank(CommandSender sender, Rank required) {

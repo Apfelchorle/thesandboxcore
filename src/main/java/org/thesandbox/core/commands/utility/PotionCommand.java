@@ -4,11 +4,9 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.*;
@@ -16,13 +14,6 @@ import java.util.stream.Collectors;
 
 public class PotionCommand extends BaseCommand
 {
-    private final JavaPlugin plugin;
-
-    public PotionCommand(JavaPlugin plugin)
-    {
-        this.plugin = plugin;
-    }
-
     private boolean hasMod(CommandSender sender) {
         return sender.hasPermission("sandbox.staff") || sender.isOp();
     }
@@ -73,7 +64,7 @@ public class PotionCommand extends BaseCommand
 
         // /potion clear [target]
         if (sub.equals("clear")) {
-            Player target = null;
+            Player target;
 
             if (args.length >= 2) {
                 target = resolveOnlinePlayer(args[1]);
@@ -158,10 +149,7 @@ public class PotionCommand extends BaseCommand
 
             PotionEffect effect = type.createEffect(duration, amplifier);
             // force = true to overwrite existing
-            boolean applied = target.addPotionEffect(effect);
-            if (!applied) {
-                // Some servers return false only if nothing changed; still inform user.
-            }
+            target.addPotionEffect(effect);
 
             sender.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, Colors.YELLOW + "Added effect " + Colors.GREEN + asEffectName(type) + Colors.YELLOW +
                     " (duration " + duration + "t, amp " + amplifier + ") " +
@@ -178,7 +166,7 @@ public class PotionCommand extends BaseCommand
     private static List<String> allEffectNames() {
         List<String> names = new ArrayList<>();
         for (PotionEffectType t : org.bukkit.Registry.EFFECT) {
-            if (t != null) names.add(asEffectName(t));
+            names.add(asEffectName(t));
         }
         names.sort(String.CASE_INSENSITIVE_ORDER);
         return names;
@@ -188,12 +176,28 @@ public class PotionCommand extends BaseCommand
         if (input == null) return null;
         // try key
         for (PotionEffectType t : org.bukkit.Registry.EFFECT) {
-            if (t == null) continue;
             if (asEffectName(t).equalsIgnoreCase(input)) return t;
         }
         // try legacy name
+        String key = legacyEffectKey(input);
+        PotionEffectType legacy;
+        try {
+            legacy = org.bukkit.Registry.EFFECT.get(org.bukkit.NamespacedKey.minecraft(key));
+        } catch (IllegalArgumentException ignored) {
+            legacy = null;
+        }
+        if (legacy != null) return legacy;
+        // try partial
+        String lower = input.toLowerCase(Locale.ROOT);
+        for (PotionEffectType t : org.bukkit.Registry.EFFECT) {
+            if (asEffectName(t).toLowerCase(Locale.ROOT).startsWith(lower)) return t;
+        }
+        return null;
+    }
+
+    private static String legacyEffectKey(String input) {
         String normalized = input.toLowerCase(Locale.ROOT).replace(' ', '_').replace('-', '_');
-        String key = switch (normalized) {
+        return switch (normalized) {
             case "slow" -> "slowness";
             case "fast_digging" -> "haste";
             case "slow_digging" -> "mining_fatigue";
@@ -205,20 +209,6 @@ public class PotionCommand extends BaseCommand
             case "damage_resistance" -> "resistance";
             default -> normalized;
         };
-        PotionEffectType legacy;
-        try {
-            legacy = org.bukkit.Registry.EFFECT.get(org.bukkit.NamespacedKey.minecraft(key));
-        } catch (IllegalArgumentException ignored) {
-            legacy = null;
-        }
-        if (legacy != null) return legacy;
-        // try partial
-        String lower = input.toLowerCase(Locale.ROOT);
-        for (PotionEffectType t : org.bukkit.Registry.EFFECT) {
-            if (t == null) continue;
-            if (asEffectName(t).toLowerCase(Locale.ROOT).startsWith(lower)) return t;
-        }
-        return null;
     }
 
     private static String asEffectName(PotionEffectType t) {

@@ -7,6 +7,8 @@ import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 
 import java.awt.image.BufferedImage;
+import org.jetbrains.annotations.NotNull;
+
 import java.util.List;
 
 /**
@@ -56,7 +58,7 @@ public class AnimatedMapRenderer extends MapRenderer {
     }
 
     @Override
-    public void initialize(MapView map) {
+    public void initialize(@NotNull MapView map) {
         super.initialize(map);
         this.initialized = true;
         this.lastUpdateTime = System.currentTimeMillis();
@@ -64,7 +66,7 @@ public class AnimatedMapRenderer extends MapRenderer {
     }
 
     @Override
-    public void render(MapView map, MapCanvas canvas, Player player) {
+    public void render(@NotNull MapView map, @NotNull MapCanvas canvas, @NotNull Player player) {
         if (!initialized || resizedFrames.isEmpty()) {
             return;
         }

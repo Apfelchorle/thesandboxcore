@@ -185,7 +185,7 @@ public final class CommandAutoRegistrar {
         stack.push(type);
         while (!stack.isEmpty()) {
             Class<?> t = stack.pop();
-            if (t == null || !seen.add(t)) continue;
+            if (!seen.add(t)) continue;
             map.putIfAbsent(t, instance);
             for (Class<?> i : t.getInterfaces()) stack.push(i);
             Class<?> sup = t.getSuperclass();
@@ -199,7 +199,6 @@ public final class CommandAutoRegistrar {
         Map<String, List<String>> out = new LinkedHashMap<>();
         if (!(plugin.getPluginMeta() instanceof PluginDescriptionFile pdf)) return out;
         Map<String, Map<String, Object>> cmds = pdf.getCommands();
-        if (cmds == null) return out;
         for (Map.Entry<String, Map<String, Object>> e : cmds.entrySet()) {
             String key = e.getKey().toLowerCase(Locale.ROOT);
             List<String> aliases = new ArrayList<>();

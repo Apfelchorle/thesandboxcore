@@ -49,10 +49,6 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
     private final Map<UUID, BoatInputState> playerInputs = new ConcurrentHashMap<>();
 
 
-//    public void onPacketReceive(PacketReceiveEvent event) {
-//        plugin.getLogger().info("PACKET RECIEVED :" + event.getPacketType().getName());
-//    }
-
     public FloatBoatItem(TheSandboxCore plugin, PluginConfigManager configManager, ItemKeys keys) {
         super(PacketListenerPriority.NORMAL);
         this.plugin = plugin;
@@ -74,7 +70,7 @@ public class FloatBoatItem extends PacketListenerAbstract implements Item, Liste
                 }
 
                 List<Entity> passengers = boat.getPassengers();
-                if (passengers.isEmpty() || passengers.get(0) != player) continue;
+                if (passengers.isEmpty() || passengers.getFirst() != player) continue;
 
                 BoatInputState input = playerInputs.get(player.getUniqueId());
                 if (input == null) continue;

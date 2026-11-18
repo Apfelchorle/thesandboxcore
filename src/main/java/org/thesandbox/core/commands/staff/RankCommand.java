@@ -12,14 +12,12 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.BaseCommand;
-import org.thesandbox.core.commands.CommandMessages;
 import org.thesandbox.core.services.login.LoginService;
 import org.thesandbox.core.util.colors.Colors;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 public class RankCommand extends BaseCommand {
     // All LP rank groups you use (lowercase)
@@ -318,21 +316,14 @@ public class RankCommand extends BaseCommand {
     }
 
     private String groupIdFor(LoginService.Rank r) {
-        switch (r) {
-            case OPERATOR:
-                return "operator";
-            case ADMIN:
-                return "administrator";
-            case STAFF:
-                return "staff";
-            case MB:
-                return "masterbuilder";
-            case VIP:
-                return "vip";
-            case DEFAULT:
-            default:
-                return "default";
-        }
+        return switch (r) {
+            case OPERATOR -> "operator";
+            case ADMIN -> "administrator";
+            case STAFF -> "staff";
+            case MB -> "masterbuilder";
+            case VIP -> "vip";
+            case DEFAULT -> "default";
+        };
     }
 
     private void showRank(CommandSender sender, Player target) {

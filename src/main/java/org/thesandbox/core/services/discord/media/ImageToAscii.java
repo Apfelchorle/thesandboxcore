@@ -48,8 +48,8 @@ public final class ImageToAscii {
             targetHeight = maxTargetHeight;
             targetWidth = Math.max(1, (int) Math.round(targetHeight / ratio));
         }
-        targetWidth = Math.max(1, Math.min(maxTargetWidth, targetWidth));
-        targetHeight = Math.max(1, Math.min(maxTargetHeight, targetHeight));
+        targetWidth = Math.clamp(targetWidth, 1, maxTargetWidth);
+        targetHeight = Math.clamp(targetHeight, 1, maxTargetHeight);
 
         // Multi-pass downsampling: halve the image repeatedly until it's close
         // to the target size, then do a final high-quality pass. This produces
@@ -304,7 +304,7 @@ public final class ImageToAscii {
 
             colors.sort(Comparator.comparingInt(color -> (color >> shift) & 0xFF));
             int middle = colors.size() / 2;
-            if (middle <= 0 || middle >= colors.size()) return null;
+            if (middle == 0 || middle >= colors.size()) return null;
 
             return new Box[]{
                     new Box(new ArrayList<>(colors.subList(0, middle))),

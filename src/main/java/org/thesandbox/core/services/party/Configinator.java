@@ -13,17 +13,17 @@ public class Configinator {
 
     private static final Set<UUID> rewardedPlayers =
             ConcurrentHashMap.newKeySet();
-    private static volatile boolean wellcomePartyState = false;
+    private static volatile boolean welcomePartyState = false;
     private static File configFile;
 
     public static void startWelcomeParty() {
-        wellcomePartyState = true;
+        welcomePartyState = true;
         rewardedPlayers.clear(); // Reset for the new party!
 
         PluginConfigManager manager = getConfigManager();
         File file = getConfigFile();
         if (manager != null && file != null) {
-            manager.safeSet("WellcomeParty", true, file);
+            manager.safeSet("WelcomeParty", true, file);
         }
         Utils.log("Welcome Party has started!");
     }
@@ -44,39 +44,20 @@ public class Configinator {
     }
 
     public static void endWelcomeParty() {
-        wellcomePartyState = false;
+        welcomePartyState = false;
         rewardedPlayers.clear();
 
         PluginConfigManager manager = getConfigManager();
         File file = getConfigFile();
         if (manager != null && file != null) {
-            manager.safeSet("WellcomeParty", false, file);
+            manager.safeSet("WelcomeParty", false, file);
         }
         Utils.log("Welcome Party has ended!");
     }
 
     public static boolean tryRewardPlayer(UUID uuid) {
-        if (!wellcomePartyState) return false;
+        if (!welcomePartyState) return false;
         return rewardedPlayers.add(uuid);
     }
 
-    public static void wellcomeParty(boolean enabled) {
-        internal_wellcomeparty(enabled);
-    }
-
-    private static void internal_wellcomeparty(boolean enabled) {
-        if (enabled) {
-            PluginConfigManager manager = getConfigManager();
-            File file = getConfigFile();
-            if (manager != null && file != null) {
-                manager.safeSet("WellcomeParty", enabled, file);
-                wellcomePartyState = enabled;
-                Utils.log("Wellcome Party is now: " + enabled);
-            }
-        }
-    }
-
-    public static boolean getWellcomePartyState() {
-        return wellcomePartyState;
-    }
 }

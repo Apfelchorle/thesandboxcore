@@ -25,18 +25,18 @@ public class ExpelCommand extends BaseCommand {
         double radius = 20.0;
         double strength = 5.0;
 
-        // Parse radius [1.0 .. 100.0]
+        // Parse radius in the range 1.0-100.0
         if (args.length >= 1) {
             try {
-                radius = Math.max(1.0, Math.min(100.0, Double.parseDouble(args[0])));
+                radius = Math.clamp(Double.parseDouble(args[0]), 1.0, 100.0);
             } catch (NumberFormatException ignored) {
             }
         }
 
-        // Parse strength [0.0 .. 50.0]
+        // Parse strength in the range 0.0-50.0
         if (args.length >= 2) {
             try {
-                strength = Math.max(0.0, Math.min(50.0, Double.parseDouble(args[1])));
+                strength = Math.clamp(Double.parseDouble(args[1]), 0.0, 50.0);
             } catch (NumberFormatException ignored) {
             }
         }

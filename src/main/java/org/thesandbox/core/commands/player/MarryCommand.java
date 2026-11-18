@@ -18,9 +18,11 @@ import org.thesandbox.core.util.Utils;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 
 public class MarryCommand extends BaseCommand {
 
@@ -114,7 +116,7 @@ public class MarryCommand extends BaseCommand {
         sender.sendMessage(Component.text("Invalid argument! Use 'get' or 'set'.", NamedTextColor.RED));
     }
 
-    private void handleOnlineAction(Player issuer, String targetName, PlayerBiConsumer action) {
+    private void handleOnlineAction(Player issuer, String targetName, BiConsumer<Player, Player> action) {
         Player targetPlayer = Bukkit.getPlayer(targetName);
         if (targetPlayer == null) {
             issuer.sendMessage(Component.text("Player not found or is offline!", NamedTextColor.RED));
@@ -147,7 +149,6 @@ public class MarryCommand extends BaseCommand {
             playerDataListener.Marry(requester, recipient);
             Bukkit.broadcast(Component.text("❤❤ " + recipient.getName() + " and " + requester.getName() + " are now happily married! ❤❤", NamedTextColor.DARK_RED, TextDecoration.BOLD));
         } else {
-            // cucked
             recipient.sendMessage(Component.text("One of you is no longer eligible to marry!", NamedTextColor.RED));
             // FAKE MESSAGE ANES -- These comments are here to make it easy to find these messages later and delete them, yep
             requester.sendMessage(Utils.fakePlayerMessage("usfl", "its okay you'll catch a fish next time", "OP", NamedTextColor.DARK_RED));
@@ -234,7 +235,6 @@ public class MarryCommand extends BaseCommand {
         }
     }
 
-    @SuppressWarnings("deprecation")
     private void offlineDivorce(Player p1, String p2name) {
         String p1Spouse = playerDataListener.getMarriageSpouse(p1.getUniqueId());
 
@@ -264,10 +264,7 @@ public class MarryCommand extends BaseCommand {
 
     private boolean canMarryOrDivorce(Player p1, Player p2, boolean isDivorce) {
         String p1Spouse = playerDataListener.getMarriageSpouse(p1.getUniqueId());
-        String p2Spouse = playerDataListener.getMarriageSpouse(p2.getUniqueId());
-
         p1Spouse = (p1Spouse == null) ? "" : p1Spouse;
-        p2Spouse = (p2Spouse == null) ? "" : p2Spouse;
 
         if (isDivorce) {
             return !p1Spouse.isEmpty() && p1Spouse.equalsIgnoreCase(p2.getName());
@@ -299,7 +296,7 @@ public class MarryCommand extends BaseCommand {
         if (args.length == 2) {
             String subCommand = args[0].toLowerCase();
             if (subCommand.equals("gender")) {
-                return List.of("get", "set").stream()
+                return Stream.of("get", "set")
                         .filter(sub -> sub.startsWith(args[1].toLowerCase()))
                         .toList();
             }
@@ -312,16 +309,11 @@ public class MarryCommand extends BaseCommand {
         }
 
         if (args.length == 3 && args[0].equalsIgnoreCase("gender") && args[1].equalsIgnoreCase("set")) {
-            return List.of("male", "female", "other").stream()
+            return Stream.of("male", "female", "other")
                     .filter(g -> g.startsWith(args[2].toLowerCase()))
                     .toList();
         }
 
         return List.of();
-    }
-
-    @FunctionalInterface
-    private interface PlayerBiConsumer {
-        void accept(Player p1, Player p2);
     }
 }

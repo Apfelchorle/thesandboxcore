@@ -39,24 +39,24 @@ public class EntityWiper implements Listener {
     public static final int CHUNK_ENTITY_MAX = 20;
 
     private final JavaPlugin plugin;
-    private final List<Class<? extends Entity>> wipables = new ArrayList<>();
+    private final List<Class<? extends Entity>> wipeTargets = new ArrayList<>();
     private BukkitTask wipeTask;
 
     public EntityWiper(JavaPlugin plugin) {
         this.plugin = plugin;
 
-        wipables.add(EnderCrystal.class);
-        wipables.add(EnderSignal.class);
-        wipables.add(ExperienceOrb.class);
-        wipables.add(Projectile.class);
-        wipables.add(FallingBlock.class);
-        wipables.add(Firework.class);
-        wipables.add(Item.class);
-        wipables.add(ThrownPotion.class);
-        wipables.add(ThrownExpBottle.class);
-        wipables.add(AreaEffectCloud.class);
-        wipables.add(Minecart.class);
-        wipables.add(Boat.class);
+        wipeTargets.add(EnderCrystal.class);
+        wipeTargets.add(EnderSignal.class);
+        wipeTargets.add(ExperienceOrb.class);
+        wipeTargets.add(Projectile.class);
+        wipeTargets.add(FallingBlock.class);
+        wipeTargets.add(Firework.class);
+        wipeTargets.add(Item.class);
+        wipeTargets.add(ThrownPotion.class);
+        wipeTargets.add(ThrownExpBottle.class);
+        wipeTargets.add(AreaEffectCloud.class);
+        wipeTargets.add(Minecart.class);
+        wipeTargets.add(Boat.class);
     }
 
     /**
@@ -152,7 +152,7 @@ public class EntityWiper implements Listener {
         if (cfg().getBoolean("entity-wiper.include-armor-stands", false) && entity instanceof ArmorStand) {
             return true;
         }
-        for (Class<? extends Entity> type : wipables) {
+        for (Class<? extends Entity> type : wipeTargets) {
             if (type.isInstance(entity)) {
                 return true;
             }

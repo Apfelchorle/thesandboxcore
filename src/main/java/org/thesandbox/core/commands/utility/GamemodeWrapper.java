@@ -15,7 +15,8 @@ public abstract class GamemodeWrapper extends BaseCommand {
 
     @Override
     public boolean execute(CommandSender sender, Command command, String label, String[] args) {
-        return GameModeChangeHelper.execute(sender, args, gameMode());
+        GameModeChangeHelper.execute(sender, args, gameMode());
+        return true;
     }
 
     /**

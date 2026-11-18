@@ -2,7 +2,7 @@
 #  TheSandboxCore - command theme and messages
 # ============================================================
 # Every command prefix and common message is defined here.
-# Supported colour syntax: &a, &l, &#RRGGBB, &x&R&R&G&G&B&B
+# Supported color syntax: &a, &l, &#RRGGBB, &x&R&R&G&G&B&B
 #
 # Re-theme the entire plugin by editing the prefix palette below.
 # Restart or run /thesandboxcore reload after changes.
