@@ -15,6 +15,7 @@ import org.thesandbox.core.services.update.UpdateTarget;
 import java.awt.*;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -57,8 +58,19 @@ public class UpdateLocalCommand extends BaseCommand {
                 )
         );
 
+        // Snapshot the config on the main thread; Bukkit config objects are not
+        // safe to read or write from the async update worker.
+        Map<String, String> currentTags = new HashMap<>();
+        for (UpdateTarget target : targets) {
+            currentTags.put(
+                    target.id(),
+                    plugin.getConfig().getString("update.tag-state." + target.id(), "")
+            );
+        }
+        boolean allowUnverified = plugin.getConfig().getBoolean("update.allow-unverified", false);
+
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () ->
-                runUpdates(targets, sender)
+                runUpdates(targets, sender, currentTags, allowUnverified)
         );
 
         return true;
@@ -105,9 +117,15 @@ public class UpdateLocalCommand extends BaseCommand {
         }
     }
 
-    private void runUpdates(List<UpdateTarget> targets, CommandSender sender) {
+    private void runUpdates(
+            List<UpdateTarget> targets,
+            CommandSender sender,
+            Map<String, String> currentTags,
+            boolean allowUnverified
+    ) {
         File updateFolder = plugin.getServer().getUpdateFolderFile();
         List<String> results = new ArrayList<>();
+        Map<String, String> updatedTags = new HashMap<>();
         boolean anyFailed = false;
 
         for (UpdateTarget target : targets) {
@@ -119,19 +137,19 @@ public class UpdateLocalCommand extends BaseCommand {
             }
 
             String tagKey = "update.tag-state." + target.id();
-            String currentTag = plugin.getConfig().getString(tagKey, "");
+            String currentTag = currentTags.getOrDefault(target.id(), "");
 
             try {
                 GitHubReleaseUpdater.Result result = updater.checkAndUpdate(
                         target,
                         currentTag,
                         updateFolder,
-                        plugin.getConfig().getBoolean("update.allow-unverified", false)
+                        allowUnverified
                 );
                 results.add(result.message);
 
                 if (result.updated) {
-                    plugin.getConfig().set(tagKey, result.newTag);
+                    updatedTags.put(tagKey, result.newTag);
                 }
             } catch (Exception e) {
                 anyFailed = true;
@@ -149,15 +167,24 @@ public class UpdateLocalCommand extends BaseCommand {
             }
         }
 
-        plugin.saveConfig();
-
         String summary = String.join("\n", results);
         NamedTextColor color = anyFailed
                 ? NamedTextColor.RED
                 : NamedTextColor.GREEN;
 
-        sender.sendMessage(Component.text(summary, color));
-        discordBroadcast(summary, sender);
+        // Config writes and user-visible messages belong on the main thread.
+        try {
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                updatedTags.forEach((key, value) -> plugin.getConfig().set(key, value));
+                if (!updatedTags.isEmpty()) {
+                    plugin.saveConfig();
+                }
+                sender.sendMessage(Component.text(summary, color));
+                discordBroadcast(summary, sender);
+            });
+        } catch (IllegalStateException pluginDisabled) {
+            plugin.getLogger().warning("Update finished after the plugin was disabled; results not saved.");
+        }
     }
 
     private String asString(Object o) {

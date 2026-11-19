@@ -9,3 +9,6 @@ out/
 bin/
 .zed/
 *.rar
+# Qodana / SARIF reports are generated locally and should not be committed.
+*.sarif
+*.sarif.json

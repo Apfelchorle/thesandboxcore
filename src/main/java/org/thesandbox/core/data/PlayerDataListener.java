@@ -11,6 +11,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.scheduler.BukkitTask;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.util.Utils;
 
@@ -19,6 +20,10 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 
 public class PlayerDataListener implements Listener {
 
@@ -52,6 +57,16 @@ public class PlayerDataListener implements Listener {
     private final DataManager dataManager;
     private final Map<UUID, Map<String, Object>> playerCache =
             new ConcurrentHashMap<>();
+    /**
+     * All player-data writes are serialized through this single worker. Full-file
+     * snapshots must never race: the last submitted snapshot has to win.
+     */
+    private final ExecutorService saveExecutor = Executors.newSingleThreadExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "Sandbox-PlayerData");
+        thread.setDaemon(true);
+        return thread;
+    });
+    private BukkitTask autoSaveTask;
 
     public PlayerDataListener(TheSandboxCore plugin, DataManager dataManager) {
         this.plugin = plugin;
@@ -92,9 +107,7 @@ public class PlayerDataListener implements Listener {
 
         // Remember the logout spot so /player tp can reach offline players.
         data.put(PlayerDataKeys.LAST_LOCATION, encodeLocation(player.getLocation()));
-        Map<String, Object> snapshot = new HashMap<>(data);
-
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> dataManager.saveAllData(uuid, snapshot));
+        queueSave(uuid, new HashMap<>(data));
     }
 
     private static String encodeLocation(Location location) {
@@ -171,8 +184,7 @@ public class PlayerDataListener implements Listener {
         if (uuid != null && Bukkit.getPlayer(uuid) == null) {
             Map<String, Object> data = playerCache.get(uuid);
             if (data != null) {
-                Map<String, Object> snapshot = new HashMap<>(data);
-                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> dataManager.saveAllData(uuid, snapshot));
+                queueSave(uuid, new HashMap<>(data));
             }
         }
     }
@@ -203,16 +215,99 @@ public class PlayerDataListener implements Listener {
         return get(uuid, PlayerDataKeys.GENDER, "male");
     }
 
-    public void saveAll() {
-        for (UUID uuid : new HashSet<>(playerCache.keySet())) {
-            Map<String, Object> data = playerCache.get(uuid);
-            if (data != null) {
-                Player online = Bukkit.getPlayer(uuid);
-                if (online != null) {
-                    data.put(PlayerDataKeys.LAST_LOCATION, encodeLocation(online.getLocation()));
-                }
-                dataManager.saveAllData(uuid, new HashMap<>(data));
+    /**
+     * Starts the periodic safety-net save. Runs on the main thread so reading
+     * online player locations is legal; the disk write is queued on the single
+     * player-data worker.
+     */
+    public void startAutoSave() {
+        if (autoSaveTask != null) return;
+
+        long seconds = plugin.getConfig().getLong("player-data.save-interval-seconds", 300L);
+        seconds = Math.max(30L, Math.min(3600L, seconds));
+        long ticks = seconds * 20L;
+        autoSaveTask = Bukkit.getScheduler().runTaskTimer(plugin, this::periodicSave, ticks, ticks);
+    }
+
+    public void stopAutoSave() {
+        BukkitTask task = autoSaveTask;
+        autoSaveTask = null;
+        if (task != null) task.cancel();
+    }
+
+    private void periodicSave() {
+        Map<UUID, Map<String, Object>> snapshots = snapshotAll();
+        if (!snapshots.isEmpty()) {
+            queueSnapshots(snapshots);
+        }
+    }
+
+    /**
+     * Main-thread snapshot of every cached player. The returned maps are copies,
+     * so the async writer never observes live cache mutations.
+     */
+    private Map<UUID, Map<String, Object>> snapshotAll() {
+        Map<UUID, Map<String, Object>> snapshots = new HashMap<>();
+        for (Map.Entry<UUID, Map<String, Object>> entry : playerCache.entrySet()) {
+            Map<String, Object> data = new HashMap<>(entry.getValue());
+            Player online = Bukkit.getPlayer(entry.getKey());
+            if (online != null) {
+                data.put(PlayerDataKeys.LAST_LOCATION, encodeLocation(online.getLocation()));
             }
+            snapshots.put(entry.getKey(), data);
+        }
+        return snapshots;
+    }
+
+    private void queueSave(UUID uuid, Map<String, Object> snapshot) {
+        try {
+            saveExecutor.execute(() -> dataManager.saveAllData(uuid, snapshot));
+        } catch (RejectedExecutionException rejected) {
+            // Plugin is shutting down; write synchronously rather than lose the save.
+            dataManager.saveAllData(uuid, snapshot);
+        }
+    }
+
+    private void queueSnapshots(Map<UUID, Map<String, Object>> snapshots) {
+        try {
+            saveExecutor.execute(() -> snapshots.forEach(dataManager::saveAllData));
+        } catch (RejectedExecutionException rejected) {
+            snapshots.forEach(dataManager::saveAllData);
+        }
+    }
+
+    /**
+     * Flushes every known player synchronously (from the caller's perspective)
+     * and stops the writer. Called during plugin shutdown.
+     */
+    public void saveAll() {
+        stopAutoSave();
+
+        Map<UUID, Map<String, Object>> snapshots = snapshotAll();
+        if (snapshots.isEmpty()) {
+            saveExecutor.shutdown();
+            return;
+        }
+
+        if (saveExecutor.isShutdown()) {
+            snapshots.forEach(dataManager::saveAllData);
+            return;
+        }
+
+        try {
+            saveExecutor.execute(() -> snapshots.forEach(dataManager::saveAllData));
+        } catch (RejectedExecutionException rejected) {
+            snapshots.forEach(dataManager::saveAllData);
+        }
+        saveExecutor.shutdown();
+
+        try {
+            if (!saveExecutor.awaitTermination(15, TimeUnit.SECONDS)) {
+                plugin.getLogger().warning("Player-data writer did not finish within 15 seconds.");
+            }
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            plugin.getLogger().warning("Interrupted while waiting for player-data save.");
         }
     }
 

@@ -45,6 +45,7 @@ import org.thesandbox.core.services.login.LoginService;
 import org.thesandbox.core.util.BuildFlavor;
 import org.thesandbox.core.util.Utils;
 import org.thesandbox.core.util.colors.Colors;
+import org.thesandbox.core.util.commands.CommandGuard;
 
 import java.awt.Color;
 import java.io.File;
@@ -473,13 +474,41 @@ public class DiscordBridge extends ListenerAdapter {
             }
         }
 
+        clearChannelCache();
+        closeMediaServices();
+    }
+
+    /**
+     * Fast reconnect path for {@code /thesandboxcore reload}. It must not block
+     * the main thread waiting for the stop embed or JDA shutdown.
+     */
+    public void stopForReload() {
+        unregisterBridgeListeners();
+
+        JDA current;
+        synchronized (startLock) {
+            current = jda != null ? jda : pendingJda;
+            ready = false;
+            jda = null;
+            pendingJda = null;
+        }
+
+        if (current != null) {
+            current.shutdownNow();
+            log("[JDA] Reload requested; shutdown started without blocking.");
+        }
+
+        clearChannelCache();
+        closeMediaServices();
+    }
+
+    private void clearChannelCache() {
         schemuploadsChannel = null;
         staffChannel = null;
         logsChannel = null;
         chatChannel = null;
         reportsChannel = null;
         archivedReportsChannel = null;
-        closeMediaServices();
     }
 
     private TextChannel getStaffChannel() {
@@ -505,16 +534,9 @@ public class DiscordBridge extends ListenerAdapter {
             }
         }
 
-        // Close animated map service
-        AnimatedMapService mapService = this.animatedMapService;
-        this.animatedMapService = null;
-        if (mapService != null) {
-            try {
-                mapService.close();
-            } catch (Throwable ignored) {
-            }
-        }
-
+        // The animated map service is owned by TheSandboxCore, not by the
+        // Discord connection. Keep it alive across /reload so existing maps
+        // continue animating; plugin shutdown closes it explicitly.
         mediaChains.clear();
     }
 
@@ -1080,6 +1102,13 @@ public class DiscordBridge extends ListenerAdapter {
 
         String command = CmdOPT.getAsString().trim();
 
+        String configuredGuild = cfg("discord.console.guild-id", "discord.console.guild_id");
+        if (!configuredGuild.isEmpty() && !configuredGuild.equals(g.getId())) {
+            event.reply("`/console` is not enabled in this Discord server.")
+                    .setEphemeral(true).queue();
+            return;
+        }
+
         // Even when /console is enabled, never dispatch a command that the
         // current build flavor has removed from plugin.yml.
         String root = command.startsWith("/") ? command.substring(1) : command;
@@ -1094,17 +1123,43 @@ public class DiscordBridge extends ListenerAdapter {
             return;
         }
 
+        // Console dispatch is strictly more powerful than the in-game
+        // re-dispatch path, so apply the same hard blocklist plus the
+        // configurable Discord list.
+        String blocked = CommandGuard.blockedReason(
+                command,
+                plugin.getConfig().getStringList("discord.console.blocked-commands"),
+                true
+        );
+        if (blocked != null) {
+            plugin.getLogger().warning("[Discord] Blocked /console command '"
+                    + command + "' from " + m.getUser().getName()
+                    + " (" + m.getId() + ").");
+            event.reply("`" + blocked + "` cannot be run through Discord.")
+                    .setEphemeral(true).queue();
+            sendGenericEmbed(
+                    "Blocked Console Command: `" + command + "` by <@" + m.getId() + ">",
+                    new Color(0x570000), m.getUser().getName(), m.getAvatarUrl(), "Logs");
+            return;
+        }
+
+        final String auditCommand = command;
+        final String auditUser = m.getUser().getName() + " (" + m.getId() + ")";
+        plugin.getLogger().info("[Discord] /console by " + auditUser + ": " + auditCommand);
+
         event.deferReply(true).queue(hook ->
                 Bukkit.getScheduler().runTask(plugin, () -> {
-                    boolean ok = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command);
+                    boolean ok = Bukkit.dispatchCommand(Bukkit.getConsoleSender(), auditCommand);
                     if (ok) {
-                        hook.editOriginal("Ran Command: " + command)
+                        hook.editOriginal("Ran Command: " + auditCommand)
                                 .queue();
-                        sendGenericEmbed("Ran Command: " + command, new Color(0x570000), m.getUser().getName(), m.getAvatarUrl(), "Logs");
+                        sendGenericEmbed("Ran Command: " + auditCommand + " by " + auditUser,
+                                new Color(0x570000), m.getUser().getName(), m.getAvatarUrl(), "Logs");
                     } else {
-                        hook.editOriginal("Failed to execute: " + command)
+                        hook.editOriginal("Failed to execute: " + auditCommand)
                                 .queue();
-                        sendGenericEmbed("Failed To Run Command: " + command, new Color(0x570000), m.getUser().getName(), m.getAvatarUrl(), "Logs");
+                        sendGenericEmbed("Failed To Run Command: " + auditCommand + " by " + auditUser,
+                                new Color(0x570000), m.getUser().getName(), m.getAvatarUrl(), "Logs");
                     }
                 }));
     }
@@ -1771,13 +1826,26 @@ public class DiscordBridge extends ListenerAdapter {
         FileConfiguration config = YamlConfiguration.loadConfiguration(logFile);
 
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-        String formattedFileSize = (FileSize / 1024 / 1024) + " MB).";
-        String entry = fileName + " (Uploaded: " + timestamp + " FileSize: " + formattedFileSize + ")";
+        String formattedFileSize = FileSize < 1024 * 1024
+                ? String.format(Locale.ROOT, "%.1f KB", FileSize / 1024.0)
+                : String.format(Locale.ROOT, "%.1f MB", FileSize / (1024.0 * 1024.0));
+        String entry = fileName + " (Uploaded: " + timestamp + ", FileSize: " + formattedFileSize + ")";
 
-        List<String> userSchematics = config.getStringList(playerName + ".Uploaded Schematics");
+        // Older builds wrote to the accidental key "Uploaded Schems" while
+        // reading "Uploaded Schematics", which silently dropped history. Read
+        // both and write only the canonical key.
+        List<String> userSchematics = new ArrayList<>(
+                config.getStringList(playerName + ".Uploaded Schematics"));
+        List<String> legacy = config.getStringList(playerName + ".Uploaded Schems");
+        for (String old : legacy) {
+            if (!userSchematics.contains(old)) {
+                userSchematics.add(old);
+            }
+        }
         userSchematics.add(entry);
 
-        config.set(playerName + ".Uploaded Schems", userSchematics);
+        config.set(playerName + ".Uploaded Schematics", userSchematics);
+        config.set(playerName + ".Uploaded Schems", null);
 
         try {
             config.save(logFile);

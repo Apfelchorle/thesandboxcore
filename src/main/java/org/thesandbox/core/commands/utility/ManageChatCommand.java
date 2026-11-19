@@ -84,7 +84,7 @@ public class ManageChatCommand extends BaseCommand implements TabCompleter {
     }
 
     @Override
-    public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+    public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String @NotNull [] args) {
         List<String> r = tabComplete(sender, command, alias, args);
         return (r != null) ? r : java.util.Collections.emptyList();
     }

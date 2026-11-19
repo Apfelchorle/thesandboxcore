@@ -24,6 +24,14 @@ mysql:
     allow-public-key-retrieval: false
 
 # ------------------------------------------------------------
+# Player data
+# ------------------------------------------------------------
+player-data:
+  # Player data is also written on quit. This periodic save protects
+  # against crashes that would otherwise lose a whole session.
+  save-interval-seconds: 300
+
+# ------------------------------------------------------------
 # Worlds
 # ------------------------------------------------------------
 # Load existing worlds during startup instead of on the first
@@ -77,6 +85,24 @@ discord:
     max-pixels: 20000000
     fetch-size: 256
     debug: false
+
+  # Discord /console safety (sandbox flavor only).
+  # Built-in hard blocks: op, deop, stop, restart, reload, execute, sudo,
+  # plugincontrol, function, wildcard, loop and friends. These entries add
+  # restrictions for commands that are too destructive to expose remotely.
+  console:
+    # Optional guild ID. Empty = any guild the bot is in.
+    guild-id: ""
+    blocked-commands:
+      - opme
+      - config
+      - rank
+      - updatelocal
+      - updateall
+      - updateallproxies
+      - slowrestart
+      - entitywipe
+      - cage
 
 # ------------------------------------------------------------
 # Updates

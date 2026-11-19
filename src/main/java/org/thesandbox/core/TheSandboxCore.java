@@ -238,6 +238,7 @@ public class TheSandboxCore extends JavaPlugin {
             // Run after every plugin has enabled so world-manager plugins are ready.
             getServer().getScheduler().runTask(this, () -> WorldPreloadService.preload(this));
             registerListeners();
+            dataListener.startAutoSave();
             registerCommands();
 
             rankScoreboardManager.setupRankScoreboardTeams();
@@ -568,7 +569,8 @@ public class TheSandboxCore extends JavaPlugin {
             entityWiper.startFromConfig();
         }
         if (discord != null) {
-            discord.stop();
+            // Do not block the main thread on JDA's 5-second shutdown wait.
+            discord.stopForReload();
             discord.start();
         }
     }

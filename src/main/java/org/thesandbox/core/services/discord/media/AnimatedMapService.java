@@ -9,6 +9,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.map.MapView;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -26,14 +27,17 @@ import java.util.logging.Level;
  */
 public class AnimatedMapService implements AutoCloseable {
 
-    private static final int MAX_CONCURRENT_MAPS = 64;
-    private static final int MAX_FRAMES_PER_GIF = 999999999;
+    private static final int MAX_CONCURRENT_MAPS = 32;
+    private static final int MAX_FRAMES_PER_GIF = 300;
+    /** Total decoded pixels across every frame (not a per-frame limit). */
+    private static final long MAX_GIF_PIXELS = 16_000_000L;
     private static final int MAX_GIF_BYTES = 8 * 1024 * 1024; // 8 MB
 
     private final Plugin plugin;
     private final Map<Integer, AnimatedMapEntry> activeMaps = new ConcurrentHashMap<>();
     private final ThreadPoolExecutor executor;
     private final AtomicBoolean closed = new AtomicBoolean();
+    private volatile BukkitTask evictionTask;
 
     public AnimatedMapService(Plugin plugin) {
         this.plugin = plugin;
@@ -61,7 +65,8 @@ public class AnimatedMapService implements AutoCloseable {
         );
 
         // Periodic cleanup of abandoned maps (no holders for 10+ minutes)
-        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::evictAbandoned, 600L, 600L);
+        evictionTask = Bukkit.getScheduler().runTaskTimerAsynchronously(
+                plugin, this::evictAbandoned, 600L, 600L);
     }
 
     /**
@@ -73,97 +78,130 @@ public class AnimatedMapService implements AutoCloseable {
      * @return a future that completes when the map is given (or fails)
      */
     public CompletableFuture<ItemStack> createAndGiveMap(Player player, byte[] gifBytes) {
-        if (closed.get() || player == null || !player.isOnline()) {
-            return CompletableFuture.completedFuture(null);
-        }
-
-        if (gifBytes == null || gifBytes.length == 0) {
-            return CompletableFuture.completedFuture(null);
-        }
-
-        if (gifBytes.length > MAX_GIF_BYTES) {
-            player.sendMessage(Component.text(
-                    "[GifMap] GIF is too large (max 8MB).", NamedTextColor.RED));
-            return CompletableFuture.completedFuture(null);
-        }
-
-        // Check concurrent map limit
-        if (activeMaps.size() >= MAX_CONCURRENT_MAPS) {
-            player.sendMessage(Component.text(
-                    "[GifMap] Too many active animated maps. Please wait.", NamedTextColor.RED));
-            return CompletableFuture.completedFuture(null);
-        }
-
         CompletableFuture<ItemStack> future = new CompletableFuture<>();
 
-        try {
-            executor.submit(() -> {
-                try {
-                    // Decode the GIF (off the main thread)
-                    GifFrameDecoder.Result decoded = GifFrameDecoder.decode(gifBytes);
-                    List<GifFrameDecoder.Frame> frames = decoded.frames();
-                    if (frames.isEmpty()) {
-                        debug("No frames decoded from GIF");
-                        Bukkit.getScheduler().runTask(plugin, () -> {
-                            if (player.isOnline()) {
-                                player.sendMessage(Component.text(
-                                        "[GifMap] Failed to decode GIF.", NamedTextColor.RED));
-                            }
-                        });
-                        future.complete(null);
-                        return;
-                    }
-                    if (frames.size() > MAX_FRAMES_PER_GIF) {
-                        Bukkit.getScheduler().runTask(plugin, () -> {
-                            if (player.isOnline()) {
-                                player.sendMessage(Component.text(
-                                        "[GifMap] GIF has too many frames (max " + MAX_FRAMES_PER_GIF + ").", NamedTextColor.RED));
-                            }
-                        });
-                        future.complete(null);
-                        return;
-                    }
+        if (closed.get() || player == null || gifBytes == null || gifBytes.length == 0) {
+            future.complete(null);
+            return future;
+        }
 
-                    // Create the map on the main thread (Bukkit API requirement)
-                    Bukkit.getScheduler().runTask(plugin, () -> {
-                        try {
-                            ItemStack mapItem = createMapFromFrames(player, frames);
-                            if (mapItem != null) {
-                                if (player.isOnline()) {
-                                    player.getInventory().addItem(mapItem);
-                                    player.sendMessage(Component.text(
-                                            "[GifMap] Animated map created! Hold it to view.", NamedTextColor.GREEN));
-                                }
-                                future.complete(mapItem);
-                            } else {
-                                future.complete(null);
-                            }
-                        } catch (Throwable t) {
-                            plugin.getLogger().log(Level.SEVERE, "Failed to create animated map for " + player.getName() + ": " + t.getMessage(), t);
-                            if (player.isOnline()) {
-                                player.sendMessage(Component.text(
-                                        "[GifMap] Failed to create animated map.", NamedTextColor.RED));
-                            }
-                            future.completeExceptionally(t);
-                        }
-                    });
-                } catch (Throwable t) {
-                    plugin.getLogger().log(Level.SEVERE, "Failed to decode GIF for " + player.getName() + ": " + t.getMessage(), t);
-                    Bukkit.getScheduler().runTask(plugin, () -> {
-                        if (player.isOnline()) {
-                            player.sendMessage(Component.text(
-                                    "[GifMap] Failed to create animated map.", NamedTextColor.RED));
-                        }
-                    });
-                    future.completeExceptionally(t);
+        // Validate player and limits on the main thread: this method is called
+        // from the bounded download worker.
+        try {
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (closed.get() || !player.isOnline()) {
+                    future.complete(null);
+                    return;
+                }
+
+                if (gifBytes.length > MAX_GIF_BYTES) {
+                    player.sendMessage(Component.text(
+                            "[GifMap] GIF is too large (max 8MB).", NamedTextColor.RED));
+                    future.complete(null);
+                    return;
+                }
+
+                if (activeMaps.size() >= MAX_CONCURRENT_MAPS) {
+                    player.sendMessage(Component.text(
+                            "[GifMap] Too many active animated maps. Please wait.", NamedTextColor.RED));
+                    future.complete(null);
+                    return;
+                }
+
+                try {
+                    executor.submit(() -> decodeAndCreate(player, gifBytes, future));
+                } catch (RejectedExecutionException rejected) {
+                    debug("GIF map queue is full");
+                    future.complete(null);
                 }
             });
-        } catch (RejectedExecutionException e) {
-            debug("GIF map queue is full");
+        } catch (IllegalStateException pluginDisabled) {
             future.complete(null);
         }
 
         return future;
+    }
+
+    private void decodeAndCreate(
+            Player player,
+            byte[] gifBytes,
+            CompletableFuture<ItemStack> future
+    ) {
+        try {
+            // Decode off the main thread, with hard frame and pixel caps.
+            GifFrameDecoder.Result decoded = GifFrameDecoder.decode(
+                    gifBytes, MAX_FRAMES_PER_GIF, MAX_GIF_PIXELS);
+            List<GifFrameDecoder.Frame> frames = decoded.frames();
+
+            if (decoded.truncated()) {
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (player.isOnline()) {
+                        player.sendMessage(Component.text(
+                                "[GifMap] GIF is too large or has too many frames (max "
+                                        + MAX_FRAMES_PER_GIF + " frames / 16 MP).",
+                                NamedTextColor.RED));
+                    }
+                });
+                future.complete(null);
+                return;
+            }
+
+            if (frames.isEmpty()) {
+                debug("No frames decoded from GIF");
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (player.isOnline()) {
+                        player.sendMessage(Component.text(
+                                "[GifMap] Failed to decode GIF.", NamedTextColor.RED));
+                    }
+                });
+                future.complete(null);
+                return;
+            }
+
+            // Create the map on the main thread (Bukkit API requirement)
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                try {
+                    ItemStack mapItem = createMapFromFrames(player, frames);
+                    if (mapItem != null) {
+                        if (player.isOnline()) {
+                            player.getInventory().addItem(mapItem);
+                            player.sendMessage(Component.text(
+                                    "[GifMap] Animated map created! Hold it to view.",
+                                    NamedTextColor.GREEN));
+                        }
+                        future.complete(mapItem);
+                    } else {
+                        future.complete(null);
+                    }
+                } catch (Exception exception) {
+                    plugin.getLogger().log(
+                            Level.SEVERE,
+                            "Failed to create animated map for " + player.getName()
+                                    + ": " + exception.getMessage(),
+                            exception);
+                    if (player.isOnline()) {
+                        player.sendMessage(Component.text(
+                                "[GifMap] Failed to create animated map.",
+                                NamedTextColor.RED));
+                    }
+                    future.completeExceptionally(exception);
+                }
+            });
+        } catch (Exception exception) {
+            plugin.getLogger().log(
+                    Level.SEVERE,
+                    "Failed to decode GIF for " + player.getName()
+                            + ": " + exception.getMessage(),
+                    exception);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (player.isOnline()) {
+                    player.sendMessage(Component.text(
+                            "[GifMap] Failed to create animated map.",
+                            NamedTextColor.RED));
+                }
+            });
+            future.completeExceptionally(exception);
+        }
     }
 
     private void debug(String message) {
@@ -251,6 +289,13 @@ public class AnimatedMapService implements AutoCloseable {
      * Destroys a map and releases all resources.
      */
     private void destroyMap(AnimatedMapEntry entry) {
+        // Maps and their renderer lists are Bukkit state; always mutate them on
+        // the main thread. The eviction timer runs asynchronously.
+        if (!Bukkit.isPrimaryThread()) {
+            runOnMain(() -> destroyMap(entry));
+            return;
+        }
+
         int mapId = entry.mapView.getId();
         activeMaps.remove(mapId);
 
@@ -268,34 +313,61 @@ public class AnimatedMapService implements AutoCloseable {
      * Periodically evicts maps that have no holders for too long.
      */
     private void evictAbandoned() {
+        if (closed.get()) return;
+
         long now = System.currentTimeMillis();
         long maxAge = 10 * 60 * 1000L; // 10 minutes
 
-        activeMaps.entrySet().removeIf(entry -> {
-            if (entry.getValue().holders.isEmpty() && now - entry.getValue().createdAt > maxAge) {
-                destroyMap(entry.getValue());
-                return true;
+        List<AnimatedMapEntry> stale = new ArrayList<>();
+        for (AnimatedMapEntry entry : activeMaps.values()) {
+            if (entry.holders.isEmpty() && now - entry.createdAt > maxAge) {
+                stale.add(entry);
             }
-            return false;
-        });
+        }
+        if (stale.isEmpty()) return;
+
+        runOnMain(() -> stale.forEach(this::destroyMap));
+    }
+
+    private void runOnMain(Runnable action) {
+        try {
+            Bukkit.getScheduler().runTask(plugin, action);
+        } catch (IllegalStateException pluginDisabled) {
+            // Server is stopping; renderer disposal is safe off-thread.
+            action.run();
+        }
     }
 
     @Override
     public void close() {
         if (!closed.compareAndSet(false, true)) return;
 
+        BukkitTask task = evictionTask;
+        evictionTask = null;
+        if (task != null) task.cancel();
+
         executor.shutdownNow();
 
-        // Destroy all active maps
+        // Destroy all active maps. close() is normally called on the main
+        // thread during plugin disable; fall back to a direct mutation when the
+        // scheduler is no longer available.
         List<AnimatedMapEntry> entries = new ArrayList<>(activeMaps.values());
         activeMaps.clear();
 
-        for (AnimatedMapEntry entry : entries) {
-            try {
-                entry.renderer.dispose();
-                entry.mapView.getRenderers().clear();
-            } catch (Throwable ignored) {
+        Runnable dispose = () -> {
+            for (AnimatedMapEntry entry : entries) {
+                try {
+                    entry.renderer.dispose();
+                    entry.mapView.getRenderers().clear();
+                } catch (Throwable ignored) {
+                }
             }
+        };
+
+        if (Bukkit.isPrimaryThread()) {
+            dispose.run();
+        } else {
+            runOnMain(dispose);
         }
 
         plugin.getLogger().info("[GifMap] Cleaned up " + entries.size() + " animated maps");

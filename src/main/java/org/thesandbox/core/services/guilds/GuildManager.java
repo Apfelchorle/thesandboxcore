@@ -4,7 +4,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.luckperms.api.LuckPermsProvider;
-import net.luckperms.api.model.data.DataMutateResult;
 import net.luckperms.api.model.data.NodeMap;
 import net.luckperms.api.model.user.User;
 import net.luckperms.api.model.user.UserManager;
@@ -24,7 +23,11 @@ import org.thesandbox.core.util.colors.TextSanitizer;
 
 import javax.sql.DataSource;
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -58,6 +61,7 @@ public final class GuildManager {
     private boolean mysqlGuildsAvailable = false;
     private DataSource guildDataSource;
     private volatile GuildSnapshot pendingSave;
+    private volatile YamlConfiguration pendingYamlSave;
     private volatile BukkitTask pendingSaveTask;
     private volatile boolean closed;
 
@@ -603,6 +607,7 @@ public final class GuildManager {
         pendingSaveTask = null;
         if (task != null) task.cancel();
         pendingSave = null;
+        pendingYamlSave = null;
         guildDataSource = null;
         mysqlGuildsAvailable = false;
     }
@@ -618,7 +623,9 @@ public final class GuildManager {
             return;
         }
 
-        saveYaml();
+        // Snapshot on the caller (main) thread; the worker does the disk I/O.
+        pendingYamlSave = buildYaml();
+        scheduleAsyncSave();
     }
 
     /**
@@ -631,49 +638,78 @@ public final class GuildManager {
 
         GuildSnapshot snapshot = pendingSave;
         pendingSave = null;
+        YamlConfiguration yamlSnapshot = pendingYamlSave;
+        pendingYamlSave = null;
 
         if (mysqlGuildsAvailable) {
             if (snapshot == null) snapshot = GuildSnapshot.capture(guildsByName.values(), deletedGuildNames);
             saveSnapshotToMysql(snapshot);
         } else {
-            saveYaml();
+            writeYaml(yamlSnapshot != null ? yamlSnapshot : buildYaml());
         }
     }
 
-    private void saveYaml() {
-        yml.set("guilds", null);
+    /**
+     * Builds a detached YAML snapshot. Must run on the main thread because it
+     * reads guild state and Bukkit worlds.
+     */
+    private YamlConfiguration buildYaml() {
+        YamlConfiguration snapshot = new YamlConfiguration();
 
         for (Guild g : new HashSet<>(guildsByName.values())) {
             String base = "guilds." + g.name() + ".";
-            yml.set(base + "tag", g.tag());
-            yml.set(base + "owner", g.owner().toString());
-            yml.set(base + "toggles.open", g.isOpen());
-            yml.set(base + "toggles.public", g.isPublicHome());
-            writeLocation(base + "home", g.home());
+            snapshot.set(base + "tag", g.tag());
+            snapshot.set(base + "owner", g.owner().toString());
+            snapshot.set(base + "toggles.open", g.isOpen());
+            snapshot.set(base + "toggles.public", g.isPublicHome());
+            writeLocation(snapshot, base + "home", g.home());
 
-            for (var e : g.ranks().entrySet()) yml.set(base + "ranks." + e.getKey(), e.getValue());
+            for (var e : g.ranks().entrySet()) snapshot.set(base + "ranks." + e.getKey(), e.getValue());
             for (var e : g.rankPermissions().entrySet())
-                yml.set(base + "rank-permissions." + e.getKey(), new ArrayList<>(e.getValue()));
-            for (var e : g.members().entrySet()) yml.set(base + "members." + e.getKey(), e.getValue());
-            for (var e : g.warps().entrySet()) writeLocation(base + "warps." + e.getKey(), e.getValue());
+                snapshot.set(base + "rank-permissions." + e.getKey(), new ArrayList<>(e.getValue()));
+            for (var e : g.members().entrySet()) snapshot.set(base + "members." + e.getKey(), e.getValue());
+            for (var e : g.warps().entrySet()) writeLocation(snapshot, base + "warps." + e.getKey(), e.getValue());
         }
+        return snapshot;
+    }
 
+    private void writeYaml(YamlConfiguration snapshot) {
+        File tmp = null;
         try {
-            yml.save(file);
-        } catch (Exception e) {
+            File parent = file.getParentFile();
+            if (parent != null && !parent.isDirectory() && !parent.mkdirs()) {
+                plugin.getLogger().severe("Could not create guild data folder " + parent);
+                return;
+            }
+
+            tmp = File.createTempFile("guilds", ".tmp", parent);
+            snapshot.save(tmp);
+            try {
+                Files.move(tmp.toPath(), file.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING,
+                        StandardCopyOption.ATOMIC_MOVE);
+            } catch (AtomicMoveNotSupportedException unsupported) {
+                Files.move(tmp.toPath(), file.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException e) {
             plugin.getLogger().severe("Failed to save guilds.yml: " + e.getMessage());
+        } finally {
+            if (tmp != null && tmp.exists() && !tmp.delete()) {
+                plugin.getLogger().warning("Could not delete temporary guild file " + tmp);
+            }
         }
     }
 
-    private void writeLocation(String path, Location loc) {
-        yml.set(path, null);
+    private void writeLocation(YamlConfiguration target, String path, Location loc) {
+        target.set(path, null);
         if (loc == null || loc.getWorld() == null) return;
-        yml.set(path + ".world", loc.getWorld().getName());
-        yml.set(path + ".x", loc.getX());
-        yml.set(path + ".y", loc.getY());
-        yml.set(path + ".z", loc.getZ());
-        yml.set(path + ".yaw", loc.getYaw());
-        yml.set(path + ".pitch", loc.getPitch());
+        target.set(path + ".world", loc.getWorld().getName());
+        target.set(path + ".x", loc.getX());
+        target.set(path + ".y", loc.getY());
+        target.set(path + ".z", loc.getZ());
+        target.set(path + ".yaw", loc.getYaw());
+        target.set(path + ".pitch", loc.getPitch());
     }
 
     private void scheduleAsyncSave() {
@@ -693,15 +729,22 @@ public final class GuildManager {
         pendingSaveTask = null;
         try {
             while (!closed) {
-                GuildSnapshot snapshot = pendingSave;
-                if (snapshot == null) break;
-                pendingSave = null;
+                if (mysqlGuildsAvailable) {
+                    GuildSnapshot snapshot = pendingSave;
+                    if (snapshot == null) break;
+                    pendingSave = null;
 
-                if (!saveSnapshotToMysql(snapshot)) break;
+                    if (!saveSnapshotToMysql(snapshot)) break;
+                } else {
+                    YamlConfiguration snapshot = pendingYamlSave;
+                    if (snapshot == null) break;
+                    pendingYamlSave = null;
+                    writeYaml(snapshot);
+                }
             }
         } finally {
             saveScheduled.set(false);
-            if (!closed && pendingSave != null) scheduleAsyncSave();
+            if (!closed && (pendingSave != null || pendingYamlSave != null)) scheduleAsyncSave();
         }
     }
 

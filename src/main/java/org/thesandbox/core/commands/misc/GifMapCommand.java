@@ -8,8 +8,22 @@ import org.bukkit.entity.Player;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.services.discord.media.AnimatedMapService;
+import org.thesandbox.core.util.net.SafeHttpUrlValidator;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URI;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,8 +48,35 @@ public class GifMapCommand extends BaseCommand {
     private static final int MAX_BYTES = 8 * 1024 * 1024; // 8MB limit
     private static final int CONNECT_TIMEOUT = 15000;     // 15 seconds
     private static final int READ_TIMEOUT = 45000;        // 45 seconds
+    private static final int MAX_REDIRECTS = 3;
+    private static final long REQUEST_COOLDOWN_MS = 30_000L;
+    private static final int MAX_CONCURRENT_DOWNLOADS = 3;
+    private static final int DOWNLOAD_QUEUE_CAPACITY = 8;
+
+    /**
+     * Downloads are bounded and daemon-backed. They must never be raw
+     * {@code new Thread(...)} calls: a player could otherwise exhaust threads.
+     */
+    private static final ThreadPoolExecutor DOWNLOAD_EXECUTOR = new ThreadPoolExecutor(
+            MAX_CONCURRENT_DOWNLOADS,
+            MAX_CONCURRENT_DOWNLOADS,
+            30L,
+            TimeUnit.SECONDS,
+            new ArrayBlockingQueue<>(DOWNLOAD_QUEUE_CAPACITY),
+            runnable -> {
+                Thread thread = new Thread(runnable, "Sandbox-GifMap-Download");
+                thread.setDaemon(true);
+                return thread;
+            },
+            new ThreadPoolExecutor.AbortPolicy()
+    );
+
+    static {
+        DOWNLOAD_EXECUTOR.allowCoreThreadTimeOut(true);
+    }
 
     private final TheSandboxCore plugin;
+    private final Map<UUID, Long> lastRequests = new ConcurrentHashMap<>();
 
     public GifMapCommand(TheSandboxCore plugin) {
         this.plugin = plugin;
@@ -56,6 +97,7 @@ public class GifMapCommand extends BaseCommand {
 
         // Handle /gifmap example
         if (args[0].equalsIgnoreCase("example")) {
+            if (!tryAcquire(player)) return true;
             logInfo(player.getName() + " ran /gifmap example");
             processGifUrl(player, EXAMPLE_GIF_URL, "example GIF");
             return true;
@@ -90,7 +132,25 @@ public class GifMapCommand extends BaseCommand {
             return true;
         }
 
+        if (!tryAcquire(player)) return true;
         processGifUrl(player, url, "GIF");
+        return true;
+    }
+
+    private boolean tryAcquire(Player player) {
+        long now = System.currentTimeMillis();
+        Long previous = lastRequests.put(player.getUniqueId(), now);
+        if (previous != null && now - previous < REQUEST_COOLDOWN_MS) {
+            long waitSeconds = Math.max(1L, (REQUEST_COOLDOWN_MS - (now - previous) + 999L) / 1000L);
+            player.sendMessage(Component.text(
+                    "[GifMap] Please wait " + waitSeconds + "s before requesting another GIF.",
+                    NamedTextColor.RED));
+            return false;
+        }
+
+        if (lastRequests.size() > 512) {
+            lastRequests.entrySet().removeIf(entry -> now - entry.getValue() > 10 * 60_000L);
+        }
         return true;
     }
 
@@ -128,8 +188,6 @@ public class GifMapCommand extends BaseCommand {
 
         // Download the GIF and create the map asynchronously
         downloadAndCreateMap(player, url, mapService);
-
-        return;
     }
 
     private void logFine(String message) {
@@ -161,128 +219,186 @@ public class GifMapCommand extends BaseCommand {
     // ==================== Logging helpers ====================
 
     private void downloadAndCreateMap(Player player, String url, AnimatedMapService mapService) {
-        new Thread(() -> {
-            try {
-                logFine("Opening connection to: " + url);
-                long startTime = System.currentTimeMillis();
+        String playerName = player.getName();
+        try {
+            DOWNLOAD_EXECUTOR.execute(() ->
+                    doDownloadAndCreate(player, playerName, url, mapService));
+        } catch (RejectedExecutionException rejected) {
+            logWarning("Download queue is full; rejecting request from " + playerName);
+            player.sendMessage(Component.text(
+                    "[GifMap] Too many downloads are already running. Please try again shortly.",
+                    NamedTextColor.RED));
+        }
+    }
 
-                byte[] gifBytes = downloadUrl(url);
-                long downloadTime = System.currentTimeMillis() - startTime;
+    private void doDownloadAndCreate(
+            Player player,
+            String playerName,
+            String url,
+            AnimatedMapService mapService
+    ) {
+        try {
+            logFine("Opening connection to: " + url);
+            long startTime = System.currentTimeMillis();
 
-                if (gifBytes == null || gifBytes.length == 0) {
-                    logWarning("Download returned null/empty for: " + url);
-                    plugin.getServer().getScheduler().runTask(plugin, () -> {
-                        if (player.isOnline()) {
-                            player.sendMessage(Component.text(
-                                    "[GifMap] Failed to download the GIF. The URL may be invalid, blocked, or the file may not exist.", NamedTextColor.RED));
-                            player.sendMessage(Component.text(
-                                    "  Try /gifmap example to verify the feature works.", NamedTextColor.GRAY));
-                        }
-                    });
-                    return;
-                }
+            byte[] gifBytes = downloadUrl(url);
+            long downloadTime = System.currentTimeMillis() - startTime;
 
-                // Verify GIF magic bytes
-                if (!isGifFormat(gifBytes)) {
-                    logWarning("Downloaded content is not a valid GIF (bad magic bytes): " + url);
-                    plugin.getServer().getScheduler().runTask(plugin, () -> {
-                        if (player.isOnline()) {
-                            player.sendMessage(Component.text(
-                                    "[GifMap] The downloaded file is not a valid GIF format.", NamedTextColor.RED));
-                            player.sendMessage(Component.text(
-                                    "  The server expected GIF data but got something else.", NamedTextColor.GRAY));
-                        }
-                    });
-                    return;
-                }
-
-                logInfo("Downloaded " + formatBytes(gifBytes.length) + " in " + downloadTime + "ms from: " + url);
-
-                // Pass to AnimatedMapService for decoding and map creation
-                logFine("Passing GIF bytes to AnimatedMapService for player " + player.getName());
-                mapService.createAndGiveMap(player, gifBytes)
-                        .whenComplete((result, throwable) -> {
-                            if (throwable != null) {
-                                logSevere("AnimatedMapService failed for " + player.getName() + ": " + throwable.getMessage(), throwable);
-                            } else if (result == null) {
-                                logWarning("AnimatedMapService returned null for " + player.getName());
-                            } else {
-                                logInfo("Successfully created animated map for " + player.getName());
-                            }
-                        });
-
-            } catch (Throwable t) {
-                logSevere("Unexpected error downloading GIF for " + player.getName() + ": " + t.getMessage(), t);
+            if (gifBytes == null || gifBytes.length == 0) {
+                logWarning("Download returned null/empty for: " + url);
                 plugin.getServer().getScheduler().runTask(plugin, () -> {
                     if (player.isOnline()) {
                         player.sendMessage(Component.text(
-                                "[GifMap] Unexpected error: " + t.getMessage(), NamedTextColor.RED));
+                                "[GifMap] Failed to download the GIF. The URL may be invalid, blocked, or the file may not exist.", NamedTextColor.RED));
+                        player.sendMessage(Component.text(
+                                "  Try /gifmap example to verify the feature works.", NamedTextColor.GRAY));
                     }
                 });
+                return;
             }
-        }, "GifMap-Download-" + System.currentTimeMillis()).start();
+
+            // Verify GIF magic bytes
+            if (!isGifFormat(gifBytes)) {
+                logWarning("Downloaded content is not a valid GIF (bad magic bytes): " + url);
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    if (player.isOnline()) {
+                        player.sendMessage(Component.text(
+                                "[GifMap] The downloaded file is not a valid GIF format.", NamedTextColor.RED));
+                        player.sendMessage(Component.text(
+                                "  The server expected GIF data but got something else.", NamedTextColor.GRAY));
+                    }
+                });
+                return;
+            }
+
+            logInfo("Downloaded " + formatBytes(gifBytes.length) + " in " + downloadTime + "ms from: " + url);
+
+            // Pass to AnimatedMapService for decoding and map creation
+            logFine("Passing GIF bytes to AnimatedMapService for player " + playerName);
+            mapService.createAndGiveMap(player, gifBytes)
+                    .whenComplete((result, throwable) -> {
+                        if (throwable != null) {
+                            logSevere("AnimatedMapService failed for " + playerName + ": " + throwable.getMessage(), throwable);
+                        } else if (result == null) {
+                            logWarning("AnimatedMapService returned null for " + playerName);
+                        } else {
+                            logInfo("Successfully created animated map for " + playerName);
+                        }
+                    });
+
+        } catch (Exception exception) {
+            logSevere("Unexpected error downloading GIF for " + playerName + ": " + exception.getMessage(), exception);
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                if (player.isOnline()) {
+                    player.sendMessage(Component.text(
+                            "[GifMap] Unexpected error: " + exception.getMessage(), NamedTextColor.RED));
+                }
+            });
+        }
     }
 
     private byte[] downloadUrl(String url) {
+        final URI initial;
         try {
-            java.net.URL uri = java.net.URI.create(url).toURL();
-            logFine("Created URL object: protocol=" + uri.getProtocol() + ", host=" + uri.getHost());
+            initial = SafeHttpUrlValidator.validate(url);
+        } catch (IllegalArgumentException blocked) {
+            logWarning("Blocked download for " + url + ": " + blocked.getMessage());
+            return null;
+        }
 
-            java.net.URLConnection connection = uri.openConnection();
-            connection.setConnectTimeout(CONNECT_TIMEOUT);
-            connection.setReadTimeout(READ_TIMEOUT);
-            connection.setRequestProperty("User-Agent", "TheSandboxCore/1.0 Minecraft Plugin");
-            connection.setRequestProperty("Accept", "image/gif, image/*");
+        URI current = initial;
+        try {
+            for (int redirects = 0; redirects <= MAX_REDIRECTS; redirects++) {
+                logFine("Opening connection to: " + current);
+                HttpURLConnection connection = (HttpURLConnection) current.toURL().openConnection();
+                try {
+                    connection.setConnectTimeout(CONNECT_TIMEOUT);
+                    connection.setReadTimeout(READ_TIMEOUT);
+                    connection.setInstanceFollowRedirects(false);
+                    connection.setRequestProperty("User-Agent", "TheSandboxCore/1.0 Minecraft Plugin");
+                    connection.setRequestProperty("Accept", "image/gif, image/*");
 
-            // Check content type if available
-            String contentType = connection.getContentType();
-            if (contentType != null) {
-                logFine("Server response content-type: " + contentType);
-                if (!contentType.toLowerCase().contains("gif") && !contentType.toLowerCase().contains("image")) {
-                    logWarning("Unexpected content type: " + contentType + " (expected image/gif)");
-                }
-            }
+                    int response = connection.getResponseCode();
+                    if (response >= 300 && response < 400) {
+                        String location = connection.getHeaderField("Location");
+                        if (location == null || location.isBlank()) {
+                            logWarning("Redirect without a Location header from: " + current);
+                            return null;
+                        }
 
-            // Check content length if available
-            int contentLength = connection.getContentLength();
-            if (contentLength > 0) {
-                logFine("Expected content length: " + formatBytes(contentLength));
-                if (contentLength > MAX_BYTES) {
-                    logWarning("File too large: " + formatBytes(contentLength) + " (max " + formatBytes(MAX_BYTES) + ")");
-                    return null;
-                }
-            }
+                        URI next = current.resolve(location.trim());
+                        try {
+                            current = SafeHttpUrlValidator.validate(next.toString());
+                        } catch (IllegalArgumentException blocked) {
+                            logWarning("Blocked redirect target " + next + ": " + blocked.getMessage());
+                            return null;
+                        }
+                        logFine("Following redirect to: " + current);
+                        continue;
+                    }
 
-            logFine("Reading input stream...");
-            try (var input = connection.getInputStream()) {
-                java.io.ByteArrayOutputStream buffer = new java.io.ByteArrayOutputStream();
-                byte[] chunk = new byte[8192];
-                int bytesRead;
-                int total = 0;
-
-                while ((bytesRead = input.read(chunk)) != -1) {
-                    total += bytesRead;
-                    if (total > MAX_BYTES) {
-                        logWarning("Download exceeded size limit at " + formatBytes(total) + " (max " + formatBytes(MAX_BYTES) + ")");
+                    if (response != HttpURLConnection.HTTP_OK) {
+                        logWarning("HTTP " + response + " while downloading: " + current);
                         return null;
                     }
-                    buffer.write(chunk, 0, bytesRead);
-                }
 
-                logFine("Finished reading " + formatBytes(total) + " bytes");
-                return buffer.toByteArray();
+                    String contentType = connection.getContentType();
+                    if (contentType != null) {
+                        String lowerType = contentType.toLowerCase(Locale.ROOT);
+                        logFine("Server response content-type: " + contentType);
+                        if (lowerType.startsWith("text/")
+                                || lowerType.contains("html")
+                                || lowerType.contains("json")) {
+                            logWarning("Refusing non-image content type: " + contentType);
+                            return null;
+                        }
+                    }
+
+                    long contentLength = connection.getContentLengthLong();
+                    if (contentLength > MAX_BYTES) {
+                        logWarning("File too large: " + formatBytes(contentLength)
+                                + " (max " + formatBytes(MAX_BYTES) + ")");
+                        return null;
+                    }
+
+                    logFine("Reading input stream...");
+                    try (InputStream input = connection.getInputStream()) {
+                        ByteArrayOutputStream buffer = new ByteArrayOutputStream(Math.min(8192, MAX_BYTES));
+                        byte[] chunk = new byte[8192];
+                        int bytesRead;
+                        int total = 0;
+
+                        while ((bytesRead = input.read(chunk)) != -1) {
+                            total += bytesRead;
+                            if (total > MAX_BYTES) {
+                                logWarning("Download exceeded size limit at "
+                                        + formatBytes(total) + " (max " + formatBytes(MAX_BYTES) + ")");
+                                return null;
+                            }
+                            buffer.write(chunk, 0, bytesRead);
+                        }
+
+                        logFine("Finished reading " + formatBytes(total) + " bytes");
+                        return buffer.toByteArray();
+                    }
+                } finally {
+                    connection.disconnect();
+                }
             }
+
+            logWarning("Too many redirects while downloading: " + url);
+            return null;
         } catch (java.net.ConnectException e) {
-            logWarning("Connection refused or timed out: " + url + " — " + e.getMessage());
+            logWarning("Connection refused or timed out: " + current + " — " + e.getMessage());
             return null;
         } catch (java.net.SocketTimeoutException e) {
-            logWarning("Download timed out: " + url + " — " + e.getMessage());
+            logWarning("Download timed out: " + current + " — " + e.getMessage());
             return null;
-        } catch (java.io.IOException e) {
-            logWarning("I/O error downloading: " + url + " — " + e.getMessage());
+        } catch (IOException e) {
+            logWarning("I/O error downloading " + current + ": " + e.getMessage());
             return null;
-        } catch (Exception e) {
-            logSevere("Unexpected exception downloading: " + url + " — " + e.getClass().getSimpleName() + ": " + e.getMessage(), e);
+        } catch (IllegalArgumentException e) {
+            logWarning("Blocked or invalid URL " + current + ": " + e.getMessage());
             return null;
         }
     }
@@ -296,7 +412,7 @@ public class GifMapCommand extends BaseCommand {
                 && (data[4] == '7' || data[4] == '9') && data[5] == 'a');
     }
 
-    private static String formatBytes(int bytes) {
+    private static String formatBytes(long bytes) {
         if (bytes < 1024) return bytes + " B";
         if (bytes < 1024 * 1024) return (bytes / 1024.0) + " KB";
         return (bytes / (1024.0 * 1024.0)) + " MB";

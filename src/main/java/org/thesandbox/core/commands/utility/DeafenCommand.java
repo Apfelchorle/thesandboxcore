@@ -10,7 +10,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.thesandbox.core.commands.BaseCommand;
 
-import java.util.List;
 import java.util.SplittableRandom;
 
 public class DeafenCommand extends BaseCommand

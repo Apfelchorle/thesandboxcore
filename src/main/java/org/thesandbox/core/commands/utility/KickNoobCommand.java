@@ -7,8 +7,6 @@ import org.bukkit.entity.Player;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.util.colors.Colors;
 
-import java.util.List;
-
 public class KickNoobCommand extends BaseCommand
 {
     @Override

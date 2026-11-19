@@ -122,10 +122,20 @@ public class DataManager {
         }
 
         FileConfiguration config = YamlConfiguration.loadConfiguration(file);
+
+        // Preserve every key that exists in the file, not just the current
+        // defaults. This keeps removed/legacy/future keys alive across saves.
+        result.putAll(config.getValues(false));
+
+        // The old gender key was literally "male" (the default value was used as
+        // the key by mistake). Migrate it once, preferring an existing "Gender".
+        Object legacyGender = result.remove(PlayerDataKeys.LEGACY_GENDER_KEY);
+        if (legacyGender != null && !result.containsKey(PlayerDataKeys.GENDER)) {
+            result.put(PlayerDataKeys.GENDER, legacyGender);
+        }
+
         for (Map.Entry<String, Object> entry : defaults.entrySet()) {
-            String key = entry.getKey();
-            Object defaultValue = entry.getValue();
-            result.put(key, config.get(key, defaultValue));
+            result.putIfAbsent(entry.getKey(), entry.getValue());
         }
         return result;
     }

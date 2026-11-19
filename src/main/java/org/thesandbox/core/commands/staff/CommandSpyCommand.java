@@ -42,7 +42,7 @@ public class CommandSpyCommand extends BaseCommand {
 
         switch (sub) {
             case "on": {
-                plugin.getCommandSpyManager().setCmdSpy(player, false);
+                plugin.getCommandSpyManager().setCmdSpy(player, true);
 
                 player.sendMessage(Colors.color("&7&lCommand &8» &7CommandSpy has been enabled."));
                 return true;

@@ -167,7 +167,6 @@ public class SlowRestartCommand extends BaseCommand {
             20L,
             20L
         );
-        return;
     }
 
     private void cancel(CommandSender sender) {
@@ -179,7 +178,6 @@ public class SlowRestartCommand extends BaseCommand {
         stopTask();
         broadcast(who + " - Canceled the scheduled server restart.");
         Utils.blog("Restart canceled", "By : " + who);
-        return;
     }
 
     private void status(CommandSender sender) {
@@ -196,7 +194,6 @@ public class SlowRestartCommand extends BaseCommand {
                     ")."
             );
         }
-        return;
     }
 
     // ------------------------------------------------------------------ //

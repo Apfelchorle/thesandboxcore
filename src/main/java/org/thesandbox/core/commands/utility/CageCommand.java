@@ -25,6 +25,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitTask;
 import org.thesandbox.core.TheSandboxCore;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.util.colors.Colors;
@@ -32,7 +33,12 @@ import org.thesandbox.core.util.colors.Colors;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -49,6 +55,14 @@ public class CageCommand extends BaseCommand implements Listener
 
     // Recoveries that could not run yet because their world was not loaded.
     private final Map<UUID, PendingRestore> pendingRestores = new LinkedHashMap<>();
+
+    // Cage snapshots are built on the main thread and written by a debounced
+    // async worker. A generation counter prevents an older write from winning.
+    private final AtomicReference<CageSave> pendingCageSave = new AtomicReference<>();
+    private final AtomicBoolean cageSaveScheduled = new AtomicBoolean();
+    private final Object cageWriteLock = new Object();
+    private volatile long cageSaveGeneration;
+    private BukkitTask cageSaveTask;
 
     // Optional WorldGuard integration, resolved once via reflection so the
     // plugin still builds and runs without a WorldGuard dependency.
@@ -246,7 +260,7 @@ public class CageCommand extends BaseCommand implements Listener
             }
         }
         // Keeps world-not-loaded recoveries for the next start.
-        saveCageRecords();
+        flushCageRecords();
     }
 
     @EventHandler
@@ -586,14 +600,17 @@ public class CageCommand extends BaseCommand implements Listener
     /** Records all active cages and deferred restores so a crash cannot leave terrain caged forever. */
     private void saveCageRecords()
     {
-        if (cages.isEmpty() && pendingRestores.isEmpty())
-        {
-            if (cageFile.isFile() && !cageFile.delete())
-            {
-                plugin.getLogger().warning("[/cage] Could not delete " + cageFile.getName());
-            }
-            return;
-        }
+        pendingCageSave.set(new CageSave(snapshotCageRecords(), ++cageSaveGeneration));
+        scheduleCageSave();
+    }
+
+    /**
+     * Builds the cage YAML on the caller (main) thread. Returns {@code null} when
+     * there is nothing to persist, which means the old file should be removed.
+     */
+    private YamlConfiguration snapshotCageRecords()
+    {
+        if (cages.isEmpty() && pendingRestores.isEmpty()) return null;
 
         YamlConfiguration yaml = new YamlConfiguration();
         yaml.options().setHeader(List.of(
@@ -613,20 +630,106 @@ public class CageCommand extends BaseCommand implements Listener
             writeCageRecord(yaml, "pending." + e.getKey(), p.playerName(),
                     p.worldId(), p.worldName(), p.blocks());
         }
+        return yaml;
+    }
 
+    private void scheduleCageSave()
+    {
+        if (!cageSaveScheduled.compareAndSet(false, true)) return;
+        try
+        {
+            cageSaveTask = Bukkit.getScheduler().runTaskLaterAsynchronously(
+                    plugin, this::drainCageSave, 20L);
+        }
+        catch (RuntimeException ex)
+        {
+            cageSaveScheduled.set(false);
+            plugin.getLogger().warning("[/cage] Could not schedule save: " + ex.getMessage());
+        }
+    }
+
+    private void drainCageSave()
+    {
+        cageSaveTask = null;
+        try
+        {
+            synchronized (cageWriteLock)
+            {
+                CageSave save = pendingCageSave.getAndSet(null);
+                if (save != null && save.generation() == cageSaveGeneration)
+                {
+                    writeCageSave(save.yaml());
+                }
+            }
+        }
+        finally
+        {
+            cageSaveScheduled.set(false);
+            if (pendingCageSave.get() != null) scheduleCageSave();
+        }
+    }
+
+    /** Flushes the newest snapshot synchronously; used when the plugin disables. */
+    private void flushCageRecords()
+    {
+        BukkitTask task = cageSaveTask;
+        cageSaveTask = null;
+        if (task != null) task.cancel();
+        cageSaveScheduled.set(false);
+        pendingCageSave.set(null);
+        synchronized (cageWriteLock)
+        {
+            ++cageSaveGeneration;
+            writeCageSave(snapshotCageRecords());
+        }
+    }
+
+    private void writeCageSave(YamlConfiguration yaml)
+    {
+        File tmp = null;
         try
         {
             File parent = cageFile.getParentFile();
             if (parent != null && !parent.isDirectory() && !parent.mkdirs())
             {
                 plugin.getLogger().warning("[/cage] Could not create data folder " + parent + ".");
+                return;
             }
-            yaml.save(cageFile);
+
+            if (yaml == null)
+            {
+                Files.deleteIfExists(cageFile.toPath());
+                return;
+            }
+
+            tmp = File.createTempFile("cages", ".tmp", parent);
+            yaml.save(tmp);
+            try
+            {
+                Files.move(tmp.toPath(), cageFile.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING,
+                        StandardCopyOption.ATOMIC_MOVE);
+            }
+            catch (AtomicMoveNotSupportedException unsupported)
+            {
+                Files.move(tmp.toPath(), cageFile.toPath(),
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
         }
         catch (IOException ex)
         {
             plugin.getLogger().warning("[/cage] Could not save " + cageFile.getName() + ": " + ex.getMessage());
         }
+        finally
+        {
+            if (tmp != null && tmp.exists() && !tmp.delete())
+            {
+                plugin.getLogger().warning("[/cage] Could not delete temporary file " + tmp);
+            }
+        }
+    }
+
+    private record CageSave(YamlConfiguration yaml, long generation) {
     }
 
     private void writeCageRecord(YamlConfiguration yaml, String path, String playerName,

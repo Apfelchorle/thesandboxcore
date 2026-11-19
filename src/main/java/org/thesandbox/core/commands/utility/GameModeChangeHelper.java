@@ -56,7 +56,6 @@ public final class GameModeChangeHelper {
         Bukkit.getServer().broadcast(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.SERVER, Colors.RED + sender.getName()
                 + " changed " + target.getName() + "'s gamemode to " + modeName + "."));
         sender.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.COMMAND, Colors.GRAY + "Set " + target.getName() + "'s gamemode to " + modeName + "."));
-        return;
     }
 
     public static List<String> tabComplete(CommandSender sender, String[] args) {

@@ -12,8 +12,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.thesandbox.core.commands.BaseCommand;
 import org.thesandbox.core.util.colors.Colors;
 
-import java.util.List;
-
 public class DisguiseToggleCommand extends BaseCommand implements Listener
 {
     // Global toggle: disguises enabled by default

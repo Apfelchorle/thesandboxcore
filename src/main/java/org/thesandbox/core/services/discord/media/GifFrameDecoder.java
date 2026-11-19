@@ -29,7 +29,20 @@ public final class GifFrameDecoder {
      * @return a result containing all frames and their delays, or empty frames on failure
      */
     public static Result decode(byte[] bytes) {
-        if (bytes == null || bytes.length < 4) {
+        return decode(bytes, Integer.MAX_VALUE, Long.MAX_VALUE);
+    }
+
+    public static Result decode(byte[] bytes, int maxFrames) {
+        return decode(bytes, maxFrames, Long.MAX_VALUE);
+    }
+
+    /**
+     * Decodes at most {@code maxFrames} frames. Decoding is intentionally capped
+     * before allocating frame images: a tiny compressed GIF can otherwise expand
+     * into gigabytes of heap.
+     */
+    public static Result decode(byte[] bytes, int maxFrames, long maxPixels) {
+        if (bytes == null || bytes.length < 4 || maxFrames <= 0 || maxPixels <= 0) {
             return empty();
         }
 
@@ -43,6 +56,8 @@ public final class GifFrameDecoder {
 
         List<Frame> frames = new ArrayList<>();
         int loopCount = -1; // infinite by default
+        boolean truncated = false;
+        ImageReader reader = null;
 
         try (ImageInputStream input = new MemoryCacheImageInputStream(new ByteArrayInputStream(bytes))) {
             Iterator<ImageReader> readers = ImageIO.getImageReaders(input);
@@ -50,36 +65,53 @@ public final class GifFrameDecoder {
                 return empty();
             }
 
-            ImageReader reader = readers.next();
+            reader = readers.next();
             reader.setInput(input, false, false);
 
             int numFrames = reader.getNumImages(true);
             if (numFrames <= 0) {
-                reader.dispose();
                 return empty();
             }
+
+            int width = reader.getWidth(0);
+            int height = reader.getHeight(0);
+            long framePixels = (long) width * (long) height;
+            if (width <= 0 || height <= 0 || framePixels > maxPixels) {
+                return empty();
+            }
+
+            // maxPixels is a total budget across all decoded frames, not a
+            // per-frame limit. Without this, a 16 MP, 300-frame GIF would try
+            // to allocate roughly 19 GB of ARGB pixels.
+            int framesByBudget = (int) Math.min(
+                    Integer.MAX_VALUE,
+                    Math.max(1L, maxPixels / framePixels));
+            int framesToRead = Math.min(numFrames, Math.min(maxFrames, framesByBudget));
+            truncated = framesToRead < numFrames;
 
             // Try to read the NETSCAPE2.0 extension for loop count
             loopCount = readLoopCount(reader);
 
-            for (int i = 0; i < numFrames; i++) {
+            for (int i = 0; i < framesToRead; i++) {
                 BufferedImage frame = reader.read(i);
                 if (frame == null) continue;
 
                 int delayMs = readFrameDelay(reader, i);
                 frames.add(new Frame(frame, delayMs));
             }
-
-            reader.dispose();
         } catch (IOException e) {
             // Return whatever we managed to decode
+        } finally {
+            if (reader != null) {
+                reader.dispose();
+            }
         }
 
         if (frames.isEmpty()) {
             return empty();
         }
 
-        return new Result(frames, loopCount);
+        return new Result(frames, loopCount, truncated);
     }
 
     /**
@@ -184,7 +216,7 @@ public final class GifFrameDecoder {
     }
 
     private static Result empty() {
-        return new Result(List.of(), -1);
+        return new Result(List.of(), -1, false);
     }
 
     /**
@@ -201,7 +233,8 @@ public final class GifFrameDecoder {
      *
      * @param frames    the decoded frames in order
      * @param loopCount number of times to loop (-1 means infinite, 0 means no repeat)
+     * @param truncated true when the GIF had more frames than the configured cap
      */
-    public record Result(List<Frame> frames, int loopCount) {
+    public record Result(List<Frame> frames, int loopCount, boolean truncated) {
     }
 }

@@ -67,7 +67,7 @@ public class AutoTpCommand extends BaseCommand implements TabCompleter {
 
     // Bukkit TabCompleter method (needed to satisfy the interface)
     @Override
-    public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+    public @NotNull List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String @NotNull [] args) {
         // Delegate to the same logic
         List<String> result = tabComplete(sender, command, alias, args);
         return (result != null) ? result : List.of();

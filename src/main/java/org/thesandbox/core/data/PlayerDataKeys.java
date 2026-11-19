@@ -25,7 +25,12 @@ public final class PlayerDataKeys {
 
     // marriage
     public static final String MARRIAGE_SPOUSE = "MarriageSpouse";
-    public static final String GENDER = "male";
+    public static final String GENDER = "Gender";
+    /**
+     * Old key accidentally used the default value as the YAML key. Read once and
+     * migrated to {@link #GENDER}; kept so existing player files are not lost.
+     */
+    static final String LEGACY_GENDER_KEY = "male";
     // STAFF
     public static final String VANISHED = "Vanished";
     // CHATFILTER

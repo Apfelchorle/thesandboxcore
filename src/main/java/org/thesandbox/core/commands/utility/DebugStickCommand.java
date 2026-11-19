@@ -13,7 +13,6 @@ import org.thesandbox.core.util.colors.Colors;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 
 public class DebugStickCommand extends BaseCommand
 {

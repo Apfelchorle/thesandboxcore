@@ -33,7 +33,6 @@ final class WorldTeleportHelper {
         } else {
             player.sendMessage(org.thesandbox.core.commands.MessageService.component(org.thesandbox.core.commands.MessageService.Prefix.ERROR, Colors.RED + "Failed to teleport."));
         }
-        return;
     }
 
     static World resolveWorld(String worldName) {
