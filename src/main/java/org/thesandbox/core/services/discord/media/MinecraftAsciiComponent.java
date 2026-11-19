@@ -23,32 +23,52 @@ import org.thesandbox.core.util.colors.Colors;
  */
 public final class MinecraftAsciiComponent {
 
-    private static final TheSandboxCore core = TheSandboxCore.getInstance();
-    private static final String BLOCK = core.getPluginConfigManager().getOrCreate(GenericDataKeys.DISCORD_MEDIA_BLOCK, "█");
+    private static final int MAX_RENDERED_CELLS = 4096;
     private static final char BRAILLE_BASE = 0x2800;
-    private static final int BRAILLE_DOT_THRESHOLD = 48;
     private static final char[] SHADE_CHARS = {' ', '░', '▒', '▓', '█'};
 
-    // Emoji palette: 10 luminance bands mapped to colored circle emojis.
-    // Ordered from darkest (index 0) to brightest (index 9).
+    // Emoji palette: ordered from darkest (index 0) to brightest (index 9).
+    // Discord clients render these glyphs with their own colors, so the mapping
+    // is by perceptual luminance only.
     private static final String[] EMOJI_PALETTE = {
-            "⚫",  // 0  — black (darkest)
+            "⚫",  // 0  — black
             "🟤",  // 1  — brown
             "🔵",  // 2  — blue
             "🟣",  // 3  — purple
             "🟢",  // 4  — green
-            "🟡",  // 5  — yellow
+            "🔴",  // 5  — red
             "🟠",  // 6  — orange
-            "🔴",  // 7  — red
-            "⚪",  // 8  — white (light)
-            "🩷"   // 9  — pink (brightest / accent)
+            "🟡",  // 7  — yellow
+            "⚪",  // 8  — white
+            "🩷"   // 9  — pink accent
     };
 
     private MinecraftAsciiComponent() {
     }
 
+    /**
+     * Resolves the block glyph from configuration without capturing the plugin
+     * at class-load time. Falls back to {@code █} when no plugin is available.
+     */
+    private static String blockChar() {
+        TheSandboxCore core = TheSandboxCore.getInstance();
+        if (core == null) return "█";
+        try {
+            String value = core.getPluginConfigManager().getOrCreate(GenericDataKeys.DISCORD_MEDIA_BLOCK, "█");
+            return (value == null || value.isBlank()) ? "█" : value;
+        } catch (Throwable ignored) {
+            return "█";
+        }
+    }
+
     public static Component build(ImageToAscii.Result result, MediaRenderSettings settings) {
         if (result == null) return Component.empty();
+        if (result.width() <= 0 || result.height() <= 0) return Component.empty();
+
+        // Guard against pathological results producing enormous chat components.
+        if ((long) result.width() * (long) result.height() > MAX_RENDERED_CELLS) {
+            return Component.text("[Image too large to render]");
+        }
 
         boolean legacy = settings.colorMode() == MediaRenderSettings.ColorMode.LEGACY;
         MediaRenderSettings.RenderStyle style = settings.renderStyle();
@@ -58,6 +78,7 @@ public final class MinecraftAsciiComponent {
             case EMOJI -> buildEmoji(result, colors);
             case BRAILLE -> buildBraille(result, colors, legacy);
             case SHADE -> buildShade(result, colors, legacy);
+            case HALF_BLOCK -> buildHalfBlock(result, colors, legacy);
             case BLOCK -> buildBlock(result, colors, legacy);
         };
     }
@@ -133,8 +154,6 @@ public final class MinecraftAsciiComponent {
                         int red = (color >> 16) & 0xFF;
                         int green = (color >> 8) & 0xFF;
                         int blue = color & 0xFF;
-                        int luminance = (red * 54 + green * 183 + blue * 19) >> 8;
-                        if (luminance < BRAILLE_DOT_THRESHOLD) continue;
 
                         pattern |= brailleBit(dx, dy);
                         sumR += red;
@@ -253,6 +272,65 @@ public final class MinecraftAsciiComponent {
         return color == null ? Component.text(text) : Component.text(text).color(color);
     }
 
+    private static Component buildHalfBlock(ImageToAscii.Result result, int[][] colors, boolean legacy) {
+        int cellsX = result.width();
+        int cellsY = (result.height() + 1) / 2;
+
+        Component out = Component.empty();
+        for (int cy = 0; cy < cellsY; cy++) {
+            if (cy > 0) out = out.append(Component.newline());
+
+            StringBuilder run = new StringBuilder();
+            TextColor runColor = null;
+
+            for (int cx = 0; cx < cellsX; cx++) {
+                int top = (cy * 2 < result.height()) ? colors[cy * 2][cx] : 0;
+                int bottom = (cy * 2 + 1 < result.height()) ? colors[cy * 2 + 1][cx] : 0;
+
+                char glyph;
+                int color;
+                if (top == 0 && bottom == 0) {
+                    glyph = ' ';
+                    color = 0;
+                } else if (top != 0 && bottom == 0) {
+                    glyph = '▀';
+                    color = top;
+                } else if (top == 0) {
+                    glyph = '▄';
+                    color = bottom;
+                } else {
+                    glyph = '█';
+                    color = top;
+                }
+
+                if (color == 0) {
+                    if (!run.isEmpty()) {
+                        out = out.append(coloredRun(run.toString(), runColor));
+                        run.setLength(0);
+                    }
+                    runColor = null;
+                    run.append(' ');
+                    continue;
+                }
+
+                TextColor cellColor = resolveColor(color, legacy);
+                if (!cellColor.equals(runColor)) {
+                    if (!run.isEmpty()) {
+                        out = out.append(coloredRun(run.toString(), runColor));
+                        run.setLength(0);
+                    }
+                    runColor = cellColor;
+                }
+                run.append(glyph);
+            }
+
+            if (!run.isEmpty()) {
+                out = out.append(coloredRun(run.toString(), runColor));
+            }
+        }
+        return out;
+    }
+
     private static Component buildBlock(ImageToAscii.Result result, int[][] colors, boolean legacy) {
         Component out = Component.empty();
         for (int y = 0; y < result.height(); y++) {
@@ -285,7 +363,7 @@ public final class MinecraftAsciiComponent {
                 }
 
                 out = out.append(
-                        Component.text(BLOCK.repeat(x - start)).color(textColor)
+                        Component.text(blockChar().repeat(x - start)).color(textColor)
                 );
             }
         }

@@ -30,14 +30,16 @@ public final class ImageToAscii {
 
         MediaRenderSettings.RenderStyle style = settings.renderStyle();
         int cellWidth = style == MediaRenderSettings.RenderStyle.BRAILLE ? 2 : 1;
-        int cellHeight = style == MediaRenderSettings.RenderStyle.BRAILLE ? 4 : 1;
+        int cellHeight = style == MediaRenderSettings.RenderStyle.BRAILLE ? 4
+                : style == MediaRenderSettings.RenderStyle.HALF_BLOCK ? 2 : 1;
         int maxTargetWidth = Math.max(1, settings.width() * cellWidth);
         int maxTargetHeight = Math.max(1, settings.height() * cellHeight);
 
         // Braille cells render at roughly 8×9 px but hold 2×4 subpixels, so a
         // square source needs a target grid that is taller than it is wide.
         double aspect = settings.charAspect();
-        if (style == MediaRenderSettings.RenderStyle.BRAILLE) {
+        if (style == MediaRenderSettings.RenderStyle.BRAILLE
+                || style == MediaRenderSettings.RenderStyle.HALF_BLOCK) {
             aspect *= 2.0;
         }
 
@@ -62,9 +64,11 @@ public final class ImageToAscii {
         int bgBlue = background & 0xFF;
 
         int[][] colors = new int[targetHeight][targetWidth];
+        int[] rowPixels = new int[targetWidth];
         for (int y = 0; y < targetHeight; y++) {
+            scaled.getRGB(0, y, targetWidth, 1, rowPixels, 0, targetWidth);
             for (int x = 0; x < targetWidth; x++) {
-                int argb = scaled.getRGB(x, y);
+                int argb = rowPixels[x];
                 int alpha = (argb >>> 24) & 0xFF;
                 if (alpha < settings.alphaThreshold()) {
                     colors[y][x] = 0;

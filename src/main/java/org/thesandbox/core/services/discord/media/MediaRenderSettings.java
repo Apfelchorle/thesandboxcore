@@ -50,6 +50,10 @@ public record MediaRenderSettings(
             renderStyle = RenderStyle.BRAILLE;
         } else if (style.equalsIgnoreCase("shade")) {
             renderStyle = RenderStyle.SHADE;
+        } else if (style.equalsIgnoreCase("half-block")
+                || style.equalsIgnoreCase("halfblock")
+                || style.equalsIgnoreCase("half_block")) {
+            renderStyle = RenderStyle.HALF_BLOCK;
         } else {
             renderStyle = RenderStyle.BLOCK;
         }
@@ -136,6 +140,11 @@ public record MediaRenderSettings(
         /**
          * Uses {@code ░ ▒ ▓ █} characters for a smoother block-resolution look.
          */
-        SHADE
+        SHADE,
+        /**
+         * Uses upper/lower half blocks to double vertical resolution while
+         * keeping a single foreground color per cell.
+         */
+        HALF_BLOCK
     }
 }
