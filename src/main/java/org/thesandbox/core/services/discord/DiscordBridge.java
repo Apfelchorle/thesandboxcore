@@ -17,6 +17,7 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.events.message.react.MessageReactionAddEvent;
 import net.dv8tion.jda.api.exceptions.ErrorResponseException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.InteractionContextType;
 import net.dv8tion.jda.api.interactions.commands.DefaultMemberPermissions;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -875,7 +876,7 @@ public class DiscordBridge extends ListenerAdapter {
                             .addOptions(
                                     new OptionData(OptionType.STRING, "command", "command to run", true)
                             )
-                            .setGuildOnly(true)
+                            .setContexts(InteractionContextType.GUILD)
             );
         }
 
@@ -883,7 +884,7 @@ public class DiscordBridge extends ListenerAdapter {
             commands.add(
                     /* /update */
                     Commands.slash("update", "Run /update ingame")
-                            .setGuildOnly(true)
+                            .setContexts(InteractionContextType.GUILD)
             );
         }
 
@@ -894,7 +895,7 @@ public class DiscordBridge extends ListenerAdapter {
                             .addOptions(
                                     new OptionData(OptionType.ATTACHMENT, "schem", "a .schem file", true)
                             )
-                            .setGuildOnly(true)
+                            .setContexts(InteractionContextType.GUILD)
             );
         }
 
@@ -902,7 +903,7 @@ public class DiscordBridge extends ListenerAdapter {
             commands.add(
                     // /list – show online player list
                     Commands.slash("list", "Show the online player list, formatted like /list in-game")
-                            .setGuildOnly(true)
+                            .setContexts(InteractionContextType.GUILD)
             );
         }
 
@@ -913,7 +914,7 @@ public class DiscordBridge extends ListenerAdapter {
                             .addOptions(
                                     new OptionData(OptionType.STRING, "username", "Minecraft username to promote", true)
                             )
-                            .setGuildOnly(true)
+                            .setContexts(InteractionContextType.GUILD)
             );
         }
 
@@ -928,7 +929,7 @@ public class DiscordBridge extends ListenerAdapter {
                                         .addChoice("disable", "disable")
                                         .addChoice("status", "status")
                         )
-                        .setGuildOnly(true)
+                        .setContexts(InteractionContextType.GUILD)
                         .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR))
         );
 
@@ -945,7 +946,7 @@ public class DiscordBridge extends ListenerAdapter {
                                             .addChoice("disable", "disable")
                                             .addChoice("status", "status")
                             )
-                            .setGuildOnly(true)
+                            .setContexts(InteractionContextType.GUILD)
                             .setDefaultPermissions(DefaultMemberPermissions.enabledFor(Permission.ADMINISTRATOR))
             );
         }
@@ -1857,7 +1858,7 @@ public class DiscordBridge extends ListenerAdapter {
     private static RoleDisplay roleDisplay(Member m) {
         if (m == null || m.getRoles().isEmpty()) return new RoleDisplay("", "");
         Role top = m.getRoles().getFirst();
-        java.awt.Color c = top.getColor();
+        java.awt.Color c = top.getColors().getPrimary();
         return new RoleDisplay(top.getName(), c == null ? "" : toLegacyHex(c));
     }
 
