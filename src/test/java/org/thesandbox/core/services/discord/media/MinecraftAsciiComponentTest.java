@@ -26,11 +26,11 @@ class MinecraftAsciiComponentTest {
 
     @Test
     void oversizedResultIsGuarded() {
-        int[][] colors = new int[65][64];
+        int[][] colors = new int[300][300];
         for (int[] row : colors) {
             for (int i = 0; i < row.length; i++) row[i] = 0xFFFF0000;
         }
-        ImageToAscii.Result result = new ImageToAscii.Result(64, 65, colors);
+        ImageToAscii.Result result = new ImageToAscii.Result(300, 300, colors);
         Component built = MinecraftAsciiComponent.build(result, settings(MediaRenderSettings.RenderStyle.BLOCK));
         assertFalse(built.toString().isBlank());
         assertTrue(built.toString().contains("too large"));
