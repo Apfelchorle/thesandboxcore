@@ -114,10 +114,10 @@ dependencies {
         add('implementation', 'org.codehaus.plexus:plexus-utils:4.0.3') {
             because 'Security patch'
         }
-        add('implementation', 'org.apache.commons:commons-lang3:3.20.0') {
+        add('implementation', 'org.apache.commons:commons-lang3:3.22.0') {
             because 'i said so'
         }
-        add('implementation', 'com.fasterxml.jackson.core:jackson-core:2.21.4') {
+        add('implementation', 'com.fasterxml.jackson.core:jackson-core:2.23.0') {
             because 'i said so'
         }
         add('implementation', 'org.apache.logging.log4j:log4j-api:2.26.1') {
@@ -135,8 +135,8 @@ dependencies {
     }
 
     compileOnly 'com.github.retrooper:packetevents-spigot:2.13.0'
-    compileOnly 'io.papermc.paper:paper-api:26.1.2.build.63-stable'
-    compileOnly 'net.luckperms:api:5.4'
+    compileOnly 'io.papermc.paper:paper-api:26.3.build.253-stable'
+    compileOnly 'net.luckperms:api:5.5'
     compileOnly('net.essentialsx:EssentialsX:2.20.1') {
         exclude group: 'org.spigotmc', module: 'spigot-api'
     }
@@ -145,25 +145,25 @@ dependencies {
     compileOnly 'com.github.LeonMangler:PremiumVanishAPI:2.9.18-2'
     compileOnly 'litebans:api:0.6.1'
 
-    implementation 'com.zaxxer:HikariCP:5.1.0'
+    implementation 'com.zaxxer:HikariCP:7.1.0'
     implementation 'com.mysql:mysql-connector-j:9.3.0'
 
-    implementation('net.dv8tion:JDA:5.0.0') {
+    implementation('net.dv8tion:JDA:6.7.0') {
         exclude group: 'org.slf4j', module: 'slf4j-simple'
         exclude group: 'club.minnced', module: 'opus-java'
     }
 
     // Extra ImageIO readers for the Discord image-to-ASCII renderer.
     implementation 'com.twelvemonkeys.imageio:imageio-jpeg:3.12.0'
-    implementation 'com.twelvemonkeys.imageio:imageio-webp:3.12.0'
-    implementation 'com.twelvemonkeys.imageio:imageio-tiff:3.12.0'
-    implementation 'com.twelvemonkeys.imageio:imageio-bmp:3.12.0'
-    implementation 'com.twelvemonkeys.imageio:imageio-psd:3.12.0'
+    implementation 'com.twelvemonkeys.imageio:imageio-webp:3.15.3'
+    implementation 'com.twelvemonkeys.imageio:imageio-tiff:3.15.3'
+    implementation 'com.twelvemonkeys.imageio:imageio-bmp:3.15.3'
+    implementation 'com.twelvemonkeys.imageio:imageio-psd:3.15.3'
     implementation 'com.twelvemonkeys.imageio:imageio-tga:3.12.0'
 
     // Unit tests. Paper API is only needed so settings records and other
     // classes that mention Bukkit types can be loaded on the test classpath.
-    testImplementation 'io.papermc.paper:paper-api:26.1.2.build.63-stable'
+    testImplementation 'io.papermc.paper:paper-api:26.3.build.253-stable'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
