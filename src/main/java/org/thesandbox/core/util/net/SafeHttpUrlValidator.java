@@ -1,5 +1,7 @@
 package org.thesandbox.core.util.net;
 
+import org.jspecify.annotations.NonNull;
+
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -48,6 +50,27 @@ public final class SafeHttpUrlValidator {
             throw new IllegalArgumentException("Invalid URL", malformed);
         }
 
+        String normalizedHost = getNormalizedHost(uri);
+
+        final InetAddress[] addresses;
+        try {
+            addresses = InetAddress.getAllByName(normalizedHost);
+        } catch (UnknownHostException unresolved) {
+            throw new IllegalArgumentException("Could not resolve host", unresolved);
+        }
+        if (addresses.length == 0) {
+            throw new IllegalArgumentException("Could not resolve host");
+        }
+
+        for (InetAddress address : addresses) {
+            if (isBlockedAddress(address)) {
+                throw new IllegalArgumentException("URL resolves to a non-public address");
+            }
+        }
+        return uri;
+    }
+
+    private static @NonNull String getNormalizedHost(URI uri) {
         String scheme = uri.getScheme();
         if (scheme == null
                 || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
@@ -78,23 +101,7 @@ public final class SafeHttpUrlValidator {
                 || normalizedHost.endsWith(".internal")) {
             throw new IllegalArgumentException("Local host names are not allowed");
         }
-
-        final InetAddress[] addresses;
-        try {
-            addresses = InetAddress.getAllByName(normalizedHost);
-        } catch (UnknownHostException unresolved) {
-            throw new IllegalArgumentException("Could not resolve host", unresolved);
-        }
-        if (addresses.length == 0) {
-            throw new IllegalArgumentException("Could not resolve host");
-        }
-
-        for (InetAddress address : addresses) {
-            if (isBlockedAddress(address)) {
-                throw new IllegalArgumentException("URL resolves to a non-public address");
-            }
-        }
-        return uri;
+        return normalizedHost;
     }
 
     /**
@@ -137,10 +144,8 @@ public final class SafeHttpUrlValidator {
             }
 
             // 2001:db8::/32 — documentation range.
-            if (first == 0x20 && second == 0x01
-                    && (bytes[2] & 0xFF) == 0x0D && (bytes[3] & 0xFF) == 0xB8) {
-                return true;
-            }
+            return first == 0x20 && second == 0x01
+                    && (bytes[2] & 0xFF) == 0x0D && (bytes[3] & 0xFF) == 0xB8;
         }
         return false;
     }
@@ -160,7 +165,6 @@ public final class SafeHttpUrlValidator {
         if (a == 198 && (b == 18 || b == 19)) return true;  // benchmarking
         if (a == 198 && b == 51 && c == 100) return true;   // documentation
         if (a == 203 && b == 0 && c == 113) return true;    // documentation
-        if (a >= 224) return true;                          // multicast/reserved
-        return false;
+        return a >= 224;                          // multicast/reserved
     }
 }
