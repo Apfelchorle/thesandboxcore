@@ -23,7 +23,7 @@ import org.thesandbox.core.util.colors.Colors;
  */
 public final class MinecraftAsciiComponent {
 
-    private static final int MAX_RENDERED_CELLS = 4096;
+    private static final int MAX_RENDERED_CELLS = 4096*16;
     private static final char BRAILLE_BASE = 0x2800;
     private static final char[] SHADE_CHARS = {' ', '░', '▒', '▓', '█'};
 
