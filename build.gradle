@@ -135,7 +135,7 @@ dependencies {
     }
 
     compileOnly 'com.github.retrooper:packetevents-spigot:2.13.0'
-    compileOnly 'io.papermc.paper:paper-api:26.3.build.253-stable'
+    compileOnly 'io.papermc.paper:paper-api:26.3.build.255-stable'
     compileOnly 'net.luckperms:api:5.5'
     compileOnly('net.essentialsx:EssentialsX:2.20.1') {
         exclude group: 'org.spigotmc', module: 'spigot-api'
@@ -163,7 +163,7 @@ dependencies {
 
     // Unit tests. Paper API is only needed so settings records and other
     // classes that mention Bukkit types can be loaded on the test classpath.
-    testImplementation 'io.papermc.paper:paper-api:26.3.build.253-stable'
+    testImplementation 'io.papermc.paper:paper-api:26.3.build.255-stable'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.11.4'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
