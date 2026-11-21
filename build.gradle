@@ -146,7 +146,7 @@ dependencies {
     compileOnly 'litebans:api:0.6.1'
 
     implementation 'com.zaxxer:HikariCP:7.1.0'
-    implementation 'com.mysql:mysql-connector-j:9.3.0'
+    implementation 'com.mysql:mysql-connector-j:26.10.0'
 
     implementation('net.dv8tion:JDA:6.7.0') {
         exclude group: 'org.slf4j', module: 'slf4j-simple'
