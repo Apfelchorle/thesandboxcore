@@ -111,7 +111,7 @@ dependencies {
     compileOnly platform('io.netty:netty-bom:4.2.21.Final')
 
     constraints {
-        add('implementation', 'org.codehaus.plexus:plexus-utils:4.0.3') {
+        add('implementation', 'org.codehaus.plexus:plexus-utils:4.2.0') {
             because 'Security patch'
         }
         add('implementation', 'org.apache.commons:commons-lang3:3.22.0') {
